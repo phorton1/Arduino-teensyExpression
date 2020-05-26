@@ -15,7 +15,7 @@
     // pins in H file for visibility
 
 
-#define USE_BUTTON_SCAN_TIMER  0
+#define USE_BUTTON_SCAN_TIMER  1
     // does the button scans using an interrupt based timer
     // that pre-empts the main thread.  Care must be taken
     // to not do anything time consuming in the client
