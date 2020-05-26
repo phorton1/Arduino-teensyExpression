@@ -114,6 +114,7 @@ void setup()
     }
 
     buttons.setButtonEventMask(0,4,BUTTON_EVENT_PRESS | BUTTON_EVENT_CLICK | BUTTON_EVENT_LONG_CLICK);
+    buttons.setButtonEventMask(4,4,BUTTON_EVENT_PRESS | BUTTON_EVENT_RELEASE | BUTTON_EVENT_LONG_CLICK);
     
     buttons.begin();
 
@@ -147,7 +148,12 @@ void inoHandleButtonEvent(void *obj, int row, int col, int event)
         
     if (row < 3)
     {
-        if (event == BUTTON_EVENT_CLICK)
+        if (event == BUTTON_EVENT_LONG_CLICK)
+        {
+            setLED(row,col,PINK);
+            mode = 1;
+        }
+        else if (event == BUTTON_EVENT_CLICK)
         {
             for (int r=0; r<3; r++)
                 for (int c=0; c<NUM_BUTTON_COLS; c++)
@@ -155,30 +161,45 @@ void inoHandleButtonEvent(void *obj, int row, int col, int event)
                         setLED(r,c,0);
             setLED(row,col,BLUE);
         }
-        if (event == BUTTON_EVENT_LONG_CLICK)
-        {
-            setLED(row,col,PINK);
-            mode = 1;
-        }
         
     }
         
     if (row == 3)
     {
-        static bool toggle[5] = {0,0,0,0,0};
         if (event == BUTTON_EVENT_CLICK)
         {
+            static bool toggle[5] = {0,0,0,0,0};
             toggle[col] = !toggle[col];
             setLED(row,col,toggle[col]?GREEN:0);
         }
     }
     if (row == 4)
     {
-        for (int j=0; j<NUM_BUTTON_COLS; j++)
-            if (j != col)
-                setLED(row,j,YELLOW);
-        if (event == BUTTON_EVENT_RELEASE)
-            setLED(row,col,RED);
+        static bool touched[5] = {0,0,0,0,0};
+        static bool was_cleared = false;
+        if (event == BUTTON_EVENT_LONG_CLICK)
+        {
+            was_cleared = true;
+            for (int j=0; j<NUM_BUTTON_COLS; j++)
+            {
+                setLED(row,j,0);
+                touched[j] = false;
+            }
+        }
+        else if (event == BUTTON_EVENT_RELEASE)
+        {
+            if (was_cleared)
+                was_cleared = false;
+            else
+            {
+                for (int j=0; j<NUM_BUTTON_COLS; j++)
+                    if (j != col)
+                        if (touched[j])
+                            setLED(row,j,YELLOW);
+                setLED(row,col,RED);
+                touched[col] = true;
+            }
+        }
     }
     
     showLEDs();
