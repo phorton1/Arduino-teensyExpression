@@ -1,32 +1,14 @@
 // leds.show() with 30 takes about 2.2 ms
 // initial design for touch screen ... LCD uses 
 
+#include <myDebug.h>
+#include "myLeds.h"
+#include "expSystem.h"
+#include "oldRigConfig.h"
+#include "testConfig.h"
 
-
-#define WITH_SYSTEM      1
-
-#if WITH_SYSTEM
-    #include <myDebug.h>
-    #include "myLeds.h"
-    #include "expSystem.h"
-    #include "oldRigConfig.h"
-    #include "testConfig.h"
-#endif
-
-#define WITH_TFT         1      // Teensy 320x400 ILI9341/XPT2046 touch screen
-#define WITH_MIDI_HOST   0
-
-
-#if WITH_MIDI_HOST
-    #include <USBHost_t36.h>
-    
-    USBHost myusb;
-    USBHub hub1(myusb);
-    USBHub hub2(myusb);
-    MIDIDevice midi1(myusb);
-    
-    #define DEBUG_MIDI_HOST 0
-#endif
+#define WITH_TFT              1      // Teensy 320x400 ILI9341/XPT2046 touch screen
+#define WITH_MIDI_HOST        1
 
 
 // note I re-ordered to BUTTON_OUT pins
@@ -108,37 +90,41 @@
 #endif
 
 
+#if WITH_MIDI_HOST
+    #include <USBHost_t36.h>
+    
+    USBHost myusb;
+    USBHub hub1(myusb);
+    USBHub hub2(myusb);
+    MIDIDevice midi1(myusb);
+#endif
+
 
 
 //-----------------------------------------------------------
 // setup
 //-----------------------------------------------------------
 
-#if WITH_SYSTEM
-    expSystem *s_pTheSystem;
-#endif
+expSystem *s_pTheSystem;
 
 
 void setup()
 {
     Serial.begin(115200);
-    delay(1500);
-    Serial.println("started");
 
+#if WITH_MIDI_HOST
     // Wait 1.5 seconds before turning on USB Host.  If connected USB devices
     // use too much power, Teensy at least completes USB enumeration, which
     // makes isolating the power issue easier.
 
-#if WITH_MIDI_HOST
+    delay(1500);
+    display(0,"Initializing USB Hos ....",0);
     delay(10);
     myusb.begin();
     midi1.setHandleNoteOn(myNoteOn);
     midi1.setHandleNoteOff(myNoteOff);
 #endif    
 
-#if WITH_SYSTEM
-   
-    delay(1200);
     display(0,"teensyExpression 1.0 started ..",0);
     
     initLEDs();
@@ -173,10 +159,13 @@ void setup()
         delay(200);
         tft.fillRect(0, 60, 320, 180, ILI9341_BLACK);
         tft.setCursor(110, 60);
-        tft.print("Ready!!");
+        tft.println("Ready");
         clearLEDs();
         showLEDs();    
-
+        delay(1200);
+        tft.fillScreen(ILI9341_BLACK);
+        tft.setFont(Arial_10);
+        tft.setCursor(0,0);
         
     #endif
 
@@ -184,9 +173,8 @@ void setup()
     s_pTheSystem->addConfig(new oldRigConfig(s_pTheSystem));
     s_pTheSystem->addConfig(new testConfig(s_pTheSystem));
     s_pTheSystem->begin();
-
-#endif    
 }
+
 
 
 //-----------------------------------------
@@ -195,10 +183,16 @@ void setup()
 
 void loop()
 {
-#if WITH_SYSTEM
+#if WITH_MIDI_HOST
+    myusb.Task();
+    midi1.read();
+#endif
+
     s_pTheSystem->task();
-#endif    
 }
+
+
+
 
 
 
@@ -206,8 +200,8 @@ void loop()
 // midi HOST handlers
 //---------------------------------------
 
-#if WITH_MIDI_HOST
 
+#if WITH_MIDI_HOST
 
     void myNoteOn(byte channel, byte note, byte velocity)
     {
@@ -217,18 +211,25 @@ void loop()
         
         int cable = midi1.getCable();
         if (cable) return;
-
-        //display(0,"Cable=%d  Note on, ch=%d note=%d vel=%d",cable,channel,note,velocity);
-        Serial.print("Cable=");
-        Serial.print(cable,DEC);
-        Serial.print(" Note On, ch=");
-        Serial.print(channel, DEC);
-        Serial.print(", note=");
-        Serial.print(note, DEC);
-        Serial.print(", velocity=");
-        Serial.println(velocity, DEC);        
-        
         usbMIDI.sendNoteOn(note, velocity, channel, cable);
+
+        #if WITH_TFT
+            int16_t x,y;
+            tft.getCursor(&x,&y);
+            if (y > 220)
+            {
+                y = 0;
+                tft.fillScreen(ILI9341_BLACK);
+            }
+            tft.setCursor(0,y);
+            tft.print("Note On  ");
+            tft.setCursor(60,y);
+            tft.print(note,DEC);
+            tft.setCursor(100,y);
+            tft.println(velocity,DEC);
+        #endif
+        
+        // display(0,"Cable=%d  Note on, ch=%d note=%d vel=%d",cable,channel,note,velocity);
     }
     
     
@@ -236,10 +237,26 @@ void loop()
     {
         int cable = midi1.getCable();
         if (cable) return;
+        usbMIDI.sendNoteOff(note, velocity, channel, cable);
         
         //display(0,"Cable=%d  Note off, ch=%d note=%d vel=%d",cable,channel,note,velocity);
+
+        #if WITH_TFT
+            int16_t x,y;
+            tft.getCursor(&x,&y);
+            if (y > 220)
+            {
+                y = 0;
+                tft.fillScreen(ILI9341_BLACK);
+            }
+            tft.setCursor(0,y);
+            tft.print("Note Off");
+            tft.setCursor(160,y);
+            tft.print(note,DEC);
+            tft.setCursor(220,y);
+            tft.println(velocity,DEC);
+        #endif
         
-        usbMIDI.sendNoteOff(note, velocity, channel, cable);
     }
 
 
