@@ -32,7 +32,12 @@ void initLEDs()
     leds.begin();
 }
 
-void setLEDBrightness(unsigned i)   // 0..100
+int getLEDBrightness()
+{
+    return brightness;    
+}
+
+void setLEDBrightness(int i)   // 0..100
 {
     brightness = i;
     showLEDs(true);
@@ -81,3 +86,36 @@ void showLEDs(bool force)
     leds_changed = false;
 }
 
+void LEDFancyStart()
+{
+    for (int row=0; row<NUM_BUTTON_ROWS; row++)
+    {
+        for (int col=0; col<NUM_BUTTON_COLS; col++)
+        {
+            float c = col;
+            float r = row;
+            
+            float red = (c/4) * 255.0;
+            float blue = ((4-c)/4) * 255.0;
+            float green = (r/4) * 255.0;
+            
+            unsigned rr = red;
+            unsigned gg = green;
+            unsigned bb = blue;
+            
+            setLED(row,col,(rr << 16) + (gg << 8) + bb);
+        }
+    }
+}
+
+
+void clearLEDs()
+{
+    for (int row=0; row<NUM_BUTTON_ROWS; row++)
+    {
+        for (int col=0; col<NUM_BUTTON_COLS; col++)
+        {
+            setLED(row,col,0);
+        }
+    }
+}

@@ -1,15 +1,36 @@
 // leds.show() with 30 takes about 2.2 ms
 // initial design for touch screen ... LCD uses 
 
-#include <myDebug.h>
-#include "myLeds.h"
-#include "rawButtonArray.h"
 
 
-void inoHandleButtonEvent(void *obj, int row, int col, int event);
-    // forward
-rawButtonArray buttons(0,inoHandleButtonEvent);
+#define WITH_SYSTEM      1
 
+#if WITH_SYSTEM
+    #include <myDebug.h>
+    #include "myLeds.h"
+    #include "expSystem.h"
+    #include "oldRigConfig.h"
+    #include "testConfig.h"
+#endif
+
+#define WITH_TFT         1      // Teensy 320x400 ILI9341/XPT2046 touch screen
+#define WITH_MIDI_HOST   0
+
+
+#if WITH_MIDI_HOST
+    #include <USBHost_t36.h>
+    
+    USBHost myusb;
+    USBHub hub1(myusb);
+    USBHub hub2(myusb);
+    MIDIDevice midi1(myusb);
+    
+    #define DEBUG_MIDI_HOST 0
+#endif
+
+
+// note I re-ordered to BUTTON_OUT pins
+// and moved the touch IRQ to 14
 
 //----------------------------------------------------------------------
 // DETAILS
@@ -44,81 +65,127 @@ rawButtonArray buttons(0,inoHandleButtonEvent);
 
 
 
+#if WITH_TFT
+    // The pins with their "standard" and alternate mappings are as follows
+    
+    //  1. VCC	      VIN	      VIN	   Power: 3.6 to 5.5 volts
+    //  2. GND	      GND	      GND	
+    //  3. CS	      10	      21	   Alternate Pins: 9, 15, 20, 21
+    //  4. RESET	  +3.3V	      +3.3V	
+    //  5. D/C	      9	          20	   Alternate Pins: 10, 15, 20, 21
+    //  6. SDI(MOSI)  11 (DOUT)	  7	
+    //  7. SCK	      13 (SCK)	  14	
+    //  8. LED	      VIN	      VIN	   Use 100 ohm resistor
+    //  9. SDO(MISO)  12 (DIN)	  12	
+    // 10. T_CLK      13 (SCK)	  14	
+    // 11. T_CS	      8	          8	       Alternate: any digital pin
+    // 12. T_DIN      11 (DOUT)	  7	
+    // 13. T_DO	      12 (DIN)	  12	
+    // 14. T_IRQ      2	          2	       Optional: can use any digital pin   
+    
+    #include "SPI.h"
+    #include "ILI9341_t3.h"
+    
+    #include <font_Arial.h>
+    #include <font_ArialBold.h>
+    #include <font_ArialItalic.h>
+    #include <font_ArialBoldItalic.h>    
+   
+    // We Connect
+    // CS to 10
+    // DC to 9
+    // SDI to 11
+    // SCK to 13
+    // SDO to 12
+    
+    // only named pins in program 
+    
+    #define TFT_CS 10
+    #define TFT_DC  9
+    
+    ILI9341_t3 tft = ILI9341_t3(TFT_CS, TFT_DC);
+    
+#endif
+
+
 
 
 //-----------------------------------------------------------
 // setup
 //-----------------------------------------------------------
 
+#if WITH_SYSTEM
+    expSystem *s_pTheSystem;
+#endif
+
+
 void setup()
 {
     Serial.begin(115200);
+    delay(1500);
+    Serial.println("started");
+
+    // Wait 1.5 seconds before turning on USB Host.  If connected USB devices
+    // use too much power, Teensy at least completes USB enumeration, which
+    // makes isolating the power issue easier.
+
+#if WITH_MIDI_HOST
+    delay(10);
+    myusb.begin();
+    midi1.setHandleNoteOn(myNoteOn);
+    midi1.setHandleNoteOff(myNoteOff);
+#endif    
+
+#if WITH_SYSTEM
+   
     delay(1200);
-    display(0,"teensyExpression 1.2 started ..",0);
+    display(0,"teensyExpression 1.0 started ..",0);
     
     initLEDs();
-
-    #if 1   // FANCY START
+    LEDFancyStart();
     
-        for (int row=0; row<NUM_BUTTON_ROWS; row++)
+    #if WITH_TFT
+        // display is 320x240
+        
+        tft.begin();
+        tft.setRotation(3);
+        tft.fillScreen(ILI9341_BLACK);
+        tft.setTextColor(ILI9341_WHITE);
+        // tft.setTextSize(3);
+        tft.setCursor(30, 20);
+        tft.setFont(Arial_24);
+        tft.print("teensyExpression");
+        tft.setCursor(40, 60);
+        tft.setFont(Arial_16);
+        tft.setTextColor(ILI9341_YELLOW);
+        tft.print("version 1.0 initializing ...");
+        
+        for (int x=0; x<260; x++)
         {
-            for (int col=0; col<NUM_BUTTON_COLS; col++)
-            {
-                float c = col;
-                float r = row;
-                
-                float red = (c/4) * 255.0;
-                float blue = ((4-c)/4) * 255.0;
-                float green = (r/4) * 255.0;
-                
-                unsigned rr = red;
-                unsigned gg = green;
-                unsigned bb = blue;
-                
-                setLED(row,col,(rr << 16) + (gg << 8) + bb);
-            }
+            float bright = ((float)x)/260.00 * 70;
+            setLEDBrightness((int)bright);
+            showLEDs();    
+
+            tft.fillRect(x+30, 120, 1, 30, ILI9341_BLUE);
+            delay(15);
         }
         
-        for (int b=0; b<70; b++)
-        {
-            setLEDBrightness(b);
-            delay(81-b);
-        }
-        delay(500);
-        for (int b=0; b<15; b++)
-        {
-            setLEDBrightness(50);
-            delay(20);
-            setLEDBrightness(0);
-            delay(80);
-        }
-        setLEDBrightness(80);
-        delay(800);
-        for (int row=0; row<NUM_BUTTON_ROWS; row++)
-        {
-            for (int col=0; col<NUM_BUTTON_COLS; col++)
-            {
-                setLED(row,col,0);
-            }
-        }
-        showLEDs();
+        delay(200);
+        tft.fillRect(0, 60, 320, 180, ILI9341_BLACK);
+        tft.setCursor(110, 60);
+        tft.print("Ready!!");
+        clearLEDs();
+        showLEDs();    
+
+        
     #endif
-    
-    for (int col=0; col<NUM_BUTTON_COLS; col++)
-    {
-        buttons.setButtonEventMask(0,col,BUTTON_EVENT_PRESS | BUTTON_EVENT_CLICK);
-        buttons.setButtonEventMask(1,col,BUTTON_EVENT_PRESS | BUTTON_EVENT_CLICK);
-        buttons.setButtonEventMask(2,col,BUTTON_EVENT_PRESS | BUTTON_EVENT_CLICK);
-        buttons.setButtonEventMask(3,col,BUTTON_EVENT_PRESS | BUTTON_EVENT_CLICK);
-        buttons.setButtonEventMask(4,col,BUTTON_EVENT_PRESS | BUTTON_EVENT_RELEASE);
-    }
 
-    buttons.setButtonEventMask(0,4,BUTTON_EVENT_PRESS | BUTTON_EVENT_CLICK | BUTTON_EVENT_LONG_CLICK);
-    buttons.setButtonEventMask(4,4,BUTTON_EVENT_PRESS | BUTTON_EVENT_RELEASE | BUTTON_EVENT_LONG_CLICK);
-    
-    buttons.begin();
+    s_pTheSystem = new expSystem;
+    s_pTheSystem->addConfig(new oldRigConfig(s_pTheSystem));
+    s_pTheSystem->addConfig(new testConfig(s_pTheSystem));
+    s_pTheSystem->begin();
 
-    
+#endif    
 }
 
 
@@ -128,84 +195,52 @@ void setup()
 
 void loop()
 {
-    // showLEDs();
+#if WITH_SYSTEM
+    s_pTheSystem->task();
+#endif    
 }
 
 
 
-int mode = 0;
+//---------------------------------------
+// midi HOST handlers
+//---------------------------------------
 
-//--------------------------------------------------------
-// Button event handler
-//--------------------------------------------------------
+#if WITH_MIDI_HOST
 
-void inoHandleButtonEvent(void *obj, int row, int col, int event)
-{
-    display(0,"row(%d) col(%d) event(%s)",row,col,rawButtonArray::buttonEventName(event));
-    
-    if (event == BUTTON_EVENT_PRESS)
-        setLED(row,col,WHITE);
-        
-    if (row < 3)
+
+    void myNoteOn(byte channel, byte note, byte velocity)
     {
-        if (event == BUTTON_EVENT_LONG_CLICK)
-        {
-            setLED(row,col,PINK);
-            mode = 1;
-        }
-        else if (event == BUTTON_EVENT_CLICK)
-        {
-            for (int r=0; r<3; r++)
-                for (int c=0; c<NUM_BUTTON_COLS; c++)
-                    if ((r!=row) || (c!=col))
-                        setLED(r,c,0);
-            setLED(row,col,BLUE);
-        }
+        // When a USB device with multiple virtual cables is used,
+        // midi1.getCable() can be used to read which of the virtual
+        // MIDI cables received this message.
         
-    }
+        int cable = midi1.getCable();
+        if (cable) return;
+
+        //display(0,"Cable=%d  Note on, ch=%d note=%d vel=%d",cable,channel,note,velocity);
+        Serial.print("Cable=");
+        Serial.print(cable,DEC);
+        Serial.print(" Note On, ch=");
+        Serial.print(channel, DEC);
+        Serial.print(", note=");
+        Serial.print(note, DEC);
+        Serial.print(", velocity=");
+        Serial.println(velocity, DEC);        
         
-    if (row == 3)
-    {
-        if (event == BUTTON_EVENT_CLICK)
-        {
-            static bool toggle[5] = {0,0,0,0,0};
-            toggle[col] = !toggle[col];
-            setLED(row,col,toggle[col]?GREEN:0);
-        }
-    }
-    if (row == 4)
-    {
-        static bool touched[5] = {0,0,0,0,0};
-        static bool was_cleared = false;
-        if (event == BUTTON_EVENT_LONG_CLICK)
-        {
-            was_cleared = true;
-            for (int j=0; j<NUM_BUTTON_COLS; j++)
-            {
-                setLED(row,j,0);
-                touched[j] = false;
-            }
-        }
-        else if (event == BUTTON_EVENT_RELEASE)
-        {
-            if (was_cleared)
-                was_cleared = false;
-            else
-            {
-                for (int j=0; j<NUM_BUTTON_COLS; j++)
-                    if (j != col)
-                        if (touched[j])
-                            setLED(row,j,YELLOW);
-                setLED(row,col,RED);
-                touched[col] = true;
-            }
-        }
+        usbMIDI.sendNoteOn(note, velocity, channel, cable);
     }
     
-    showLEDs();
-}
-
     
+    void myNoteOff(byte channel, byte note, byte velocity)
+    {
+        int cable = midi1.getCable();
+        if (cable) return;
+        
+        //display(0,"Cable=%d  Note off, ch=%d note=%d vel=%d",cable,channel,note,velocity);
+        
+        usbMIDI.sendNoteOff(note, velocity, channel, cable);
+    }
 
 
-
+#endif

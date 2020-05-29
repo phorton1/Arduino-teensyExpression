@@ -3,29 +3,18 @@
 
 #include <Arduino.h>
 
-// we output a signal to coumns
+#define TEENSY_36
 
-#define BUTTON_OUT_LATCH_PIN        3
-#define BUTTON_OUT_CLOCK_PIN        4
-#define BUTTON_OUT_DATA_PIN         6
-#define BUTTON_IN_LOAD_PIN          7
-#define BUTTON_IN_CLOCK_ENABLE_PIN  15
-#define BUTTON_IN_CLOCK_PIN         16
-#define BUTTON_IN_DATA_PIN          17
-    // pins in H file for visibility
+#ifndef TEENSY_36
+    #define BUTTON_OUT_LATCH_PIN        3
+    #define BUTTON_OUT_CLOCK_PIN        4
+    #define BUTTON_OUT_DATA_PIN         6
+    #define BUTTON_IN_LOAD_PIN          7
+    #define BUTTON_IN_CLOCK_ENABLE_PIN  15
+    #define BUTTON_IN_CLOCK_PIN         16
+    #define BUTTON_IN_DATA_PIN          17
+#endif
 
-
-#define USE_BUTTON_SCAN_TIMER  1
-    // does the button scans using an interrupt based timer
-    // that pre-empts the main thread.  Care must be taken
-    // to not do anything time consuming in the client
-    // handleButtonEventFxn() method, which should defer
-    // drawing and heavy duty UI to the main thread.
-    //
-    // It IS envisioned that simple midi messages CAN
-    // be sent out in respnose to PRESS events and probably
-    // the leds updated .. see discussion of CLICKS vs PRESSes
-    
 
 #define NUM_BUTTON_COLS   5
 #define NUM_BUTTON_ROWS   5
@@ -107,13 +96,13 @@ class rawButtonArray
         rawButtonArray(void *pObj, handleButtonEventFxn *callback);
         
         static const char *buttonEventName(int event);
+        
+        int getButtonEventMask(int row, int col)
+            { return m_buttons[row][col].m_event_mask; }
         void setButtonEventMask(int row, int col, int mask)
             { m_buttons[row][col].m_event_mask = mask;}
         
-        void begin();
-        #if !USE_BUTTON_SCAN_TIMER
-            void task();
-        #endif
+        void task();
         
     private:
         
@@ -121,12 +110,6 @@ class rawButtonArray
         handleButtonEventFxn *m_callback;
         int m_data[NUM_BUTTON_ROWS];
         rawButton m_buttons[NUM_BUTTON_ROWS][NUM_BUTTON_COLS];
-        
-        #if USE_BUTTON_SCAN_TIMER
-            void task();
-            static void timer_handler();
-            IntervalTimer m_timer;
-        #endif
 };
 
 
