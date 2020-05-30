@@ -3,19 +3,6 @@
 
 #include <Arduino.h>
 
-#define TEENSY_36
-
-#ifndef TEENSY_36
-    #define BUTTON_OUT_LATCH_PIN        3
-    #define BUTTON_OUT_CLOCK_PIN        4
-    #define BUTTON_OUT_DATA_PIN         6
-    #define BUTTON_IN_LOAD_PIN          7
-    #define BUTTON_IN_CLOCK_ENABLE_PIN  15
-    #define BUTTON_IN_CLOCK_PIN         16
-    #define BUTTON_IN_DATA_PIN          17
-#endif
-
-
 #define NUM_BUTTON_COLS   5
 #define NUM_BUTTON_ROWS   5
     // origin top left

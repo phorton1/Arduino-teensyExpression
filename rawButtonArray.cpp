@@ -5,11 +5,11 @@
 
 static rawButtonArray *s_pThis = 0;
 
-#ifdef TEENSY_36
-    #define ROW_PIN_BASE   24
-    #define COL_PIN_BASE   29
-#endif
-
+int row_pins[5] = {24,25,26,27,28};
+int col_pins[5] = {29,30,31,32,33};
+    // 32 is used for the LED output pin (on Serial4)
+    // to keep pin 5 open which would otherwise use Serial1
+    
 
     
 #define LONG_PRESS_TIME    800
@@ -40,31 +40,16 @@ rawButtonArray::rawButtonArray(void *pObj, handleButtonEventFxn *callback)
     m_pObj = pObj;
     m_callback = callback;
 
-    #ifdef TEENSY_36
-        for (int row=0; row<NUM_BUTTON_ROWS; row++)
-        {
-            pinMode(ROW_PIN_BASE+row,OUTPUT);
-            digitalWrite(ROW_PIN_BASE+row,0);
-        }
-        for (int col=0; col<NUM_BUTTON_COLS; col++)
-            pinMode(COL_PIN_BASE+col,INPUT_PULLDOWN);
-    #else
-        pinMode(BUTTON_OUT_LATCH_PIN,OUTPUT);
-        pinMode(BUTTON_OUT_CLOCK_PIN,OUTPUT);
-        pinMode(BUTTON_OUT_DATA_PIN,OUTPUT);
-        pinMode(BUTTON_IN_LOAD_PIN,OUTPUT);
-        pinMode(BUTTON_IN_CLOCK_ENABLE_PIN,OUTPUT);
-        pinMode(BUTTON_IN_CLOCK_PIN,OUTPUT);
-        pinMode(BUTTON_IN_DATA_PIN,INPUT_PULLUP);
-    
-        digitalWrite(BUTTON_OUT_CLOCK_PIN, HIGH);
-        digitalWrite(BUTTON_OUT_LATCH_PIN, HIGH);
-        digitalWrite(BUTTON_IN_LOAD_PIN, HIGH);
-        digitalWrite(BUTTON_IN_CLOCK_ENABLE_PIN, HIGH);
-        digitalWrite(BUTTON_IN_CLOCK_PIN, HIGH);
-    #endif
-    
     display(0,"rawButtonArray::begin()",0);
+
+    for (int row=0; row<NUM_BUTTON_ROWS; row++)
+    {
+        pinMode(row_pins[row],OUTPUT);
+        digitalWrite(row_pins[row],0);
+    }
+    for (int col=0; col<NUM_BUTTON_COLS; col++)
+        pinMode(col_pins[col],INPUT_PULLDOWN);
+    
 #if DO_DEBOUNCE
     display(0,"    WITH DEBOUNCE!",0);
 #else
@@ -113,64 +98,10 @@ void rawButtonArray::task()
         return;
     }
     
-    // scan the button array for new raw data
-    // this loop is done in reverse order because I hooked
-    // the pins for rows4..0 to the 595 output pins 0..4
-    // as the wires most naturally fit coming out of the pedal
-    
-
-    #define TIME_BUTTON_SCAN  0
-
-    #if TIME_BUTTON_SCAN
-        elapsedMillis scan_time;
-        for (int j=0; j<1000; j++)
-        {
-    #endif
-
-    #ifndef TEENSY_36
-        unsigned data[8];
-        for (int row=NUM_BUTTON_ROWS-1; row>=0; row--)
-        {
-            // send out one bit at a time, starting with a one,
-            // then subsequntly zeros (not using shiftOut());
-            // This is faster, plus there was a bug with shiftOut...
-            // it just did not work as advertised with MSB, LSB, and all masks.
-    
-            digitalWrite(BUTTON_OUT_LATCH_PIN, LOW);                 // disable the latch
-            digitalWrite(BUTTON_OUT_DATA_PIN, row==0 ? HIGH : LOW);
-            digitalWrite(BUTTON_OUT_CLOCK_PIN, LOW);                 // pulse the clock pin
-            delayMicroseconds(5);
-            digitalWrite(BUTTON_OUT_CLOCK_PIN, HIGH);                
-            digitalWrite(BUTTON_OUT_LATCH_PIN, HIGH);                // latch out the data
-            
-            #ifdef OBSOLETE_BUTTON_CODE   // old code using shiftOut
-                digitalWrite(BUTTON_OUT_LATCH_PIN, LOW);
-                shiftOut(BUTTON_OUT_DATA_PIN, BUTTON_OUT_CLOCK_PIN, LSBFIRST, mask);
-                digitalWrite(BUTTON_OUT_LATCH_PIN, HIGH);
-            #endif
-            
-            digitalWrite(BUTTON_IN_LOAD_PIN, LOW);
-            delayMicroseconds(5);
-            digitalWrite(BUTTON_IN_LOAD_PIN, HIGH);
-            delayMicroseconds(5);
-            
-            digitalWrite(BUTTON_IN_CLOCK_PIN, HIGH);
-            digitalWrite(BUTTON_IN_CLOCK_ENABLE_PIN, LOW);
-            data[row] = shiftIn(BUTTON_IN_DATA_PIN, BUTTON_IN_CLOCK_PIN, LSBFIRST);
-            digitalWrite(BUTTON_IN_CLOCK_ENABLE_PIN, HIGH);
-        }
-        // I do a separate loop through rows to keep the scan and processing
-        // code cleaner separate.  Each button has it's own debounce time.
-    #endif
-    
-    
-    
     unsigned time = millis();
     for (int row=0; row<NUM_BUTTON_ROWS; row++)
     {
-        #ifdef TEENSY_36
-            digitalWrite(ROW_PIN_BASE+row,1);
-        #endif
+        digitalWrite(row_pins[row],1);
         
         for (int col=0; col<NUM_BUTTON_COLS; col++)
         {
@@ -180,11 +111,7 @@ void rawButtonArray::task()
                 if (time > pButton->m_debounce_time)
             #endif
             {
-                #ifdef TEENSY_36
-                    bool is_pressed = digitalRead(COL_PIN_BASE+col);
-                #else
-                    bool is_pressed = data[row] & (1 << (NUM_BUTTON_COLS-col-1));
-                #endif
+                bool is_pressed = digitalRead(col_pins[col]);
                 
                 // if state changed, save new bit to data
                 // and process the button
@@ -257,17 +184,10 @@ void rawButtonArray::task()
             }
         }   // for each col
         
-        #ifdef TEENSY_36
-            digitalWrite(ROW_PIN_BASE+row,0);
-        #endif
+        //delay(200);
+        digitalWrite(row_pins[row],0);
         
     }   // for each row
-    
-    #if TIME_BUTTON_SCAN
-        }
-        display(0,"1000 button scans took: %d ms",(int)scan_time);
-    #endif
-    
 }
 
 

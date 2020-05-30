@@ -3,6 +3,9 @@
 
 #include "rawButtonArray.h"
 
+#define USE_SERIAL_TO_RPI   0
+
+
 class expSystem;
 class expConfig;
     // forwards

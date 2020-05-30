@@ -1,3 +1,130 @@
+
+#if WITH_EXPRESSION_PEDAL
+
+    #define CALIB_MARGIN 10
+        // added to top and bottom to give
+        // "safe" 0 and 127 values
+    
+    void calibrate()
+    {
+        int raw_value = analogRead(pedals[calibrate_pedal].pin);
+        if (raw_value-CALIB_MARGIN > pedals[calibrate_pedal].calib_max)
+        {
+            // display(0,"max:%d",raw_value);
+            pedals[calibrate_pedal].calib_max = raw_value - CALIB_MARGIN;
+            if (pedals[calibrate_pedal].calib_max < 0)
+                pedals[calibrate_pedal].calib_max =0;
+        }
+        if (raw_value + CALIB_MARGIN < pedals[calibrate_pedal].calib_min)
+        {
+            // display(0,"min:%d",raw_value);
+            pedals[calibrate_pedal].calib_min = raw_value + CALIB_MARGIN;
+            if (pedals[calibrate_pedal].calib_min > 1023)
+                pedals[calibrate_pedal].calib_min = 1023;
+        }
+        if (blink_time > (blink_state ? CALIBRATE_BLINK_ON_TIME : CALIBRATE_BLINK_OFF_TIME))
+        {
+            blink_time = 0;
+            blink_state = !blink_state;
+            digitalWrite(PIN_ONBOARD_LED,blink_state);
+        }
+    }
+    
+    void startCalibrate(int pedal)
+    {
+        #if WITH_SERIAL
+            display(0,"CALIBRATE %s",pedals[pedal].name);
+        #endif
+        calibrate_pedal = pedal;
+        calibrate_time = 0;
+        pedals[pedal].calib_min = 1023;
+        pedals[pedal].calib_max = 0;
+    }
+    
+    
+    #define HYSTERISIS   30
+    
+    int getValue(int pedal)
+    {
+        static int direction = 0;
+        static elapsedMillis settle_time = 0;
+        
+        int raw_value = analogRead(pedals[0].pin);
+        int pedal_raw = pedals[0].raw_value;
+        
+        if (!direction)
+        {
+            if (raw_value > pedal_raw + HYSTERISIS)
+            {
+                direction = 1;
+                pedal_raw = raw_value;
+                settle_time = 0;
+            }
+            else if (raw_value < pedal_raw - HYSTERISIS)
+            {
+                direction = -1;
+                pedal_raw = raw_value;
+                settle_time = 0;
+            }
+        }
+        else if (settle_time > 50)
+        {
+            settle_time = 0;
+            direction = 0;
+        }
+        else if (direction > 0 && raw_value > pedal_raw)
+        {
+            pedal_raw = raw_value;
+            settle_time = 0;
+        }
+        else if (direction < 0 && raw_value < pedal_raw)
+        {
+            pedal_raw = raw_value;
+            settle_time = 0;
+        }
+        pedals[pedal].raw_value = pedal_raw;
+        
+        int value = map(pedal_raw,pedals[pedal].calib_min,pedals[pedal].calib_max,0,127);
+        if (value > 127) value=127;
+        if (value < 0) value=0;
+        return value;
+    }
+    
+#endif
+
+
+    
+    #if WITH_EXPRESSION_PEDAL
+        if (monitor.rpiReady())
+        {
+            static int last_value = 0;
+            int value = getValue(0);
+            if (value != last_value)
+            {
+                last_value = value;
+                display(0,"value=%d",value);
+                
+                char buf[5];
+                buf[0] = pedals[0].cable;       // cable
+                buf[1] = pedals[0].channel;     // channel
+                buf[2] = 0x0B;                  // msg
+                buf[3] = pedals[0].cc_num;      // param1
+                buf[4] = value;
+                Serial1.write(buf,5);
+                
+                #if WITH_MIDI
+                    usbMIDI.sendControlChange(      // sends 0xB0 message
+                        pedals[0].cc_num,           // to given cc_num
+                        value,          
+                        pedals[0].channel,          // to given channel
+                        pedals[0].cable);           // on given cable
+                #endif
+            }
+        }
+    #endif
+    
+
+
 // leds.show() with 30 takes about 2.2 ms
 // initial design for touch screen ... LCD uses 
 

@@ -16,6 +16,35 @@
 //   Teensy 3.6:  1, 5, 8, 10, 26, 32, 33
 
 #define LED_PIN          5
+    // Note that choosing to use pin 5 eats up Serial1
+    // hence why we have to use Serial3 in teensyExpression.ino
+    // Pauls Notes:
+    //
+    //      Non-blocking performance does come with a cost.  15 bytes of memory are required
+    //      per LED, rather than the usual 3 bytes with [FastLED](http://fastled.io/) or
+    //      [Adafruit NeoPixel](https://github.com/adafruit/Adafruit_NeoPixel).  One of
+    //      the [hardware serial ports](https://www.pjrc.com/teensy/td_uart.html) is also
+    //      used to transmit the data, making that port unavailable for other uses.
+    //      
+    //      ## Supported Pins & Serial Ports
+    //      
+    //      | Port    | Teensy LC   | Teensy 3.2 | Teensy 3.5 | Teensy 3.6 |
+    //      | :------ | :---------: | :--------: | :--------: | :--------: |
+    //      | Serial1 | 1, 4, 5, 24 | 1, 5       | 1, 5, 26   | 1, 5, 26   |
+    //      | Serial2 |             | 10, 31     | 10         | 10         |
+    //      | Serial3 |             | 8          | 8          | 8          |
+    //      | Serial4 |             |            | 32         | 32         |
+    //      | Serial5 |             |            | 33         | 33         |
+    //      | Serial6 |             |            | 48         |            |
+    //      
+    //      Serial2 & Serial3 on Teensy LC are not supported, due to lack of configurable
+    //      oversampling needed to run at the high speed required.
+    //      
+    //      Serial3-Serial6 should be used only with CPU speeds 120 or 180 MHz.
+    //      
+    //      Serial6 on Teensy 3.6 is not currently supported, due to different hardware
+    //      registers.    
+    
 #define NUM_LEDS         (NUM_BUTTON_ROWS * NUM_BUTTON_COLS)
 
 

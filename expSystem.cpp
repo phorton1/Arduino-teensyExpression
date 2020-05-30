@@ -1,3 +1,4 @@
+
 #include <myDebug.h>
 #include "expSystem.h"
 #include "myLeds.h"
@@ -233,6 +234,15 @@ void expSystem::staticButtonEventHandler(void *obj, int row, int col, int event)
 void expSystem::buttonEventHandler(int row, int col, int event)
 {
     display(0,"expSystem(%d,%d) event(%s)",row,col,rawButtonArray::buttonEventName(event));
+    
+    #ifdef USE_SERIAL_TO_RPI
+        Serial3.print("E row(");
+        Serial3.print(row,DEC);
+        Serial3.print(") col(");
+        Serial3.print(col,DEC);
+        Serial3.print(") event:");
+        Serial3.println(rawButtonArray::buttonEventName(event));
+    #endif
     
     // handle changes to systemConfig
     
