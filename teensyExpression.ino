@@ -115,9 +115,9 @@
     #include "ILI9341_t3.h"
     
     #include <font_Arial.h>
-    #include <font_ArialBold.h>
-    #include <font_ArialItalic.h>
-    #include <font_ArialBoldItalic.h>    
+    // #include <font_ArialBold.h>
+    // #include <font_ArialItalic.h>
+    // #include <font_ArialBoldItalic.h>    
    
     // only named pins used by tft display
     // others are default SPI library, vcc, ground, etc
@@ -186,7 +186,7 @@ void setup()
         mylcd.Set_Text_colour(TFT_WHITE);
         mylcd.setFont(Arial_32);
         mylcd.Set_Text_Size(4);
-        mylcd.Print_String("teensyExpression", 30, 60);
+        mylcd.Print_String("teensyExpression", 55, 60);
 
         mylcd.Set_Text_colour(TFT_YELLOW);
         mylcd.setFont(Arial_24);
@@ -242,6 +242,8 @@ void setup()
         #if WITH_CHEAP_TFT
             mylcd.Fill_Rect(40,110,400,100,0);
             mylcd.Print_String("Ready", 180, 110);
+            mylcd.setDefaultFont();
+            mylcd.Set_Text_Size(2);
         #endif
         
         #if WITH_TFT
@@ -295,6 +297,13 @@ void loop()
     #if WITH_SYSTEM
         s_pTheSystem->task();
     #endif
+    
+    #if WITH_CHEAP_TFT
+        static int counter = 0;
+        mylcd.Set_Text_Cursor(170,200);
+        mylcd.print(counter++,DEC);
+    #endif
+
 }
 
 
