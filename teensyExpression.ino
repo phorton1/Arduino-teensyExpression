@@ -3,7 +3,7 @@
 
 #define WITH_SYSTEM           1
 #define WITH_TFT              0      // Teensy 320x400 ILI9341/XPT2046 touch screen
-#define WITH_MIDI_HOST        0
+#define WITH_MIDI_HOST        1
 #define WITH_CHEAP_TFT        1
 
 #define VERSION   "1.2"
@@ -72,6 +72,7 @@
 #if WITH_CHEAP_TFT
     #include <LCDWIKI_GUI.h> //Core graphics library
     #include <LCDWIKI_KBV.h> //Hardware-specific library
+    #include <font_Arial.h>
     
     LCDWIKI_KBV mylcd(ILI9486,37,36,35,34,38); //model,cs,cd,wr,rd,reset
     
@@ -180,16 +181,19 @@ void setup()
         mylcd.Set_Rotation(3);
         mylcd.Fill_Screen(0);
         mylcd.Set_Text_Mode(0);
-        mylcd.Set_Text_colour(TFT_WHITE);
         mylcd.Set_Text_Back_colour(0); 
 
+        mylcd.Set_Text_colour(TFT_WHITE);
+        mylcd.setFont(Arial_32);
         mylcd.Set_Text_Size(4);
         mylcd.Print_String("teensyExpression", 30, 60);
+
         mylcd.Set_Text_colour(TFT_YELLOW);
+        mylcd.setFont(Arial_24);
         mylcd.Set_Text_Size(2);
-        mylcd.Print_String("version", 60, 110);
-        mylcd.Print_String(VERSION, 155, 110);
-        mylcd.Print_String("initializing ...", 200, 110);
+        mylcd.Print_String("version ", 60, 110);
+        mylcd.print(VERSION);
+        mylcd.print(" initializing ...");
     #endif
     
     #if WITH_TFT
