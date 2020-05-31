@@ -170,15 +170,15 @@ void oldRigConfig::begin()
              (BUTTON_EVENT_CLICK | BUTTON_EVENT_LONG_CLICK) : 
              (BUTTON_EVENT_PRESS | BUTTON_EVENT_RELEASE) );
         
-        setLED(3,col,m_effect_toggle[col] ? GREEN : 0);
-        setLED(4,col,m_loop_touched[col] ? m_loop_last_touched==col ? RED : YELLOW : 0);
+        setLED(3,col,m_effect_toggle[col] ? LED_GREEN : 0);
+        setLED(4,col,m_loop_touched[col] ? m_loop_last_touched==col ? LED_RED : LED_YELLOW : 0);
     }
 
     if (m_cur_patch_num >= 0)
     {
         int row = m_cur_patch_num / NUM_BUTTON_COLS;
         int col = m_cur_patch_num % NUM_BUTTON_COLS;
-        setLED(row,col,BLUE);
+        setLED(row,col,LED_BLUE);
     }
 
     showLEDs();
@@ -197,7 +197,7 @@ void oldRigConfig::buttonEventHandler(int row, int col, int event)
             int r = m_cur_patch_num / NUM_BUTTON_COLS;
             int c = m_cur_patch_num % NUM_BUTTON_COLS;
             setLED(r,c,0);
-            setLED(row,col,BLUE);
+            setLED(row,col,LED_BLUE);
             m_cur_patch_num = new_patch_num;
         }
     }
@@ -208,7 +208,7 @@ void oldRigConfig::buttonEventHandler(int row, int col, int event)
             guitar_effect_ccs[col],
             m_effect_toggle[col] ? 0x7f : 0x00,
             GUITAR_EFFECTS_CHANNEL);
-        setLED(row,col,m_effect_toggle[col] ? GREEN : 0);
+        setLED(row,col,m_effect_toggle[col] ? LED_GREEN : 0);
     }
     else if (row == 4)
     {
@@ -262,8 +262,8 @@ void oldRigConfig::buttonEventHandler(int row, int col, int event)
 
 
                 if (m_loop_last_touched != -1)
-                    setLED(row,m_loop_last_touched,YELLOW);
-                setLED(row,col,RED);
+                    setLED(row,m_loop_last_touched,LED_YELLOW);
+                setLED(row,col,LED_RED);
                 m_loop_touched[col] = 1;
                 m_loop_last_touched = col;
             }

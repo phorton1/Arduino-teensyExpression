@@ -1,14 +1,20 @@
-// leds.show() with 30 takes about 2.2 ms
-// initial design for touch screen ... LCD uses 
 
 #include <myDebug.h>
-#include "myLeds.h"
-#include "expSystem.h"
-#include "oldRigConfig.h"
-#include "testConfig.h"
 
-#define WITH_TFT              1      // Teensy 320x400 ILI9341/XPT2046 touch screen
-#define WITH_MIDI_HOST        1
+#define WITH_SYSTEM           1
+#define WITH_TFT              0      // Teensy 320x400 ILI9341/XPT2046 touch screen
+#define WITH_MIDI_HOST        0
+#define WITH_CHEAP_TFT        1
+
+#define VERSION   "1.2"
+
+#if WITH_SYSTEM
+    #include "myLeds.h"
+    #include "expSystem.h"
+    #include "oldRigConfig.h"
+    #include "testConfig.h"
+#endif
+
 
 // Note:  Resistive touch screens are always problematic
 //        and this one, even with Pauls most basic example code
@@ -17,59 +23,92 @@
 //        also confliced with the use of pin8 for Serial3)
 // 
 //----------------------------------------------------------------------
-// DETAILS
+// PIN USAGE
 //----------------------------------------------------------------------
-// PINS FOR ALL              LCD PIN
 //
-//    -2    TOUCH_IRQ           2     Can use any digital pin, wouuld not use interrupts anyways
-//     5    LEDS_OUT                  1, 5, -8, -10, (31), (32) see notes in myLeds.cpp
-//     7    RX3 for Serial3 to rPi
-//     8    TX3 for Serial3 to rPi
-//    -8    TOUCH_CS           11     Had a conflict with 8, trying 35
-//     9    LCD_DC              5
-//    10    LCD_CS              3
-//    11    LCD_SDI (MOSI)      6
-//     -    TOUCH_DIN          12
-//    12    LCD_SDO (MISO)      9
-//     -    TOUCH_DO           13
-//    13    LCD_SCK             7
-//     -    TOUCH_CLK          10
-//   -18    LIQUID_SDA0               A4     
-//   -19    LIQUID_SCL0               A5
-//
-//    20    PIN_EXPR1                 A6
-//    21    PIN_EXPR2                 A7
-//    22    PIN_EXPR1                 A8
-//    23    PIN_EXPR2                 A9
-//
-//    24,25,26,27,28     BUTTON_OUT_PINS
-//    29,30,31,32,33     BUTTON_IN_PINS (not not contiguous)
-//
+//     unused LEDS    BUTTONS   SERIAL   EXPR     LIQUID    TFT      TOUCH    CHEAP_TFT
+//   2                                                                IRQ      CHEAP_DATA0
+//   3                                                                         CHEAP_DATA1
+//   4                                                                         CHEAP_DATA2
+//   5        LEDS_OUT
+//   6                                                                         CHEAP_DATA3
+//   7                          SERIAL_RX3
+//   8                          SERIAL_TX3                             T_CS
+//   9                                                      DC                 CHEAP_DATA4
+//  10                                                      CS                 CHEAP_DATA5
+//  11                                                      SDI(MOSI)  T_DIN   CHEAP_DATA6
+//  12                                                      SDO(MISO)  T_DOUT  CHEAP_DATA7
+//  13                                                      CLK        T_CLK
+//  14 A0 x 
+//  15 A1 x    
+//  16 A2 x    
+//  17 A3 x    
+//  18 A4 y                                          SDA0
+//  19 A5 y                                          SCL0
+//  20 A6                                  EXPR1
+//  21 A7                                  EXPR2
+//  22 A8                                  EXPR3                 
+//  23 A9                                  EXPR4
+//  24                 BUTTON_OUT0
+//  25                 BUTTON_OUT1
+//  26                 BUTTON_OUT2
+//  27                 BUTTON_OUT3
+//  28                 BUTTON_OUT4
+//  29                 BUTTON_IN0
+//  30                 BUTTON_IN1
+//  31 A12             BUTTON_IN2
+//  32 A13             BUTTON_IN3
+//  33 A14             BUTTON_IN4
+//  34 A15                                                                     CHEAP_RD
+//  35 A16                                                                     CHEAP_WR
+//  36 A17                                                                     CHEAP_CD(RS)
+//  37 A18                                                                     CHEAP_CS
+//  38 A19                                                                     CHEAP_RESET
+//  39 A20 x   
+//     A21 x   
+//     A22 x   
+
+
+#if WITH_CHEAP_TFT
+    #include <LCDWIKI_GUI.h> //Core graphics library
+    #include <LCDWIKI_KBV.h> //Hardware-specific library
+    
+    LCDWIKI_KBV mylcd(ILI9486,37,36,35,34,38); //model,cs,cd,wr,rd,reset
+    
+    #define TFT_BLACK   0x0000
+    #define TFT_BLUE    0x001F
+    #define TFT_RED     0xF800
+    #define TFT_GREEN   0x07E0
+    #define TFT_CYAN    0x07FF
+    #define TFT_MAGENTA 0xF81F
+    #define TFT_YELLOW  0xFFE0
+    #define TFT_WHITE   0xFFFF
+#endif
 
 
 #if WITH_TFT
 
     // The pins with their "standard" and alternate mappings are as follows
     
-    //  1. VCC	      VIN	      VIN	   Power: 3.6 to 5.5 volts
-    //  2. GND	      GND	      GND	
-    //  3. CS	      10	      (21)	   Alternate Pins: 9, 15, 20, 21
-    //  4. RESET	  +3.3V	      +3.3V	
-    //  5. D/C	      9	          (20)	   Alternate Pins: 10, 15, 20, 21
-    //  6. SDI(MOSI)  11 (DOUT)	  (7)
-    //  7. SCK	      13 (SCK)	  (14)	
-    //  8. LED	      VIN	      (VIN	   Use 100 ohm resistor
+    //  1. VCC	      VIN	      Power: 3.6 to 5.5 volts
+    //  2. GND	      GND	      
+    //  3. CS	      10	      Alternate Pins: 9, 15, 20, 21
+    //  4. RESET	  +3.3V	      
+    //  5. D/C	      9	          Alternate Pins: 10, 15, 20, 21
+    //  6. SDI(MOSI)  11 (DOUT)	  
+    //  7. SCK	      13 (SCK)	  
+    //  8. LED	      VIN	      Use 100 ohm resistor
     //
     //  MISO only needed for diagnostics? and touch screen
     //  Can get by with an 8 pin connector
     //  Not using the touch screen.
     //
-    //  9. SDO(MISO)  12 (DIN)	  12	
-    // 10. T_CLK      13 (SCK)	  (14)
-    // 11. T_CS	      8                         35	      Alternate: any digital pin  CONFLICT WITH 8, trying 35
-    // 12. T_DIN      11 (DOUT)	  (7)
-    // 13. T_DO	      12 (DIN)	  12	
-    // 14. T_IRQ      2	          (2)       Optional: can use any digital pin   
+    //  9. SDO(MISO)  12 (DIN)	  
+    // 10. T_CLK      13 (SCK)	  
+    // 11. T_CS	      8           Alternate: any digital pin  CONFLICT WITH 8, trying 35
+    // 12. T_DIN      11 (DOUT)	  
+    // 13. T_DO	      12 (DIN)	  
+    // 14. T_IRQ      2	          Optional: can use any digital pin   
     
     #include "SPI.h"
     #include "ILI9341_t3.h"
@@ -105,34 +144,56 @@
 // setup
 //-----------------------------------------------------------
 
-expSystem *s_pTheSystem;
+#if WITH_SYSTEM
+    expSystem *s_pTheSystem;
+#endif
 
 
 void setup()
 {
     Serial.begin(115200);
 
-#if WITH_MIDI_HOST
-    // Wait 1.5 seconds before turning on USB Host.  If connected USB devices
-    // use too much power, Teensy at least completes USB enumeration, which
-    // makes isolating the power issue easier.
-
-    delay(1500);
-    display(0,"Initializing USB Hos ....",0);
-    delay(10);
-    myusb.begin();
-    midi1.setHandleNoteOn(myNoteOn);
-    midi1.setHandleNoteOff(myNoteOff);
-#endif    
-
-    display(0,"teensyExpression 1.0 started ..",0);
+    #if WITH_MIDI_HOST
+        // Wait 1.5 seconds before turning on USB Host.  If connected USB devices
+        // use too much power, Teensy at least completes USB enumeration, which
+        // makes isolating the power issue easier.
     
-    initLEDs();
-    LEDFancyStart();
+        delay(1500);
+        display(0,"Initializing USB Hos ....",0);
+        delay(10);
+        myusb.begin();
+        midi1.setHandleNoteOn(myNoteOn);
+        midi1.setHandleNoteOff(myNoteOff);
+    #endif    
+
+    display(0,"teensyExpression %s started ..",VERSION);
+    
+    #if WITH_SYSTEM    
+        initLEDs();
+        LEDFancyStart();
+    #endif
+
+    #if WITH_CHEAP_TFT
+        // display is 320x480
+        
+        mylcd.Init_LCD();
+        mylcd.Set_Rotation(3);
+        mylcd.Fill_Screen(0);
+        mylcd.Set_Text_Mode(0);
+        mylcd.Set_Text_colour(TFT_WHITE);
+        mylcd.Set_Text_Back_colour(0); 
+
+        mylcd.Set_Text_Size(4);
+        mylcd.Print_String("teensyExpression", 30, 60);
+        mylcd.Set_Text_colour(TFT_YELLOW);
+        mylcd.Set_Text_Size(2);
+        mylcd.Print_String("version", 60, 110);
+        mylcd.Print_String(VERSION, 155, 110);
+        mylcd.Print_String("initializing ...", 200, 110);
+    #endif
     
     #if WITH_TFT
         // display is 320x240
-        
         tft.begin();
         tft.setRotation(3);
         tft.fillScreen(ILI9341_BLACK);
@@ -144,42 +205,73 @@ void setup()
         tft.setCursor(40, 60);
         tft.setFont(Arial_16);
         tft.setTextColor(ILI9341_YELLOW);
-        tft.print("version 1.0 initializing ...");
-        
-        for (int x=0; x<260; x++)
+        tft.print("version ");
+        tft.print(VERSION);
+        tft.print("initializing ...");
+    #endif
+    
+    
+    #if WITH_SYSTEM        
+        for (int x=0; x<100; x++)
         {
-            float bright = ((float)x)/260.00 * 70;
+            float bright = ((float)x)/100.00 * 70;
             setLEDBrightness((int)bright);
             showLEDs();    
-
-            tft.fillRect(x+30, 120, 1, 30, ILI9341_BLUE);
+            
+            #if WITH_CHEAP_TFT
+                float use_x = (x * 360.00) / 101;
+                int use_w = 5;
+                mylcd.Fill_Rect(use_x+50,180,use_w,30, TFT_BLUE);
+            #endif
+            
+            #if WITH_TFT
+                int use_x = x * 260 / 101;
+                int use_w = 3;
+                tft.fillRect(use_x+30, 120, use_w, 30, ILI9341_BLUE);
+            #endif
+            
             delay(15);
         }
         
         delay(200);
-        tft.fillRect(0, 60, 320, 180, ILI9341_BLACK);
-        tft.setCursor(110, 60);
-        tft.println("Ready");
-        clearLEDs();
-        showLEDs();
-        #if WITH_MIDI_HOST
-            delay(1200);
-            tft.fillScreen(ILI9341_BLACK);
-            tft.setFont(Arial_10);
-            tft.setCursor(0,0);
-        #endif        
+
+        #if WITH_CHEAP_TFT
+            mylcd.Fill_Rect(40,110,400,100,0);
+            mylcd.Print_String("Ready", 180, 110);
+        #endif
+        
+        #if WITH_TFT
+            tft.fillRect(0, 60, 320, 180, ILI9341_BLACK);
+            tft.setCursor(110, 60);
+            tft.println("Ready");
+        #endif
+        
+        #if WITH_SYSTEM
+            clearLEDs();
+            showLEDs();
+        #endif
+        
     #endif
 
-    s_pTheSystem = new expSystem;
-    s_pTheSystem->addConfig(new oldRigConfig(s_pTheSystem));
-    s_pTheSystem->addConfig(new testConfig(s_pTheSystem));
-    s_pTheSystem->begin();
+    #if WITH_MIDI_HOST && WITH_TFT
+        delay(1200);
+        tft.fillScreen(ILI9341_BLACK);
+        tft.setFont(Arial_10);
+        tft.setCursor(0,0);
+    #endif        
+
+    #if WITH_SYSTEM
+        s_pTheSystem = new expSystem;
+        s_pTheSystem->addConfig(new oldRigConfig(s_pTheSystem));
+        s_pTheSystem->addConfig(new testConfig(s_pTheSystem));
+        s_pTheSystem->begin();
+    #endif
     
-#ifdef USE_SERIAL_TO_RPI
-    Serial3.begin(115200);
-    display(0,"starting Serial3 to rPi",0);
-    Serial3.println("teensy expression Serial3 to rPi started");
-#endif
+    #ifdef USE_SERIAL_TO_RPI
+        Serial3.begin(115200);
+        display(0,"starting Serial3 to rPi",0);
+        Serial3.println("teensy expression Serial3 to rPi started");
+    #endif
     
 }
 
@@ -191,12 +283,14 @@ void setup()
 
 void loop()
 {
-#if WITH_MIDI_HOST
-    myusb.Task();
-    midi1.read();
-#endif
-
-    s_pTheSystem->task();
+    #if WITH_MIDI_HOST
+        myusb.Task();
+        midi1.read();
+    #endif
+    
+    #if WITH_SYSTEM
+        s_pTheSystem->task();
+    #endif
 }
 
 
@@ -264,8 +358,5 @@ void loop()
             tft.setCursor(220,y);
             tft.println(velocity,DEC);
         #endif
-        
     }
-
-
 #endif

@@ -38,15 +38,15 @@ class systemConfig : public expConfig
         ba->setButtonEventMask(0,3,BUTTON_EVENT_CLICK);
         ba->setButtonEventMask(0,4,BUTTON_EVENT_CLICK | BUTTON_EVENT_LONG_CLICK);
         
-        setLED(0,0,RED);
-        setLED(0,1,GREEN);
-        setLED(0,3,YELLOW);
-        setLED(0,4,PURPLE);
+        setLED(0,0,LED_RED);
+        setLED(0,1,LED_GREEN);
+        setLED(0,3,LED_YELLOW);
+        setLED(0,4,LED_PURPLE);
         
         for (int i=0; i<m_pSystem->getNumConfigs()-1; i++)
         {
             ba->setButtonEventMask(1,i,BUTTON_EVENT_CLICK);
-            setLED(1,i, i == m_next_config-1 ? WHITE : BLUE);
+            setLED(1,i, i == m_next_config-1 ? LED_WHITE : LED_BLUE);
         }
         
         showLEDs();
@@ -65,7 +65,7 @@ class systemConfig : public expConfig
                 if (brightness < 5) brightness = 5;
                 display(0,"decrease brightness to %d",brightness);
                 setLEDBrightness(brightness);
-                setLED(0,0,RED);
+                setLED(0,0,LED_RED);
                 showLEDs();
             }
             else if (col == 1)
@@ -75,7 +75,7 @@ class systemConfig : public expConfig
                 if (brightness > 100) brightness = 100;
                 display(0,"increase brightness to %d",brightness);
                 setLEDBrightness(brightness);
-                setLED(0,1,GREEN);
+                setLED(0,1,LED_GREEN);
                 showLEDs();
             }
             else if (col == 3)
@@ -99,7 +99,7 @@ class systemConfig : public expConfig
         {
             if (col != m_next_config -1)
             {
-                setLED(1,m_next_config-1,BLUE);
+                setLED(1,m_next_config-1,LED_BLUE);
                 m_next_config = col + 1;
                 showLEDs();
             }
@@ -251,7 +251,7 @@ void expSystem::buttonEventHandler(int row, int col, int event)
         m_cur_config_num &&
         event == BUTTON_EVENT_LONG_CLICK)
     {
-        setLED(0,4,PURPLE);
+        setLED(0,4,LED_PURPLE);
         activateConfig(0);
     }
     else

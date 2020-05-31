@@ -128,7 +128,7 @@ void rawButtonArray::task()
                     {
                         if (pButton->m_event_mask)
                         {
-                            setLED(row,col,WHITE);
+                            setLED(row,col,LED_WHITE);
                             showLEDs();
                         }
                         
