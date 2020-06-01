@@ -2,9 +2,16 @@
 #include <myDebug.h>
 
 #define WITH_SYSTEM           1
-#define WITH_TFT              0      // Teensy 320x400 ILI9341/XPT2046 touch screen
 #define WITH_MIDI_HOST        1
-#define WITH_CHEAP_TFT        1
+#define WITH_CHEAP_TFT        1         // Cheap Ardino 3.5" 320x480 TFT's
+#define WITH_TOUCH            1         // Cheap Arduino Resistive touch screen
+#define WITH_ROTARY           1
+
+// not used in initial implementation
+
+#define WITH_TFT              0      // Teensy 320x400 ILI9341/XPT2046 touch screen
+#define WITH_TOUCH_XPT2046    0
+
 
 #define VERSION   "1.2"
 
@@ -16,65 +23,117 @@
 #endif
 
 
-// Note:  Resistive touch screens are always problematic
-//        and this one, even with Pauls most basic example code
-//        is no exception.  Since I have plenty of buttons,
-//        my decision is to NOT use the touch screen (which
-//        also confliced with the use of pin8 for Serial3)
-// 
+#if WITH_MIDI_HOST
+    #include <USBHost_t36.h>
+    
+    USBHost myusb;
+    USBHub hub1(myusb);
+    USBHub hub2(myusb);
+    MIDIDevice midi1(myusb);
+#endif
+
+
+
 //----------------------------------------------------------------------
 // PIN USAGE
 //----------------------------------------------------------------------
-//
-//     unused LEDS    BUTTONS   SERIAL   EXPR     LIQUID    TFT      TOUCH    CHEAP_TFT
-//   2                                                                IRQ      CHEAP_DATA0
-//   3                                                                         CHEAP_DATA1
-//   4                                                                         CHEAP_DATA2
-//   5        LEDS_OUT
-//   6                                                                         CHEAP_DATA3
-//   7                          SERIAL_RX3
-//   8                          SERIAL_TX3                             T_CS
-//   9                                                      DC                 CHEAP_DATA4
-//  10                                                      CS                 CHEAP_DATA5
-//  11                                                      SDI(MOSI)  T_DIN   CHEAP_DATA6
-//  12                                                      SDO(MISO)  T_DOUT  CHEAP_DATA7
-//  13                                                      CLK        T_CLK
-//  14 A0 x 
-//  15 A1 x    
-//  16 A2 x    
-//  17 A3 x    
-//  18 A4 y                                          SDA0
-//  19 A5 y                                          SCL0
-//  20 A6                                  EXPR1
-//  21 A7                                  EXPR2
-//  22 A8                                  EXPR3                 
-//  23 A9                                  EXPR4
-//  24                 BUTTON_OUT0
-//  25                 BUTTON_OUT1
-//  26                 BUTTON_OUT2
-//  27                 BUTTON_OUT3
-//  28                 BUTTON_OUT4
-//  29                 BUTTON_IN0
-//  30                 BUTTON_IN1
-//  31 A12             BUTTON_IN2
-//  32 A13             BUTTON_IN3
-//  33 A14             BUTTON_IN4
-//  34 A15                                                                     CHEAP_RD
-//  35 A16                                                                     CHEAP_WR
-//  36 A17                                                                     CHEAP_CD(RS)
-//  37 A18                                                                     CHEAP_CS
-//  38 A19                                                                     CHEAP_RESET
-//  39 A20 x   
-//     A21 x   
-//     A22 x   
+// left/right  main               alternate             
+//   pin
+//    GND
+// L  0        unused1 RX1 used by LEDS             
+// L  1        unused2 TX1 used by LEDS             
+// L  2        ROTARY_1A
+// L  3        ROTARY_1B
+// L  4        ROTARY_2A                            
+// L  5        LEDS_OUT (Serial1)                   
+// L  6        ROTARY_2B                            
+// L  7        SERIAL_RX3                           
+// L  8        SERIAL_TX3         
+// L  9        ROTARY_3A
+// L 10        ROTARY_3B
+// L 11        ROTARY_4A
+// L 12        ROTARY_
+//   3.3V
+// L 24        BUTTON_OUT0           
+// L 25        BUTTON_OUT1           
+// L 26        BUTTON_OUT2           
+// L 27        BUTTON_OUT3           
+// L 28        BUTTON_OUT4           
+// L 29        BUTTON_IN0            
+// L 30        BUTTON_IN1            
+// L 31 A12    BUTTON_IN2            
+// L 32 A13    BUTTON_IN3            
+//      5V
+//      AGND
+//      GND
+// R 23 A9     EXPR4                                            
+// R 22 A8     EXPR3                 
+// R 21 A7     EXPR2                 
+// R 20 A6     EXPR1                 
+// R 19 A5     CHEAP_TFT_RD                   
+// R 18 A4     CHEAP_TFT_WR              
+// R 17 A3     CHEAP_TFT_CD(RS)          
+// R 16 A2     CHEAP_TFT_CS              
+// R 15 A1     CHEAP_TFT_RESET         
+// R 14 A0     CHEAP_TFT_DATA0                                
+// R 13        CHEAP_TFT_DATA1               
+//      3,3V
+// R    A22    x - unused analog only                             
+// R    A21    x - unused analog only                             
+// R 39 A20    CHEAP_TFT_DATA7                              
+// R 38 A19    CHEAP_TFT_DATA6                                                       
+// R 37 A18    CHEAP_TFT_DATA5                                                                                   
+// R 36 A17    CHEAP_TFT_DATA4                                                          
+// R 35 A16    CHEAP_TFT_DATA3                                                          
+// R 34 A15    CHEAP_TFT_DATA2                                                          
+// R 33 A14    BUTTON_IN4                               
+
+
+//--------------------------------------------
+// DEFINES and CONDITIONAL COMPILATION
+//--------------------------------------------
+// defines needed by more than one compilation
+
+#define CHEAP_TFT_DATA0     13      // needed by ts
+#define CHEAP_TFT_DATA1     14      // needed by ts
+#define CHEAP_TFT_DATA2     34
+#define CHEAP_TFT_DATA3     35
+#define CHEAP_TFT_DATA4     36
+#define CHEAP_TFT_DATA5     37
+#define CHEAP_TFT_DATA6     38
+#define CHEAP_TFT_DATA7     39
+        
+
+#define CHEAP_TFT_CS         16      // needed by ts
+#define CHEAP_TFT_CD_RS      17      // needed by ts - labelled "RS" on board
+#define CHEAP_TFT_WR         18
+#define CHEAP_TFT_RD         19
+#define CHEAP_TFT_RESET      15
 
 
 #if WITH_CHEAP_TFT
-    #include <LCDWIKI_GUI.h> //Core graphics library
-    #include <LCDWIKI_KBV.h> //Hardware-specific library
+    // Cheap Ardino 3.5" 320x480 TFT's
+    // Uses my modified version of LCDWIKI, which
+    // - has HARDWIRED (though arbitray) pin numbers
+    //   in myLCDWIKI_KBV/LCDWikiStuff_for_teensy.cpp
+    // - and very slightly modified version of myILI9431_t3,
+    //   which broke the font definition out of ILI9341_t3.h
+    //   for use in myLCDWIKI_GUI/LCDWIKI_GUI.cpp which
+    //   implements fonts.
+
+    #include <LCDWIKI_GUI.h>    // my modified Core graphics library
+    #include <LCDWIKI_KBV.h>    // my modified Hardware-specific library
     #include <font_Arial.h>
+
+    // LCDWIKI_KBV(model,cs,cd,wr,rd,reset)
     
-    LCDWIKI_KBV mylcd(ILI9486,37,36,35,34,38); //model,cs,cd,wr,rd,reset
+    LCDWIKI_KBV mylcd(
+        ILI9486,
+        CHEAP_TFT_CS,
+        CHEAP_TFT_CD_RS,
+        CHEAP_TFT_WR,
+        CHEAP_TFT_RD,
+        CHEAP_TFT_RESET);
     
     #define TFT_BLACK   0x0000
     #define TFT_BLUE    0x001F
@@ -84,8 +143,47 @@
     #define TFT_MAGENTA 0xF81F
     #define TFT_YELLOW  0xFFE0
     #define TFT_WHITE   0xFFFF
+    
+    // need a calibration routine
+    
+    int minx=240;
+    int maxx=920;
+    int miny=90;
+    int maxy=860;
+
 #endif
 
+
+#if WITH_TOUCH
+    // Cheap Ardino 3.5" 320x480 TFT's
+    
+    #include <stdint.h>
+    #include <Arduino.h>
+    #include "TouchScreen.h"    // modified to (at least) reset pinModes
+    
+    // Do not confuse the CD flash drive pins for the touch screen.
+    // This device uses direct measurements of resistance and very
+    // touchy, pun intended, modified version of TouchScreen.h which:
+    // - uses digitalWrite instead of portReg stuff
+    // - softened up the validity checks
+    // - reset all the pinModes when finished
+    
+    // define   my definition    // pin number   // arduino pin number and notes    // general notes
+    #define YP  CHEAP_TFT_CD_RS  // 17=A4        // A2 maps to LCD_RS on arduino    // must be an analog pin, use "An" notation!
+    #define XM  CHEAP_TFT_CS     // 16=A2        // A3 maps to LCD_CS on arduino    // must be an analog pin, use "An" notation!
+    #define YM  CHEAP_TFT_DATA0  // 14=A0        // 8  maps to LCD_D0 on arduino    // can be a digital pin
+    #define XP  CHEAP_TFT_DATA1  // 13           // 9  maps to LCD_D1 on arduino    // can be a digital pin
+    
+    // DO NOT USE THE "ohm" modifier which only affects the math.
+    
+    TouchScreen ts = TouchScreen(XP, YP, XM, YM);   // , 300);
+#endif
+
+
+
+//-------------------------------------------
+// not currently used in project
+//-------------------------------------------
 
 #if WITH_TFT
 
@@ -102,7 +200,6 @@
     //
     //  MISO only needed for diagnostics? and touch screen
     //  Can get by with an 8 pin connector
-    //  Not using the touch screen.
     //
     //  9. SDO(MISO)  12 (DIN)	  
     // 10. T_CLK      13 (SCK)	  
@@ -130,14 +227,21 @@
 #endif
 
 
-#if WITH_MIDI_HOST
-    #include <USBHost_t36.h>
+#if WITH_TOUCH_XPT2046
+    #include <XPT2046_Touchscreen.h>
+    #include <SPI.h>
+
+    #define CS_PIN  10
+    // MOSI=11, MISO=12, SCK=13
     
-    USBHost myusb;
-    USBHub hub1(myusb);
-    USBHub hub2(myusb);
-    MIDIDevice midi1(myusb);
+    XPT2046_Touchscreen ts(CS_PIN);
+
+    //#define TIRQ_PIN  2
+    //XPT2046_Touchscreen ts(CS_PIN);  // Param 2 - NULL - No interrupts
+    //XPT2046_Touchscreen ts(CS_PIN, 255);  // Param 2 - 255 - No interrupts
+    //XPT2046_Touchscreen ts(CS_PIN, TIRQ_PIN);  // Param 2 - Touch IRQ Pin - interrupt enabled polling
 #endif
+    
 
 
 
@@ -175,8 +279,17 @@ void setup()
     #endif
 
     #if WITH_CHEAP_TFT
-        // display is 320x480
-        
+        extern void setCheapTFTDataPins(int p0,int p1,int p2,int p3, int p4, int p5, int p6, int p7);
+        setCheapTFTDataPins(
+            CHEAP_TFT_DATA0,
+            CHEAP_TFT_DATA1,
+            CHEAP_TFT_DATA2,
+            CHEAP_TFT_DATA3,
+            CHEAP_TFT_DATA4,
+            CHEAP_TFT_DATA5,
+            CHEAP_TFT_DATA6,
+            CHEAP_TFT_DATA7);
+
         mylcd.Init_LCD();
         mylcd.Set_Rotation(3);
         mylcd.Fill_Screen(0);
@@ -279,7 +392,15 @@ void setup()
         Serial3.println("teensy expression Serial3 to rPi started");
     #endif
     
+    #if WITH_TOUCH_XPT2046
+        ts.begin();
+        ts.setRotation(1);
+    #endif
+    
+    
 }
+
+
 
 
 
@@ -298,12 +419,65 @@ void loop()
         s_pTheSystem->task();
     #endif
     
-    #if WITH_CHEAP_TFT
+    #if 0 && WITH_CHEAP_TFT
         static int counter = 0;
         mylcd.Set_Text_Cursor(170,200);
         mylcd.print(counter++,DEC);
     #endif
 
+    #if WITH_TOUCH_XPT2046
+        if (ts.touched())
+        {
+            TS_Point p = ts.getPoint();
+            display(0,"p=%-5d  x=%-5d  y=%-5d",p.z,p.x,p.y);
+            delay(100);
+
+        }
+    #endif
+    
+    
+    #if WITH_TOUCH
+        #if WITH_CHEAP_TFT
+            static elapsedMillis clear_it = 0;
+            if (clear_it > 3000)
+            {
+                mylcd.Fill_Screen(0);
+                clear_it = 0;
+            }
+        #endif        
+        
+        TSPoint p = ts.getPoint();
+        if (p.z> 50 &&        // > ts.pressureThreshhold) {
+            p.x > minx && 
+            p.x < maxx && 
+            p.y > miny && 
+            p.y < maxy) 
+            
+        {
+            clear_it = 0;
+            float myx = ((float)(p.x - minx)) / ((float)(maxx - minx));
+            float myy = ((float)(p.y - miny)) / ((float)(maxy - miny));
+            
+            #if WITH_CHEAP_TFT
+                int use_x = ((1-myx) * 480);
+                int use_y = ((1-myy) * 320);
+                mylcd.Print_String("o",use_x,use_y);
+            #endif
+            
+            #if 1
+                Serial.print("X = "); Serial.print(p.x);
+                Serial.print("\tY = "); Serial.print(p.y);
+                Serial.print("\tPressure = "); Serial.print(p.z);
+                Serial.print("    ");
+                Serial.print(myx);
+                Serial.print("    ");
+                Serial.print(myy);
+                Serial.println();
+            #endif
+        }
+        
+        // delay(8);
+    #endif
 }
 
 

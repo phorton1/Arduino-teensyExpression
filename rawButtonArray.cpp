@@ -48,7 +48,7 @@ rawButtonArray::rawButtonArray(void *pObj, handleButtonEventFxn *callback)
         digitalWrite(row_pins[row],0);
     }
     for (int col=0; col<NUM_BUTTON_COLS; col++)
-        pinMode(col_pins[col],INPUT_PULLDOWN);
+        pinMode(col_pins[col],INPUT_PULLDOWN);            // guessing that pins 7 and 8 doent have pulldowns
     
 #if DO_DEBOUNCE
     display(0,"    WITH DEBOUNCE!",0);
