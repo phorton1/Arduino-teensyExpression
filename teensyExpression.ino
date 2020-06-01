@@ -52,7 +52,7 @@
 // L  9        ROTARY_3A
 // L 10        ROTARY_3B
 // L 11        ROTARY_4A
-// L 12        ROTARY_
+// L 12        ROTARY_4B
 //   3.3V
 // L 24        BUTTON_OUT0           
 // L 25        BUTTON_OUT1           
@@ -179,6 +179,94 @@
     TouchScreen ts = TouchScreen(XP, YP, XM, YM);   // , 300);
 #endif
 
+
+#if WITH_ROTARY
+
+    #define ROTARY_IRQS   0
+        // IRQs did NOT work at all like I'd hoped
+        // they are far too noisy, and fast, at least for breadboard
+        // circuit.  May try again when soldered.
+    
+    #define DEBUG_ROTARY  1
+    
+    #define ROTARY_1A   2 
+    #define ROTARY_1B   3 
+    #define ROTARY_2A   4                          
+    #define ROTARY_2B   6                          
+    #define ROTARY_3A   9 
+    #define ROTARY_3B   10
+    #define ROTARY_4A   11
+    #define ROTARY_4B   12
+    
+    int pollA[4] = {0,0,0,0};
+    int rotaryA[4] = {ROTARY_1A,ROTARY_2A,ROTARY_3A,ROTARY_4A};
+    int rotaryB[4] = {ROTARY_1B,ROTARY_2B,ROTARY_3B,ROTARY_4B};
+    int rotary_vslue[4] = {0,0,0,0};
+    
+    void initRotary()
+    {
+        for (int i=0; i<4; i++)
+        {
+            pinMode(rotaryA[i],INPUT_PULLDOWN);
+            pinMode(rotaryB[i],INPUT_PULLDOWN);
+        }
+        
+        #if ROTARY_IRQS        
+            attachInterrupt(rotaryA[0],rotaryIRQ0,CHANGE);
+            attachInterrupt(rotaryA[1],rotaryIRQ1,RISING);
+            attachInterrupt(rotaryA[2],rotaryIRQ2,RISING);
+            attachInterrupt(rotaryA[3],rotaryIRQ3,RISING);
+        #endif
+    }
+    
+    #if ROTARY_IRQS
+        void rotaryIRQ0()   { rotaryIRQ(0); }
+        void rotaryIRQ1()   { rotaryIRQ(1); }
+        void rotaryIRQ2()   { rotaryIRQ(2); }
+        void rotaryIRQ3()   { rotaryIRQ(3); }
+
+        void rotaryIRQ(int i)
+    #else
+        void pollRotary()
+        {
+            for (int i=0; i<4; i++)
+                pollRotary(i);
+        }
+
+        void pollRotary(int i)
+    #endif
+    {
+        int aval = digitalRead(rotaryA[i]);
+        if (pollA[i] == aval)
+            return;
+            
+        // only do something if A has changed
+        
+        pollA[i] = aval;
+        
+        // precision optimization
+        // the indents on mine are one full cycle
+        // so the number ALWAYS changes by 2 on a single click
+        // if you want a detent to equal one inc/dec, include the
+        // next line
+        
+        #if 1   // only check every other pulse
+            if (aval)
+        #endif
+        
+        {
+            int bval = digitalRead(rotaryB[i]);
+            if (aval == bval)
+                rotary_vslue[i]++;
+            else // if (aval && bval)
+                rotary_vslue[i]--;
+            #if DEBUG_ROTARY
+                display(0,"rotaryIRQ(%d) aval=%d bval=%d   value=%d",i,aval,bval,rotary_vslue[i]);
+            #endif
+        }
+    }
+
+#endif
 
 
 //-------------------------------------------
@@ -397,7 +485,9 @@ void setup()
         ts.setRotation(1);
     #endif
     
-    
+    #if WITH_ROTARY
+        initRotary();
+    #endif
 }
 
 
@@ -478,6 +568,27 @@ void loop()
         
         // delay(8);
     #endif
+    
+    #if WITH_ROTARY
+        #if !ROTARY_IRQS
+            pollRotary();
+        #endif
+        
+        static int last_rotary_value[4] = {0,0,0,0};
+        for (int i=0; i<4; i++)
+        {
+            if (last_rotary_value[i] != rotary_vslue[i])
+            {
+                last_rotary_value[i] = rotary_vslue[i];
+                display(0,0,"loop(): rotary[%d] changed to %d",i,rotary_vslue[i]);
+                #if WITH_CHEAP_TFT
+                    mylcd.Set_Text_Cursor(300,20 + i*50);
+                    mylcd.print(rotary_vslue[i],DEC);
+                #endif
+            }
+        }
+    #endif
+    
 }
 
 
