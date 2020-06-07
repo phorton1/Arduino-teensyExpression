@@ -59,7 +59,7 @@ class rawButton
         rawButton()
         {
             m_event_mask = 0;
-            m_pressed = 0;
+            m_event_state = 0;
             m_press_time = 0;
             m_debounce_time = 0;
         }
@@ -67,7 +67,7 @@ class rawButton
         ~rawButton() {}
 
         int m_event_mask;
-        bool m_pressed;
+        int m_event_state;
         unsigned m_press_time;
         unsigned m_debounce_time;
         

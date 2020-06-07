@@ -33,6 +33,9 @@ int col_pins[5] = {29,30,31,32,33};
     #define DEBOUNCE_MILLIS    5
 #endif
 
+#define BUTTON_STATE_PRESSED  0x0001
+#define BUTTON_STATE_REPORTED 0x0002
+
 
 rawButtonArray::rawButtonArray(void *pObj, handleButtonEventFxn *callback)
 {
@@ -116,10 +119,17 @@ void rawButtonArray::task()
                 // if state changed, save new bit to data
                 // and process the button
                 
-                if (pButton->m_pressed != is_pressed)
+                if ((pButton->m_event_state & BUTTON_STATE_PRESSED) != is_pressed)
                 {
                     display(0,"BUTTON(%d,%d) %s",row,col,is_pressed?"DOWN":"UP");
-                    pButton->m_pressed = is_pressed;
+                    
+                    // set or clear the state bit
+                    
+                    if (is_pressed)
+                        pButton->m_event_state |= BUTTON_STATE_PRESSED;
+                    else
+                        pButton->m_event_state &= ~BUTTON_STATE_PRESSED;
+                    
                     #if DO_DEBOUNCE
                         pButton->m_debounce_time = time + DEBOUNCE_MILLIS;
                     #endif

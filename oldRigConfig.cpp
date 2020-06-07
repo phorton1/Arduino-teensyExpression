@@ -1,6 +1,11 @@
 #include "oldRigConfig.h"
 
 #include "myLeds.h"
+#include <myDebug.h>
+
+#define SHOW_SENT_MIDI  1
+
+
 
 //----------------
 // synth
@@ -147,8 +152,6 @@ oldRigConfig::oldRigConfig(expSystem *pSystem) :
         m_loop_touched[col] = 0;
     }
     m_loop_last_touched = -1;
-    m_loop_event_cleared = 0;
-
 }
     
 
@@ -192,81 +195,118 @@ void oldRigConfig::buttonEventHandler(int row, int col, int event)
     {
         int new_patch_num = row * NUM_BUTTON_COLS + col;
         usbMIDI.sendProgramChange(synth_pcs[new_patch_num], SYNTH_PROGRAM_CHANNEL);
-        if (new_patch_num != m_cur_patch_num)
-        {
-            int r = m_cur_patch_num / NUM_BUTTON_COLS;
-            int c = m_cur_patch_num % NUM_BUTTON_COLS;
-            setLED(r,c,0);
-            setLED(row,col,LED_BLUE);
-            m_cur_patch_num = new_patch_num;
-        }
+        #if SHOW_SENT_MIDI
+            display(0,"sent MIDI PC(%d,%d)",
+                SYNTH_PROGRAM_CHANNEL,
+                synth_pcs[new_patch_num]);
+        #endif
+        
+        int r = m_cur_patch_num / NUM_BUTTON_COLS;
+        int c = m_cur_patch_num % NUM_BUTTON_COLS;
+        setLED(r,c,0);
+        setLED(row,col,LED_BLUE);
+        m_cur_patch_num = new_patch_num;
     }
     else if (row == 3)
     {
         m_effect_toggle[col] = !m_effect_toggle[col];
+        
         usbMIDI.sendControlChange(
             guitar_effect_ccs[col],
             m_effect_toggle[col] ? 0x7f : 0x00,
             GUITAR_EFFECTS_CHANNEL);
+        #if SHOW_SENT_MIDI
+            display(0,"sent MIDI CC(%d,%d,%d)",
+                GUITAR_EFFECTS_CHANNEL,
+                guitar_effect_ccs[col],
+                m_effect_toggle[col] ? 0x7f : 0x00);
+        #endif
+
         setLED(row,col,m_effect_toggle[col] ? LED_GREEN : 0);
     }
     else if (row == 4)
     {
         if (event == BUTTON_EVENT_LONG_CLICK)
         {
+            
             usbMIDI.sendControlChange(
                 LOOP_CONTROL_CLEAR_ALL,
                 0x7f,
                 LOOP_CONTROL_CHANNEL);
+            #if SHOW_SENT_MIDI
+                display(0,"sent MIDI CC(%d,%d,%d)",
+                    LOOP_CONTROL_CHANNEL,
+                    LOOP_CONTROL_CLEAR_ALL,
+                    0x7f);
+            #endif
+            
+            
             usbMIDI.sendControlChange(
                 LOOP_CONTROL_CLEAR_ALL,
                 0x00,
                 LOOP_CONTROL_CHANNEL);
+            #if SHOW_SENT_MIDI
+                display(0,"sent MIDI CC(%d,%d,%d)",
+                    LOOP_CONTROL_CHANNEL,
+                    LOOP_CONTROL_CLEAR_ALL,
+                    0x00);
+            #endif
             
             for (int c=0; c<NUM_BUTTON_COLS; c++)
             {
                 setLED(4,c,0);
                 m_loop_touched[c] = 0;
                 m_loop_last_touched = -1;
-                m_loop_event_cleared = 1;
             }
         }
-        else if (m_loop_event_cleared)
+        else if (event == BUTTON_EVENT_PRESS)
         {
-            m_loop_event_cleared = 0;
+            usbMIDI.sendControlChange(
+                loop_ccs[col],
+                0x7f,
+                LOOP_CONTROL_CHANNEL);
+            #if SHOW_SENT_MIDI
+                display(0,"sent MIDI CC(%d,%d,%d)",
+                    LOOP_CONTROL_CHANNEL,
+                    loop_ccs[col],
+                    0x7f);
+            #endif
         }
-        else
+        else // RELEASE or CLICK
         {
-            if (event == BUTTON_EVENT_PRESS)
+            // special handling for the right button
+            // "CLICK" event to send the press ...
+            
+            if (event == BUTTON_EVENT_CLICK)
             {
                 usbMIDI.sendControlChange(
                     loop_ccs[col],
                     0x7f,
                     LOOP_CONTROL_CHANNEL);
-            }
-            else // RELEASE or CLICK
-            {
-                // special handling for the right button
-                // "CLICK" event to send the press ...
-                
-                if (event == BUTTON_EVENT_CLICK)
-                    usbMIDI.sendControlChange(
+                #if SHOW_SENT_MIDI
+                    display(0,"sent MIDI CC(%d,%d,%d)",
+                        LOOP_CONTROL_CHANNEL,
                         loop_ccs[col],
-                        0x7f,
-                        LOOP_CONTROL_CHANNEL);
-                
-                usbMIDI.sendControlChange(
-                    loop_ccs[col],
-                    0x00,
-                    LOOP_CONTROL_CHANNEL);
-
-
-                if (m_loop_last_touched != -1)
-                    setLED(row,m_loop_last_touched,LED_YELLOW);
-                setLED(row,col,LED_RED);
-                m_loop_touched[col] = 1;
-                m_loop_last_touched = col;
+                        0x7f);
+                #endif
             }
+            
+            usbMIDI.sendControlChange(
+                loop_ccs[col],
+                0x00,
+                LOOP_CONTROL_CHANNEL);
+            #if SHOW_SENT_MIDI
+                display(0,"sent MIDI CC(%d,%d,%d)",
+                    LOOP_CONTROL_CHANNEL,
+                    loop_ccs[col],
+                    0);
+            #endif
+
+            if (m_loop_last_touched != -1)
+                setLED(row,m_loop_last_touched,LED_YELLOW);
+            setLED(row,col,LED_RED);
+            m_loop_touched[col] = 1;
+            m_loop_last_touched = col;
         }
     }
     showLEDs();

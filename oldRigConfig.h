@@ -20,7 +20,6 @@ class oldRigConfig : public expConfig
         bool m_effect_toggle[NUM_BUTTON_COLS];
         bool m_loop_touched[NUM_BUTTON_COLS];
         int  m_loop_last_touched;
-        bool m_loop_event_cleared;
         
 };
 
