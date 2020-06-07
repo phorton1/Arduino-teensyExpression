@@ -191,11 +191,6 @@
 
 #if WITH_ROTARY
 
-    #define ROTARY_IRQS   0
-        // IRQs did NOT work at all like I'd hoped
-        // they are far too noisy, and fast, at least for breadboard
-        // circuit.  May try again when soldered.
-    
     #define DEBUG_ROTARY  1
     
     #define ROTARY_1A   4     // mashed up pin assignments
@@ -218,32 +213,18 @@
         {
             pinMode(rotaryA[i],INPUT_PULLDOWN);
             pinMode(rotaryB[i],INPUT_PULLDOWN);
+            pollA[i] = digitalRead(rotaryA[i]);
+                // init to current state
         }
-        
-        #if ROTARY_IRQS        
-            attachInterrupt(rotaryA[0],rotaryIRQ0,CHANGE);
-            attachInterrupt(rotaryA[1],rotaryIRQ1,RISING);
-            attachInterrupt(rotaryA[2],rotaryIRQ2,RISING);
-            attachInterrupt(rotaryA[3],rotaryIRQ3,RISING);
-        #endif
     }
     
-    #if ROTARY_IRQS
-        void rotaryIRQ0()   { rotaryIRQ(0); }
-        void rotaryIRQ1()   { rotaryIRQ(1); }
-        void rotaryIRQ2()   { rotaryIRQ(2); }
-        void rotaryIRQ3()   { rotaryIRQ(3); }
+    void pollRotary()
+    {
+        for (int i=0; i<4; i++)
+            pollRotary(i);
+    }
 
-        void rotaryIRQ(int i)
-    #else
-        void pollRotary()
-        {
-            for (int i=0; i<4; i++)
-                pollRotary(i);
-        }
-
-        void pollRotary(int i)
-    #endif
+    void pollRotary(int i)
     {
         int aval = digitalRead(rotaryA[i]);
         if (pollA[i] == aval)
@@ -271,7 +252,7 @@
             else // if (aval && bval)
                 rotary_vslue[i]--;
             #if DEBUG_ROTARY
-                display(0,"rotaryIRQ(%d) aval=%d bval=%d   value=%d",i,aval,bval,rotary_vslue[i]);
+                display(0,"rotary(%d) aval=%d bval=%d   value=%d",i,aval,bval,rotary_vslue[i]);
             #endif
         }
     }
