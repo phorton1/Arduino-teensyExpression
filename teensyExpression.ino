@@ -6,6 +6,8 @@
 #define WITH_CHEAP_TFT        1         // Cheap Ardino 3.5" 320x480 TFT's
 #define WITH_TOUCH            1         // Cheap Arduino Resistive touch screen
 #define WITH_ROTARY           1
+#define WITH_PEDALS           1
+
 
 // not used in initial implementation
 
@@ -42,15 +44,15 @@
 //    GND
 // L  0        unused1 RX1 used by LEDS             
 // L  1        unused2 TX1 used by LEDS             
-// L  2        ROTARY_1A                        rotary pin assignments not updated from below yet
-// L  3        ROTARY_1B
-// L  4        ROTARY_2A                            
+// L  2        ROTARY_2A                        rotary pin assignments not updated from below yet
+// L  3        ROTARY_2B
+// L  4        ROTARY_1A                            
 // L  5        LEDS_OUT (Serial1)                   
-// L  6        ROTARY_2B                            
+// L  6        ROTARY_1B                            
 // L  7        SERIAL_RX3                           
 // L  8        SERIAL_TX3         
-// L  9        ROTARY_3A
-// L 10        ROTARY_3B
+// L  9        ROTARY_3B
+// L 10        ROTARY_3A
 // L 11        ROTARY_4A
 // L 12        ROTARY_4B
 //   3.3V
@@ -66,10 +68,10 @@
 //      5V
 //      AGND
 //      GND
-// R 23 A9     EXPR4                                            
-// R 22 A8     EXPR3                 
-// R 21 A7     EXPR2                 
-// R 20 A6     EXPR1                 
+// R 23 A9     EXPR1                                           
+// R 22 A8     EXPR2                 
+// R 21 A7     EXPR3                 
+// R 20 A6     EXPR4                 
 // R 19 A5     CHEAP_TFT_DATA0                         
 // R 18 A4     CHEAP_TFT_RESET
 // R 17 A3     CHEAP_TFT_CS            
@@ -196,14 +198,14 @@
     
     #define DEBUG_ROTARY  1
     
-    #define ROTARY_1A   10     // 2     // mashed up pin assignments
-    #define ROTARY_1B   9      // 3 
-    #define ROTARY_2A   12     // 4                          
-    #define ROTARY_2B   11     // 6                          
-    #define ROTARY_3A   4      // 9     // this one is wired differently than the others
-    #define ROTARY_3B   6      // 10
-    #define ROTARY_4A   3      // 11
-    #define ROTARY_4B   2      // 12
+    #define ROTARY_1A   4     // mashed up pin assignments
+    #define ROTARY_1B   6     
+    #define ROTARY_2A   2                          
+    #define ROTARY_2B   3                          
+    #define ROTARY_3A   10    // this one is wired differently than the others
+    #define ROTARY_3B   9     
+    #define ROTARY_4A   11    
+    #define ROTARY_4B   12    
     
     int pollA[4] = {0,0,0,0};
     int rotaryA[4] = {ROTARY_1A,ROTARY_2A,ROTARY_3A,ROTARY_4A};
@@ -275,6 +277,17 @@
     }
 
 #endif
+
+
+#if WITH_PEDALS
+    #include "expressionPedals.h"
+    
+    #define PIN_EXPR1    23  // A6
+    #define PIN_EXPR2    22  // A7
+    #define PIN_EXPR3    21  // A8
+    #define PIN_EXPR4    20  // A9
+#endif
+
 
 
 //-------------------------------------------
@@ -496,6 +509,12 @@ void setup()
     #if WITH_ROTARY
         initRotary();
     #endif
+    
+#if WITH_PEDALS
+    int pedal_pins[NUM_PEDALS] = {PIN_EXPR1,PIN_EXPR2,PIN_EXPR3,PIN_EXPR4};
+    initPedals(pedal_pins);
+#endif
+    
 }
 
 
@@ -597,6 +616,13 @@ void loop()
         }
     #endif
     
+    #if WITH_PEDALS
+        bool pedal_changed = pedalTask();
+        if (pedal_changed)
+        {
+            
+        }
+    #endif
 }
 
 
