@@ -2,7 +2,7 @@
 #include <myDebug.h>
 
 #define WITH_SYSTEM           1
-#define WITH_MIDI_HOST        0
+#define WITH_MIDI_HOST        1
 #define WITH_CHEAP_TFT        1         // Cheap Ardino 3.5" 320x480 TFT's
 #define WITH_TOUCH            1         // Cheap Arduino Resistive touch screen
 #define WITH_ROTARY           1
@@ -348,13 +348,13 @@ void setup()
 {
     Serial.begin(115200);
 
-    #if WITH_MIDI_HOST
+    #if 0 && WITH_MIDI_HOST
         // Wait 1.5 seconds before turning on USB Host.  If connected USB devices
         // use too much power, Teensy at least completes USB enumeration, which
         // makes isolating the power issue easier.
     
         delay(1500);
-        display(0,"Initializing USB Hos ....",0);
+        display(0,"Initializing USB Host ....",0);
         delay(10);
         myusb.begin();
         midi1.setHandleNoteOn(myNoteOn);

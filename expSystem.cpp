@@ -6,6 +6,32 @@
 
 #define EXP_TIMER_INTERVAL 10000   // 10000 us = 10 ms == 100 times per second
 
+// THEORY OF OPERATION
+//
+// There are at least 3 interrupt timers (that I know of) going on at any time.
+//
+// - I presume there is a timer for the basic MIDI usb device functionality.
+// - I presume there is a timer if I am using the midi HOST functionality.
+// - I use a timer to check button, rotary, pedal, and serial states and send midi.
+//
+// Plus there are likely DMA interrupts used during showLEDs() and interrupts
+// for any serial IO that happens (the USB port and/or the 2nd Serial port).
+//
+// I presume the basic MIDI and midi HOST interrupt timers are at default (128) priority level
+// My basic timer loop will operate a lower priority (192) as per EXP_TIMER_INTERVAL.
+//
+// Funamental assumption is that I can send MIDI events from my interrupt handler.
+// Secondary assumption, at this time, is that showLEDs() is fast enough to also
+//     call from my interrupt handler.
+//
+// However, updating the TFT screen shall take place in the loop() method and may
+// be interrupted.
+//
+// (1) I need to add an on/off switch as some configuration changes *may* require
+//     reboots (i.e. turning the midi HOST on or off)
+
+
+
 
 //-----------------------------------------------------
 // configuration(0) systemConfig
