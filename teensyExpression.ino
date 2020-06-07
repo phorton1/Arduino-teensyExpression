@@ -2,7 +2,7 @@
 #include <myDebug.h>
 
 #define WITH_SYSTEM           1
-#define WITH_MIDI_HOST        1
+#define WITH_MIDI_HOST        0
 #define WITH_CHEAP_TFT        1         // Cheap Ardino 3.5" 320x480 TFT's
 #define WITH_TOUCH            1         // Cheap Arduino Resistive touch screen
 #define WITH_ROTARY           1
@@ -42,7 +42,7 @@
 //    GND
 // L  0        unused1 RX1 used by LEDS             
 // L  1        unused2 TX1 used by LEDS             
-// L  2        ROTARY_1A
+// L  2        ROTARY_1A                        rotary pin assignments not updated from below yet
 // L  3        ROTARY_1B
 // L  4        ROTARY_2A                            
 // L  5        LEDS_OUT (Serial1)                   
@@ -70,12 +70,12 @@
 // R 22 A8     EXPR3                 
 // R 21 A7     EXPR2                 
 // R 20 A6     EXPR1                 
-// R 19 A5     CHEAP_TFT_RD                   
-// R 18 A4     CHEAP_TFT_WR              
-// R 17 A3     CHEAP_TFT_CD(RS)          
-// R 16 A2     CHEAP_TFT_CS              
-// R 15 A1     CHEAP_TFT_RESET         
-// R 14 A0     CHEAP_TFT_DATA0                                
+// R 19 A5     CHEAP_TFT_DATA0                         
+// R 18 A4     CHEAP_TFT_RESET
+// R 17 A3     CHEAP_TFT_CS            
+// R 16 A2     CHEAP_TFT_CD(RS)          
+// R 15 A1     CHEAP_TFT_WR              
+// R 14 A0     CHEAP_TFT_RD                           
 // R 13        CHEAP_TFT_DATA1               
 //      3,3V
 // R    A22    x - unused analog only                             
@@ -88,14 +88,21 @@
 // R 34 A15    CHEAP_TFT_DATA2                                                          
 // R 33 A14    BUTTON_IN4                               
 
-
+// The pins for the TFT were not well laid on in the circuit,
+// causing a twisted cable, and some late fixes (13 and 19 to
+// CHEAP_DATA1 and 0, right on top of unused A21 and A22 pins
+// which cannot be used for digital io.
+//
+// The pins for the ROTARY were munged ... one of em is
+// different, and the order is weird
+// 
 //--------------------------------------------
 // DEFINES and CONDITIONAL COMPILATION
 //--------------------------------------------
 // defines needed by more than one compilation
 
-#define CHEAP_TFT_DATA0     13      // needed by ts
-#define CHEAP_TFT_DATA1     14      // needed by ts
+#define CHEAP_TFT_DATA0     19      // needed by ts
+#define CHEAP_TFT_DATA1     13      // needed by ts
 #define CHEAP_TFT_DATA2     34
 #define CHEAP_TFT_DATA3     35
 #define CHEAP_TFT_DATA4     36
@@ -104,11 +111,11 @@
 #define CHEAP_TFT_DATA7     39
         
 
-#define CHEAP_TFT_CS         16      // needed by ts
-#define CHEAP_TFT_CD_RS      17      // needed by ts - labelled "RS" on board
-#define CHEAP_TFT_WR         18
-#define CHEAP_TFT_RD         19
-#define CHEAP_TFT_RESET      15
+#define CHEAP_TFT_RD         14
+#define CHEAP_TFT_WR         15
+#define CHEAP_TFT_CD_RS      16      // needed by ts - labelled "RS" on board
+#define CHEAP_TFT_CS         17      // needed by ts
+#define CHEAP_TFT_RESET      18
 
 
 #if WITH_CHEAP_TFT
@@ -189,14 +196,14 @@
     
     #define DEBUG_ROTARY  1
     
-    #define ROTARY_1A   2 
-    #define ROTARY_1B   3 
-    #define ROTARY_2A   4                          
-    #define ROTARY_2B   6                          
-    #define ROTARY_3A   9 
-    #define ROTARY_3B   10
-    #define ROTARY_4A   11
-    #define ROTARY_4B   12
+    #define ROTARY_1A   10     // 2     // mashed up pin assignments
+    #define ROTARY_1B   9      // 3 
+    #define ROTARY_2A   12     // 4                          
+    #define ROTARY_2B   11     // 6                          
+    #define ROTARY_3A   4      // 9     // this one is wired differently than the others
+    #define ROTARY_3B   6      // 10
+    #define ROTARY_4A   3      // 11
+    #define ROTARY_4B   2      // 12
     
     int pollA[4] = {0,0,0,0};
     int rotaryA[4] = {ROTARY_1A,ROTARY_2A,ROTARY_3A,ROTARY_4A};
@@ -243,6 +250,7 @@
         // only do something if A has changed
         
         pollA[i] = aval;
+        // delay(1);
         
         // precision optimization
         // the indents on mine are one full cycle
@@ -250,7 +258,7 @@
         // if you want a detent to equal one inc/dec, include the
         // next line
         
-        #if 1   // only check every other pulse
+        #if 0   // only check every other pulse
             if (aval)
         #endif
         
@@ -379,7 +387,7 @@ void setup()
             CHEAP_TFT_DATA7);
 
         mylcd.Init_LCD();
-        mylcd.Set_Rotation(3);
+        mylcd.Set_Rotation(1);
         mylcd.Fill_Screen(0);
         mylcd.Set_Text_Mode(0);
         mylcd.Set_Text_Back_colour(0); 
@@ -482,7 +490,7 @@ void setup()
     
     #if WITH_TOUCH_XPT2046
         ts.begin();
-        ts.setRotation(1);
+        ts.setRotation(3);
     #endif
     
     #if WITH_ROTARY
