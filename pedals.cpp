@@ -1,5 +1,10 @@
+#include "defines.h"
+
+#if WITH_PEDALS     // empty compile if not
+
+#include "pedals.h"
 #include <myDebug.h>
-#include "expressionPedals.h"
+
 
 #define HYSTERISIS   30
     // in raw 0..1023 units
@@ -24,25 +29,24 @@ typedef struct
     int     direction;
     unsigned settle_time; 
     
-}   expressionPedal_t;
+}   pedal_t;
 
     
-expressionPedal_t pedals[NUM_PEDALS] = {
-    { 0, "Pedal1", 9, 1010, 0, 1, 0x0F, 0, 0, 0 ,0},
-    { 0, "Pedal2", 9, 1010, 0, 1, 0x0E, 0, 0, 0 ,0},
-    { 0, "Pedal3", 9, 1010, 0, 1, 0x0F, 0, 0, 0 ,0},
-    { 0, "Pedal4", 9, 1010, 0, 1, 0x0E, 0, 0, 0 ,0},
+pedal_t pedals[NUM_PEDALS] = {
+    { PIN_EXPR1, "Pedal1", 9, 1010, 0, 1, 0x0F, 0, 0, 0 ,0},
+    { PIN_EXPR2, "Pedal2", 9, 1010, 0, 1, 0x0E, 0, 0, 0 ,0},
+    { PIN_EXPR3, "Pedal3", 9, 1010, 0, 1, 0x0F, 0, 0, 0 ,0},
+    { PIN_EXPR4, "Pedal4", 9, 1010, 0, 1, 0x0E, 0, 0, 0 ,0},
 };
 
 int calibrate_pedal = -1;
 elapsedMillis calibrate_time = 0;
     
     
-void initPedals(int *pins)
+void initPedals()
 {
     for (int i=0; i<NUM_PEDALS; i++)
     {
-        pedals[i].pin = *pins++;
         pinMode(pedals[i].pin,INPUT_PULLDOWN);
     }
 }
@@ -132,3 +136,6 @@ bool pedalTask()
     }
     return changed;
 }
+
+
+#endif  // WITH_PEDALS     // empty compile if not

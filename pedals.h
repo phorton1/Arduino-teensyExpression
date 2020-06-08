@@ -1,11 +1,11 @@
-#ifndef _expressionPedals_h_
-#define _expressionPedals_h_
+#ifndef _pedals_h_
+#define _pedals_h_
 
 
 #define NUM_PEDALS  4
 
 
-extern void initPedals(int *pins);
+extern void initPedals();
 extern bool pedalTask();
     // returns true if any pedals have changed value
 
@@ -17,4 +17,4 @@ extern int getPedalValue(int i);
 // extern void startCalibrate(int pedal)
     
     
-#endif      // !_expressionPedals_h_  
+#endif      // !_pedals_h_  

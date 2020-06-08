@@ -1,4 +1,66 @@
 
+    #endif
+
+    
+    
+    #if 0 && WITH_SYSTEM        
+        
+        // LEDFancyStart();
+        for (int x=0; x<100; x++)
+        {
+            float bright = ((float)x)/100.00 * 70;
+            setLEDBrightness((int)bright);
+            showLEDs();    
+            
+            #if WITH_CHEAP_TFT
+                float use_x = (x * 360.00) / 101;
+                int use_w = 5;
+                mylcd.Fill_Rect(use_x+50,180,use_w,30, TFT_BLUE);
+            #endif
+            
+            #if WITH_TFT
+                int use_x = x * 260 / 101;
+                int use_w = 3;
+                tft.fillRect(use_x+30, 120, use_w, 30, ILI9341_BLUE);
+            #endif
+            
+            delay(15);
+        }
+        
+        delay(200);
+
+        #if WITH_CHEAP_TFT
+            mylcd.Fill_Rect(40,110,400,100,0);
+            mylcd.Print_String("Ready", 180, 110);
+            mylcd.setDefaultFont();
+            mylcd.Set_Text_Size(2);
+        #endif
+        
+        #if WITH_TFT
+            tft.fillRect(0, 60, 320, 180, ILI9341_BLACK);
+            tft.setCursor(110, 60);
+            tft.println("Ready");
+        #endif
+        
+        #if WITH_SYSTEM
+            clearLEDs();
+            showLEDs();
+        #endif
+        
+    #endif
+
+    #if WITH_MIDI_HOST && WITH_TFT
+        delay(1200);
+        tft.fillScreen(ILI9341_BLACK);
+        tft.setFont(Arial_10);
+        tft.setCursor(0,0);
+    #endif        
+
+    #if WITH_SYSTEM
+
+
+
+
 #if WITH_EXPRESSION_PEDAL
 
     #define CALIB_MARGIN 10

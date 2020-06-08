@@ -1,5 +1,6 @@
 
 #include <myDebug.h>
+#include "defines.h"
 #include "expSystem.h"
 #include "myLeds.h"
 #include <EEPROM.h>
@@ -115,8 +116,8 @@ class systemConfig : public expConfig
                 {
                     int bright = getLEDBrightness();
                     display(0,"write bright=%d and config=%d to EEPROM",bright,m_next_config);
-                    EEPROM.write(0,bright);
-                    EEPROM.write(1,m_next_config);
+                    EEPROM.write(EEPROM_BRIGHTNESS,bright);
+                    EEPROM.write(EEPROM_CONFIG_NUM,m_next_config);
                 }
                 m_pSystem->activateConfig(m_next_config);
             }
@@ -181,13 +182,14 @@ void expConfig::begin()
     // derived classes should call base class method FIRST
     // base class clears all button registrations.
 {
+    proc_entry();
     for (int row=0; row<NUM_BUTTON_ROWS; row++)
         for (int col=0; col<NUM_BUTTON_COLS; col++)
         {
             m_pSystem->getRawButtonArray()->setButtonEventMask(row,col,0);
             setLED(row,col,0);
         }
-            
+    proc_leave();
 }
     
 void expConfig::buttonEventHandler(int row, int col, int event)
@@ -225,6 +227,8 @@ expSystem::expSystem()
 
 void expSystem::begin()
 {
+    proc_entry();
+    
     #if 0
         for (int row=0; row<NUM_BUTTON_ROWS; row++)
             for (int col=0; col<NUM_BUTTON_COLS; col++)
@@ -233,8 +237,8 @@ void expSystem::begin()
     
     // get the current configuration number and brightness from EEPROM
     
-    int brightness = EEPROM.read(0);
-    m_cur_config_num = EEPROM.read(1);
+    int brightness = EEPROM.read(EEPROM_BRIGHTNESS);
+    m_cur_config_num = EEPROM.read(EEPROM_CONFIG_NUM);
     
     display(0,"got bright=%d and config=%d from EEPROM",brightness,m_cur_config_num);
     
@@ -247,6 +251,8 @@ void expSystem::begin()
 
     setLEDBrightness(brightness);        
     activateConfig(m_cur_config_num);
+    
+    proc_leave();
 }
 
 

@@ -39,6 +39,8 @@ int col_pins[5] = {29,30,31,32,33};
 
 rawButtonArray::rawButtonArray(void *pObj, handleButtonEventFxn *callback)
 {
+    proc_entry();
+    
     s_pThis = this;
     m_pObj = pObj;
     m_callback = callback;
@@ -55,9 +57,9 @@ rawButtonArray::rawButtonArray(void *pObj, handleButtonEventFxn *callback)
     
 #if DO_DEBOUNCE
     display(0,"    WITH DEBOUNCE!",0);
-#else
-    display(0,"    NO DEBOUNCE!",0);
 #endif
+
+    proc_leave();
     
 }
     
