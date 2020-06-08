@@ -3,9 +3,16 @@
 #include "defines.h"
 #include "expSystem.h"
 #include "myLeds.h"
+#include "pedals.h"
+#include "rotary.h"
 #include <EEPROM.h>
 
-#define EXP_TIMER_INTERVAL 10000   // 10000 us = 10 ms == 100 times per second
+#define EXP_TIMER_INTERVAL 1000
+    // 1000 us = 1 ms == 1000 times per second!
+#define EXP_TIMER_PRIORITY  192
+    // compared to presumed (higher) priority of 128
+    // for USB, midi HOST, and other (serial) interrupts
+
 
 // THEORY OF OPERATION
 //
@@ -50,88 +57,90 @@ class systemConfig : public expConfig
             m_next_config = 0;
         }
         
-    virtual void begin()
-    {
-        expConfig::begin();
+        virtual const char *name() { return "SYSTEM CONFIGURATION"; }
         
-        m_changed = false;
-        m_save_brightness = getLEDBrightness();
-        m_next_config = m_pSystem->getPrevConfigNum();
-        
-        rawButtonArray *ba = m_pSystem->getRawButtonArray();
-        
-        ba->setButtonEventMask(0,0,BUTTON_EVENT_CLICK);
-        ba->setButtonEventMask(0,1,BUTTON_EVENT_CLICK);
-        ba->setButtonEventMask(0,3,BUTTON_EVENT_CLICK);
-        ba->setButtonEventMask(0,4,BUTTON_EVENT_CLICK | BUTTON_EVENT_LONG_CLICK);
-        
-        setLED(0,0,LED_RED);
-        setLED(0,1,LED_GREEN);
-        setLED(0,3,LED_YELLOW);
-        setLED(0,4,LED_PURPLE);
-        
-        for (int i=0; i<m_pSystem->getNumConfigs()-1; i++)
+        virtual void begin()
         {
-            ba->setButtonEventMask(1,i,BUTTON_EVENT_CLICK);
-            setLED(1,i, i == m_next_config-1 ? LED_WHITE : LED_BLUE);
+            expConfig::begin();
+            
+            m_changed = false;
+            m_save_brightness = getLEDBrightness();
+            m_next_config = m_pSystem->getPrevConfigNum();
+            
+            rawButtonArray *ba = m_pSystem->getRawButtonArray();
+            
+            ba->setButtonEventMask(0,0,BUTTON_EVENT_CLICK);
+            ba->setButtonEventMask(0,1,BUTTON_EVENT_CLICK);
+            ba->setButtonEventMask(0,3,BUTTON_EVENT_CLICK);
+            ba->setButtonEventMask(0,4,BUTTON_EVENT_CLICK | BUTTON_EVENT_LONG_CLICK);
+            
+            setLED(0,0,LED_RED);
+            setLED(0,1,LED_GREEN);
+            setLED(0,3,LED_YELLOW);
+            setLED(0,4,LED_PURPLE);
+            
+            for (int i=0; i<m_pSystem->getNumConfigs()-1; i++)
+            {
+                ba->setButtonEventMask(1,i,BUTTON_EVENT_CLICK);
+                setLED(1,i, i == m_next_config-1 ? LED_WHITE : LED_BLUE);
+            }
+            
+            showLEDs();
         }
-        
-        showLEDs();
-    }
-
-    virtual void buttonEventHandler(int row, int col, int event)
-    {
-        display(0,"systemConfig(%d,%d) event(%s)",row,col,rawButtonArray::buttonEventName(event));
-        
-        if (row == 0)
+    
+        virtual void onButtonEvent(int row, int col, int event)
         {
-            if (col == 0)
+            display(0,"systemConfig(%d,%d) event(%s)",row,col,rawButtonArray::buttonEventName(event));
+            
+            if (row == 0)
             {
-                int brightness = getLEDBrightness();
-                brightness -= 5;
-                if (brightness < 5) brightness = 5;
-                display(0,"decrease brightness to %d",brightness);
-                setLEDBrightness(brightness);
-                setLED(0,0,LED_RED);
-                showLEDs();
-            }
-            else if (col == 1)
-            {
-                int brightness = getLEDBrightness();
-                brightness += 5;
-                if (brightness > 100) brightness = 100;
-                display(0,"increase brightness to %d",brightness);
-                setLEDBrightness(brightness);
-                setLED(0,1,LED_GREEN);
-                showLEDs();
-            }
-            else if (col == 3)
-            {
-                setLEDBrightness(m_save_brightness);
-                m_pSystem->activateConfig(m_pSystem->getPrevConfigNum());
-            }
-            else if (col == 4)
-            {
-                if (event == BUTTON_EVENT_LONG_CLICK)
+                if (col == 0)
                 {
-                    int bright = getLEDBrightness();
-                    display(0,"write bright=%d and config=%d to EEPROM",bright,m_next_config);
-                    EEPROM.write(EEPROM_BRIGHTNESS,bright);
-                    EEPROM.write(EEPROM_CONFIG_NUM,m_next_config);
+                    int brightness = getLEDBrightness();
+                    brightness -= 5;
+                    if (brightness < 5) brightness = 5;
+                    display(0,"decrease brightness to %d",brightness);
+                    setLEDBrightness(brightness);
+                    setLED(0,0,LED_RED);
+                    showLEDs();
                 }
-                m_pSystem->activateConfig(m_next_config);
+                else if (col == 1)
+                {
+                    int brightness = getLEDBrightness();
+                    brightness += 5;
+                    if (brightness > 100) brightness = 100;
+                    display(0,"increase brightness to %d",brightness);
+                    setLEDBrightness(brightness);
+                    setLED(0,1,LED_GREEN);
+                    showLEDs();
+                }
+                else if (col == 3)
+                {
+                    setLEDBrightness(m_save_brightness);
+                    m_pSystem->activateConfig(m_pSystem->getPrevConfigNum());
+                }
+                else if (col == 4)
+                {
+                    if (event == BUTTON_EVENT_LONG_CLICK)
+                    {
+                        int bright = getLEDBrightness();
+                        display(0,"write bright=%d and config=%d to EEPROM",bright,m_next_config);
+                        EEPROM.write(EEPROM_BRIGHTNESS,bright);
+                        EEPROM.write(EEPROM_CONFIG_NUM,m_next_config);
+                    }
+                    m_pSystem->activateConfig(m_next_config);
+                }
             }
-        }
-        else if (row == 1)
-        {
-            if (col != m_next_config -1)
+            else if (row == 1)
             {
-                setLED(1,m_next_config-1,LED_BLUE);
-                m_next_config = col + 1;
-                showLEDs();
+                if (col != m_next_config -1)
+                {
+                    setLED(1,m_next_config-1,LED_BLUE);
+                    m_next_config = col + 1;
+                    showLEDs();
+                }
             }
         }
-    }
 
         
     private:
@@ -143,21 +152,6 @@ class systemConfig : public expConfig
 };
 
 
-//----------------------------------------
-// expSection (base class)
-//----------------------------------------
-
-        
-expSection::expSection(expSystem *pSystem, expConfig *pConfig)
-{
-    m_pSystem = pSystem;
-    m_pConfig = pConfig;
-    m_pNextSection = 0;
-    m_pPrevSection = 0;
-    
-}
-
-
 
 //----------------------------------------
 // expConfig (base class)
@@ -167,15 +161,8 @@ expSection::expSection(expSystem *pSystem, expConfig *pConfig)
 expConfig::expConfig(expSystem *pSystem)
 {
     m_pSystem = pSystem;
-    m_pFirstSection = 0;
-    m_pLastSection = 0;
 }
 
-
-void expConfig::addSection(expSection *pSection)
-{
-    
-}
 
 // virtual
 void expConfig::begin()
@@ -191,10 +178,27 @@ void expConfig::begin()
         }
     proc_leave();
 }
-    
-void expConfig::buttonEventHandler(int row, int col, int event)
-    // dispatches the event to the appropriate section
+
+
+// virtual
+void expConfig::onButtonEvent(int row, int col, int event)
 {
+    display(0,"expConfig::onButtonEvent(%d,%d,%s) SHOULD NOT BE CALLED!!",row,col,
+        rawButtonArray::buttonEventName(event));
+}
+
+
+// virtual
+void expConfig::onRotaryEvent(int num, int val)
+{
+    display(0,"expConfig::onRotaryEvent(%d) val=%d",num,val);
+}
+
+
+// virtual
+void expConfig::onPedalEvent(int num, int val)
+{
+    display(0,"expConfig::onRotaryEvent(%d) val=%d",num,val);
 }
 
 
@@ -217,10 +221,11 @@ expSystem::expSystem()
     for (int i=0; i<MAX_EXP_CONFIGS; i++)
         m_pConfigs[i] = 0;
         
-    m_pRawButtonArray = new rawButtonArray(this,staticButtonEventHandler);
+    m_pRawButtonArray = new rawButtonArray(this,staticOnButtonEvent);
     
     addConfig(new systemConfig(this));
     
+    m_timer.priority(EXP_TIMER_PRIORITY);
     m_timer.begin(timer_handler,EXP_TIMER_INTERVAL);
 }
 
@@ -257,15 +262,15 @@ void expSystem::begin()
 
 
 // static
-void expSystem::staticButtonEventHandler(void *obj, int row, int col, int event)
+void expSystem::staticOnButtonEvent(void *obj, int row, int col, int event)
 {
-    ((expSystem *)obj)->buttonEventHandler(row,col,event);
+    ((expSystem *)obj)->onButtonEvent(row,col,event);
 }
 
 
-void expSystem::buttonEventHandler(int row, int col, int event)
+void expSystem::onButtonEvent(int row, int col, int event)
 {
-    display(0,"expSystem(%d,%d) event(%s)",row,col,rawButtonArray::buttonEventName(event));
+    display(0,"expSystem::onButtonEvent(%d,%d,%s)",row,col,rawButtonArray::buttonEventName(event));
     
     #ifdef USE_SERIAL_TO_RPI
         Serial3.print("E row(");
@@ -288,7 +293,7 @@ void expSystem::buttonEventHandler(int row, int col, int event)
     }
     else
     {
-        getCurConfig()->buttonEventHandler(row,col,event);
+        getCurConfig()->onButtonEvent(row,col,event);
     }
 }
 
@@ -297,12 +302,26 @@ void expSystem::buttonEventHandler(int row, int col, int event)
 void expSystem::timer_handler()
 {
     s_pTheSystem->m_pRawButtonArray->task();
+    
+    #if WITH_ROTARY
+        for (int i=0; i<NUM_ROTARY; i++)
+            if (pollRotary(i))
+                s_pTheSystem->getCurConfig()->onRotaryEvent(i,getRotaryValue(i));
+    #endif
+    
+    #if WITH_PEDALS
+        for (int i=0; i<NUM_ROTARY; i++)
+            if (pollPedal(i))
+                s_pTheSystem->getCurConfig()->onPedalEvent(i,getPedalValue(i));
+    #endif
 }
 
 
-void expSystem::task()
+
+
+void expSystem::updateUI()
 {
-    // does nothing at this time;
+    getCurConfig()->updateUI();
 }
 
 
@@ -332,6 +351,21 @@ void expSystem::activateConfig(int i)
     }
     m_prev_config_num = m_cur_config_num;
     m_cur_config_num = i;
+    
+    // clear the TFT and show the config title
+    
+    #if WITH_CHEAP_TFT
+        mylcd.Fill_Screen(0);
+        mylcd.setFont(Arial_16_Bold);
+        mylcd.Set_Text_Cursor(10,10);
+        mylcd.Set_Text_colour(TFT_YELLOW);
+        mylcd.print(getCurConfig()->name());
+        mylcd.Set_Draw_color(TFT_YELLOW);
+	    mylcd.Draw_Line(0,36,mylcd.Get_Display_Width()-1,36);
+    #endif
+    
+    // start the configuration running
+    
     getCurConfig()->begin();
     
     // add the system long click handler

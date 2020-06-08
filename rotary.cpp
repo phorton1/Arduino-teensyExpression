@@ -5,12 +5,13 @@
 #include "rotary.h"
 #include <myDebug.h>
     
-#define DEBUG_ROTARY  1
+#define DEBUG_ROTARY  0
 
-int pollA[4] = {0,0,0,0};
-int rotaryA[4] = {ROTARY_1A,ROTARY_2A,ROTARY_3A,ROTARY_4A};
-int rotaryB[4] = {ROTARY_1B,ROTARY_2B,ROTARY_3B,ROTARY_4B};
+int pollA[NUM_ROTARY] = {0,0,0,0};
+int rotaryA[NUM_ROTARY] = {ROTARY_1A,ROTARY_2A,ROTARY_3A,ROTARY_4A};
+int rotaryB[NUM_ROTARY] = {ROTARY_1B,ROTARY_2B,ROTARY_3B,ROTARY_4B};
 int rotary_vslue[4] = {0,0,0,0};
+
 
 void initRotary()
 {
@@ -28,7 +29,7 @@ int getRotaryValue(int i)
     return rotary_vslue[i];
 }
 
-bool _pollRotary(int i)
+bool pollRotary(int i)
 {
     int aval = digitalRead(rotaryA[i]);
     if (pollA[i] == aval)
@@ -66,14 +67,6 @@ bool _pollRotary(int i)
 }
 
 
-bool pollRotary()
-{
-    bool changed = false;
-    for (int i=0; i<4; i++)
-        if (_pollRotary(i))
-            changed = true;
-    return changed;
-}
 
 
 #endif // WITH_ROTARY     // empty compile if not

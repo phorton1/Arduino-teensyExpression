@@ -6,9 +6,8 @@
 
 
 extern void initPedals();
-extern bool pedalTask();
-    // returns true if any pedals have changed value
-
+extern bool pollPedal(int i);
+    // returns true if any pedal has changed value
 extern int getPedalValue(int i);
     // return the value of the pedal
     

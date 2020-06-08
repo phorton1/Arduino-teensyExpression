@@ -11,18 +11,15 @@
 #define SETTLE_TIME  50
     // time to settle into a direction
 
+#define DEBUG_PEDALS  0
+
 
 typedef struct
 {
     int     pin;
-    const   char *name;
     int     calib_min;
     int     calib_max;
 
-    int     cable;
-    int     channel;
-    int     cc_num;
-    
     int     raw_value;
     int     value;
     
@@ -33,10 +30,10 @@ typedef struct
 
     
 pedal_t pedals[NUM_PEDALS] = {
-    { PIN_EXPR1, "Pedal1", 9, 1010, 0, 1, 0x0F, 0, 0, 0 ,0},
-    { PIN_EXPR2, "Pedal2", 9, 1010, 0, 1, 0x0E, 0, 0, 0 ,0},
-    { PIN_EXPR3, "Pedal3", 9, 1010, 0, 1, 0x0F, 0, 0, 0 ,0},
-    { PIN_EXPR4, "Pedal4", 9, 1010, 0, 1, 0x0E, 0, 0, 0 ,0},
+    { PIN_EXPR1, 9, 1000, 0, 0, 0 ,0},
+    { PIN_EXPR2, 9, 1000, 0, 0, 0 ,0},
+    { PIN_EXPR3, 9, 1000, 0, 0, 0 ,0},
+    { PIN_EXPR4, 9, 1000, 0, 0, 0 ,0},
 };
 
 int calibrate_pedal = -1;
@@ -52,8 +49,13 @@ void initPedals()
 }
     
 
+int getPedalValue(int i)
+{
+    return pedals[i].value;
+}
 
-bool _pollPedal(int i)
+
+bool pollPedal(int i)
 {
     int raw_value = analogRead(pedals[i].pin);
     int pedal_raw = pedals[i].raw_value;
@@ -116,7 +118,9 @@ bool _pollPedal(int i)
     {
         changed = true;
         pedals[i].value = value;
-        display(0,"pedal(%d) changed to %d",i,value);
+        #if DEBUG_PEDALS
+            display(0,"pedal(%d) changed to %d",i,value);
+        #endif
     }
     
     // return to caller
@@ -124,18 +128,6 @@ bool _pollPedal(int i)
 
 }
 
-
-    
-bool pedalTask()
-{
-    bool changed = false;
-    for (int i=0; i<NUM_PEDALS; i++)
-    {
-        if (_pollPedal(i))
-            changed = true;
-    }
-    return changed;
-}
 
 
 #endif  // WITH_PEDALS     // empty compile if not

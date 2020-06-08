@@ -9,10 +9,14 @@ class oldRigConfig : public expConfig
     public:
         
         oldRigConfig(expSystem *pSystem);
+        virtual const char *name() { return "Old Rig Configuration"; }
         
         virtual void begin();
 
-        virtual void buttonEventHandler(int row, int col, int event);
+        virtual void onButtonEvent(int row, int col, int event);
+        virtual void onPedalEvent(int num, int val);
+        virtual void updateUI();
+        
 
     private:
         

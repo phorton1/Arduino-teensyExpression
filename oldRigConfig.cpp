@@ -2,6 +2,8 @@
 
 #include "myLeds.h"
 #include <myDebug.h>
+#include "defines.h"
+#include "pedals.h"
 
 #define SHOW_SENT_MIDI  1
 
@@ -11,7 +13,7 @@
 // synth
 //----------------
 
-#define SYNTH_PROGRAM_CHANNEL       7
+#define SYNTH_PROGRAM_CHANNEL       7       // 1 based
     // program change come on specific channels
     
 #define SYNTH_PATCH_PIANO1          0       // Mellow Grand 2
@@ -32,34 +34,46 @@
 #define SYNTH_PATCH_BASS_MINUS      14      // P Bass Finger (should be MM Bass Finger)
 #define SYNTH_PATCH_FX2             15      // SFX Collection
 
+#define SYNTH_VOLUME_CHANNEL        1
+#define SYNTH_VOLUME_CC             7
 
-int synth_pcs[NUM_BUTTON_COLS * 3] = {
-    
-    SYNTH_PATCH_BASS_MINUS,     // P Bass Finger  (should be MM Bass Finger)
-    SYNTH_PATCH_BRASS1,         // Drama Brass
-    SYNTH_PATCH_VOICES1,        // Vocal Oh - i
-    SYNTH_PATCH_SPACE1,         // BRASS2 = Mega Motion 3
-    SYNTH_PATCH_SPACE3,         // STRINGS2 = Whispering Pad
-    
-    SYNTH_PATCH_BASS2,          // Chorus Fretless
-    SYNTH_PATCH_ORGAN2,         // Drawbars Bow
-    SYNTH_PATCH_EPIANO,         // Smooth FM Piano
-    SYNTH_PATCH_FLUTE2,         // Psych Flute
-    SYNTH_PATCH_FX1,            // Mega Motion 4
-    
-    SYNTH_PATCH_BASS1,          // MM Bass Finger + Jazz Kit on ch10
-    SYNTH_PATCH_ORGAN1,         // Ballad B Pad
-    SYNTH_PATCH_PIANO1,         // Mellow Grand 2
-    SYNTH_PATCH_FLUTE1,         // Orch Flute
-    SYNTH_PATCH_FX2,            // SFX Collection
-};
+
+typedef struct
+{
+    int prog_num;
+    const char *short_name;
+    const char *long_name;
+}   synthPatch_t;
+
+
+synthPatch_t synth_patch[NUM_BUTTON_COLS * 3] = {
+    {SYNTH_PATCH_BASS_MINUS,     "BASS_MINUS",  "P Bass Finger"},  // should be MM Bass Finger
+    {SYNTH_PATCH_BRASS1,         "BRASS1",      "Drama Brass"},
+    {SYNTH_PATCH_VOICES1,        "VOICES1",     "Vocal Oh"},
+    {SYNTH_PATCH_SPACE1,         "SPACE1",      "Mega Motion 3"},   // was BRASS2
+    {SYNTH_PATCH_SPACE3,         "SPACE3",      "Whispering Pad"},  // was STRINGS2
+                                  
+    {SYNTH_PATCH_BASS2,          "BASS2",       "Chorus Fretless"},
+    {SYNTH_PATCH_ORGAN2,         "ORGAN2",      "Drawbars Bow"},
+    {SYNTH_PATCH_EPIANO,         "EPIANO",      "Smooth FM Piano"},
+    {SYNTH_PATCH_FLUTE2,         "FLUTE2",      "Psych Flute"},
+    {SYNTH_PATCH_FX1,            "SPACE2",      "Mega Motion 4"},
+                                  
+    {SYNTH_PATCH_BASS1,          "BASS1",       "MM Bass Finger"},  //  + Jazz Kit
+    {SYNTH_PATCH_ORGAN1,         "ORGAN1",      "Ballad B Pad"},
+    {SYNTH_PATCH_PIANO1,         "PIANO1",      "Mellow Grand 2"},
+    {SYNTH_PATCH_FLUTE1,         "FLUTE1",      "Orch Flute"},
+    {SYNTH_PATCH_FX2,            "FX2",         "SFX Collection"},
+};  
+
+int last_displayed_patch_num = -1;
 
 
 //----------------
 // toneStack
 //----------------
 
-#define GUITAR_EFFECTS_CHANNEL  9
+#define GUITAR_EFFECTS_CHANNEL  9   // one based
 
 #define GUITAR_WAH_CONTROL_CC              11
 #define GUITAR_REVERB_DEPTH_CC             20
@@ -70,6 +84,10 @@ int synth_pcs[NUM_BUTTON_COLS * 3] = {
 #define GUITAR_CHORUS_EFFECT_CC            29
 #define GUITAR_ECHO_EFFECT_CC              30
 
+#define GUITAR_VOLUME_CHANNEL               7       // one based
+#define GUITAR_VOLUME_CC                    7
+
+
 int guitar_effect_ccs[NUM_BUTTON_COLS] = {
     GUITAR_DISTORTION_EFFECT_CC,
     GUITAR_WAH_EFFECT_CC,       
@@ -79,11 +97,12 @@ int guitar_effect_ccs[NUM_BUTTON_COLS] = {
 };
 
 
+
 //----------------
 // Quantiloop
 //----------------
 
-#define LOOP_CONTROL_CHANNEL        9
+#define LOOP_CONTROL_CHANNEL        9   // one based
 
 #define LOOP_CONTROL_TRACK1         21
 #define LOOP_CONTROL_TRACK2         22
@@ -109,7 +128,7 @@ int guitar_effect_ccs[NUM_BUTTON_COLS] = {
     // Hold Action: Clear All / End Song
     // Double Tap Action: Clear All / End Song
     
-#define LOOP_CONTROL_VOLUME        7
+#define LOOP_VOLUME_CC        7
     // Midi Command: CC     (not Note On/Off)
     // Type: Continous   Up/MinValue: 0   Down/MaxValue:127
     //       not Latching, Momentary Action
@@ -140,7 +159,75 @@ int loop_ccs[NUM_BUTTON_COLS] =
 };
 
 
+//--------------------------
+// NOTES
+//--------------------------
+// MPD218
+//
+//      Buttons 0-15 (from bottom left) are Channel 7 "PROGRAM messages 0..15
+//      The unused knobs are assigned t0 Channel 1 CCs: 3,9   12,13   14,15
+//
+// SOFTSTEP
+//
+//      The guitar pedals are programmed on the Softstep as
+//           Data Source: "FootOn"  (Gain 1.00 offset 0)
+//           Table: Toggle (Min:0, Max 127, Smooth 0)
+//           Messasge Type: CC (26 thru 30) Channel 9
+//           With "LED" Settings
+//              Key Name: DIST, WAH, PHAS, CHOR, DLY  (display mode: Always)
+//              Green Led: True, Red Led: None (on the assigned layer)
+        
+//      The Quantiloop Buttons are setup on the Softstep as 
+//           Data Source: "FootOn"  (Gain 1.00 offset 0)
+//           Table: Linear (Min:0, Max 127, Smooth 0)
+//           Messasge Type: CC (21 thru 25) Channel 9, 
+//           With "LED" Settings
+//              Key Name: DIST, WAH, PHAS, CHOR, DLY (display mode: Always)
+//              Green Led: None, Red True: None (on the assigned layer)
+//      
+//      The weird programming for the Arrow Button is
+//      Line1
+//           Data Source: "Pedal"  (Gain 1.18 offset 0)
+//           Table: Linear (Min:0, Max 127, Smooth 0)
+//           Messasge Type: CC (channel 11, 21 thru 25)
+//      Line2 - controls Reverb Depth
+//           Data Source: "NavY Inc/Dec"  (Gain 1.00 offset 0)
+//           Table: Linear (Min:0, Max 127, Smooth 0)
+//           Messasge Type: CC 20 Channel 9
+//           With "LED" Settings
+//              Prefix: V   Display Mode: Immed Para   Key Name: Exp
+//              Key Name: DIST, WAH, PHAS, CHOR, DLY (display mode: Always)
+//              Green Led: None, Red True: None (on the assigned layer)
 
+
+//------------------------------------
+// Pedals
+//------------------------------------
+
+typedef struct
+{
+    const char *name;
+    int     last_displayed;
+    int     channel;
+    int     cc_num;
+}   oldRigPedal_t;
+
+
+oldRigPedal_t rig_pedal[NUM_PEDALS] = {
+    {"SYNTH",     -1,  SYNTH_VOLUME_CHANNEL,      SYNTH_VOLUME_CC}, 
+    {"LOOP",      -1,  LOOP_CONTROL_CHANNEL,      LOOP_VOLUME_CC}, 
+    {"WAH",       -1,  GUITAR_EFFECTS_CHANNEL,    GUITAR_WAH_CONTROL_CC}, 
+    {"GUITAR",    -1,  GUITAR_VOLUME_CHANNEL,     GUITAR_VOLUME_CC}};     
+
+
+
+
+
+
+
+//====================================================================
+// oldRigConfig
+//====================================================================
 
 oldRigConfig::oldRigConfig(expSystem *pSystem) :
     expConfig(pSystem)
@@ -167,7 +254,11 @@ void oldRigConfig::begin()
         ba->setButtonEventMask(0,col,BUTTON_EVENT_CLICK);
         ba->setButtonEventMask(1,col,BUTTON_EVENT_CLICK);
         ba->setButtonEventMask(2,col,BUTTON_EVENT_CLICK);
-        ba->setButtonEventMask(3,col,BUTTON_EVENT_CLICK);
+        ba->setButtonEventMask(3,col,
+            col == 4 ?
+             (BUTTON_EVENT_CLICK | BUTTON_EVENT_LONG_CLICK) :
+             BUTTON_EVENT_CLICK);
+        
         ba->setButtonEventMask(4,col,  
             col == 4 ?
              (BUTTON_EVENT_CLICK | BUTTON_EVENT_LONG_CLICK) : 
@@ -185,20 +276,58 @@ void oldRigConfig::begin()
     }
 
     showLEDs();
+    
+    #if WITH_CHEAP_TFT
+        mylcd.Fill_Rect(0,230,480,30,TFT_YELLOW);
+        mylcd.setFont(Arial_16_Bold);   // Arial_16);
+        mylcd.Set_Text_colour(0);
+        mylcd.Set_Draw_color(TFT_YELLOW);
+        for (int i=0; i<NUM_PEDALS; i++)
+        {
+            rig_pedal[i].last_displayed = -1;
+            
+            #if 1
+                mylcd.printf_justified(
+                    i*120,
+                    240,
+                    120,
+                    30,
+                    LCD_JUST_CENTER,
+                    TFT_BLACK,
+                    TFT_YELLOW,
+                    "%s",
+                    rig_pedal[i].name);
+            #else
+                int offset = strlen(rig_pedal[i].name) < 5 ? 12 : 0;
+                mylcd.Set_Text_Cursor(25+i*120+offset, 230+6);
+                mylcd.print(rig_pedal[i].name);
+            #endif            
+            
+            if (i && i<NUM_PEDALS)
+                mylcd.Draw_Line(i*120,260,i*120,mylcd.Get_Display_Height()-1);
+        }
+    #endif
+    
+    last_displayed_patch_num = -1;
+    
 }
+
+        
 
 
 // virtual
-void oldRigConfig::buttonEventHandler(int row, int col, int event)
+void oldRigConfig::onButtonEvent(int row, int col, int event)
 {
     if (row < 3)
     {
         int new_patch_num = row * NUM_BUTTON_COLS + col;
-        usbMIDI.sendProgramChange(synth_pcs[new_patch_num], SYNTH_PROGRAM_CHANNEL);
+        
+        usbMIDI.sendProgramChange(synth_patch[new_patch_num].prog_num, SYNTH_PROGRAM_CHANNEL);
+        
         #if SHOW_SENT_MIDI
             display(0,"sent MIDI PC(%d,%d)",
                 SYNTH_PROGRAM_CHANNEL,
-                synth_pcs[new_patch_num]);
+                synth_patch[new_patch_num].prog_num);
         #endif
         
         int r = m_cur_patch_num / NUM_BUTTON_COLS;
@@ -209,26 +338,48 @@ void oldRigConfig::buttonEventHandler(int row, int col, int event)
     }
     else if (row == 3)
     {
-        m_effect_toggle[col] = !m_effect_toggle[col];
+        if (event == BUTTON_EVENT_LONG_CLICK)           // turn off all effects on long click
+        {
+            for (int c=0; c<NUM_BUTTON_COLS; c++)
+            {
+                m_effect_toggle[c] = 0;
+                
+                usbMIDI.sendControlChange(
+                    guitar_effect_ccs[c],
+                    0x00,
+                    GUITAR_EFFECTS_CHANNEL);
+                #if SHOW_SENT_MIDI
+                    display(0,"sent MIDI CC(%d,%d,%d)",
+                        GUITAR_EFFECTS_CHANNEL,
+                        guitar_effect_ccs[c],
+                        0x00);
+                #endif
         
-        usbMIDI.sendControlChange(
-            guitar_effect_ccs[col],
-            m_effect_toggle[col] ? 0x7f : 0x00,
-            GUITAR_EFFECTS_CHANNEL);
-        #if SHOW_SENT_MIDI
-            display(0,"sent MIDI CC(%d,%d,%d)",
-                GUITAR_EFFECTS_CHANNEL,
+                setLED(row,c,0);
+            }
+        }
+        else
+        {
+            m_effect_toggle[col] = !m_effect_toggle[col];
+            
+            usbMIDI.sendControlChange(
                 guitar_effect_ccs[col],
-                m_effect_toggle[col] ? 0x7f : 0x00);
-        #endif
-
-        setLED(row,col,m_effect_toggle[col] ? LED_GREEN : 0);
+                m_effect_toggle[col] ? 0x7f : 0x00,
+                GUITAR_EFFECTS_CHANNEL);
+            #if SHOW_SENT_MIDI
+                display(0,"sent MIDI CC(%d,%d,%d)",
+                    GUITAR_EFFECTS_CHANNEL,
+                    guitar_effect_ccs[col],
+                    m_effect_toggle[col] ? 0x7f : 0x00);
+            #endif
+    
+            setLED(row,col,m_effect_toggle[col] ? LED_GREEN : 0);
+        }
     }
     else if (row == 4)
     {
         if (event == BUTTON_EVENT_LONG_CLICK)
         {
-            
             usbMIDI.sendControlChange(
                 LOOP_CONTROL_CLEAR_ALL,
                 0x7f,
@@ -239,7 +390,6 @@ void oldRigConfig::buttonEventHandler(int row, int col, int event)
                     LOOP_CONTROL_CLEAR_ALL,
                     0x7f);
             #endif
-            
             
             usbMIDI.sendControlChange(
                 LOOP_CONTROL_CLEAR_ALL,
@@ -312,3 +462,90 @@ void oldRigConfig::buttonEventHandler(int row, int col, int event)
     showLEDs();
 }
 
+
+
+// virtual
+void oldRigConfig::onPedalEvent(int num, int val)
+{
+    usbMIDI.sendControlChange(
+        rig_pedal[num].cc_num,
+        val,
+        rig_pedal[num].channel);
+    #if SHOW_SENT_MIDI
+        display(0,"pedal(%d,%s) sent MIDI CC(%d,%d,%d)",
+            num,
+            rig_pedal[num].name,
+            rig_pedal[num].channel,
+            rig_pedal[num].cc_num,
+            val);
+    #endif
+}
+
+
+
+// virtual
+void oldRigConfig::updateUI()
+{
+    #if WITH_CHEAP_TFT
+        bool font_set = false;
+        for (int i=0; i<4; i++)
+        {
+            int v = getPedalValue(i);
+            if (v != rig_pedal[i].last_displayed)
+            {
+                display(0,"updateUI pedal(%d) changed to %d",i,v);
+                rig_pedal[i].last_displayed = v;
+                if (!font_set)
+                {
+                    mylcd.setFont(Arial_40_Bold);   // Arial_40);
+                    mylcd.Set_Text_colour(TFT_WHITE);
+                    font_set = 1;                    
+                }
+               
+                #if 1 
+                    mylcd.printf_justified(
+                        12+i*120,
+                        260+14,
+                        100,
+                        45,
+                        LCD_JUST_CENTER,
+                        TFT_WHITE,
+                        TFT_BLACK,
+                        "%d",
+                        v);
+                #else                
+                    mylcd.Fill_Rect(12+i*120,260+10,100,45,0);
+                    mylcd.Set_Text_Cursor(12+i*120, 260+10);
+                    if (v < 100) mylcd.print(" ");
+                    if (v < 10) mylcd.print(" ");
+                    mylcd.print(v,DEC);
+                #endif
+            }
+        }
+        
+        if (last_displayed_patch_num != m_cur_patch_num)
+        {
+            last_displayed_patch_num = m_cur_patch_num;
+            mylcd.setFont(Arial_40_Bold);   // Arial_40);
+            int y = 75;
+            mylcd.printf_justified(
+                0,y,mylcd.Get_Display_Width(),mylcd.getFontHeight(),
+                LCD_JUST_CENTER,
+                TFT_CYAN,
+                TFT_BLACK,
+                "%s",
+                synth_patch[m_cur_patch_num].short_name);
+
+            y += mylcd.getFontHeight();
+            mylcd.setFont(Arial_32);   // Arial_40);
+            mylcd.printf_justified(
+                0,y,mylcd.Get_Display_Width(),mylcd.getFontHeight(),
+                LCD_JUST_CENTER,
+                TFT_MAGENTA,
+                TFT_BLACK,
+                "%s",
+                synth_patch[m_cur_patch_num].long_name);
+        }
+        
+    #endif
+}

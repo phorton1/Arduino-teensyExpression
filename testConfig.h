@@ -11,8 +11,10 @@ class testConfig : public expConfig
         
         testConfig(expSystem *pSystem) :
             expConfig(pSystem)
-        {
-        }
+        {}
+        
+        virtual const char *name() { return "Teensy Expresssion"; }
+
         
     virtual void begin()
     {

@@ -1,37 +1,24 @@
 #ifndef __exp_system_h__
 #define __exp_system_h__
 
+#include "defines.h"
 #include "rawButtonArray.h"
+
+#if WITH_CHEAP_TFT
+    #include <LCDWIKI_GUI.h>    // my modified Core graphics library
+    #include <LCDWIKI_KBV.h>    // my modified Hardware-specific library
+    #include <font_Arial.h>
+    #include <font_ArialBold.h>
+    
+    extern LCDWIKI_KBV mylcd;
+#endif
+
 
 #define USE_SERIAL_TO_RPI   0
 
 
 class expSystem;
-class expConfig;
     // forwards
-
-class expSection
-{
-    public:
-        
-        expSection(expSystem *pSystem, expConfig *pConfig);
-
-        virtual bool buttonEventHandler(int row, int col, int event)
-            // returns true if the section handled the event
-            { return false; }
-        
-    protected:
-        friend class expConfig;
-        
-        expSection *m_pNextSection;
-        expSection *m_pPrevSection;
-        
-        expSystem *m_pSystem;
-        expConfig *m_pConfig;
-            // pointers to the parent system and configuration
-
-};
-
 
 
 class expConfig
@@ -42,26 +29,26 @@ class expConfig
         expConfig(expSystem *pSystem);
         ~expConfig() {}
         
-        void addSection(expSection *pSection);
+        virtual const char *name() = 0;
+        
         
         virtual void begin();
             // derived classes should call base class method FIRST
             // base class clears all button registrations.
             
-        virtual void buttonEventHandler(int row, int col, int event);
-            // dispatches the event to the appropriate section
+        virtual void onButtonEvent(int row, int col, int event);
+        virtual void onRotaryEvent(int num, int val);
+        virtual void onPedalEvent(int num, int val);
+        virtual void updateUI() {}
         
     protected:
         friend class expSystem;
         
         expSystem *m_pSystem;
             // pointer to the parent system
-            
-        expSection *m_pFirstSection;
-        expSection *m_pLastSection;
-            // a linked list of sections
-
 };
+
+
 
 
 #define MAX_EXP_CONFIGS   10
@@ -75,7 +62,7 @@ class expSystem
         ~expSystem()  {}
         
         void begin();
-        void task();
+        void updateUI();
         
         void activateConfig(int i);
 
@@ -87,9 +74,6 @@ class expSystem
         
         rawButtonArray *getRawButtonArray()  { return m_pRawButtonArray; }
             
-        
-        
-        
     private:
 
         int m_num_configs;
@@ -99,8 +83,8 @@ class expSystem
             
             
         rawButtonArray *m_pRawButtonArray;
-        static void staticButtonEventHandler(void *obj, int row, int col, int event);
-        void buttonEventHandler(int row, int col, int event);
+        static void staticOnButtonEvent(void *obj, int row, int col, int event);
+        void onButtonEvent(int row, int col, int event);
             // the button array and its event handlers.
             // button events are then dispatched to the current configuration.
         

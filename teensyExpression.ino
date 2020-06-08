@@ -249,21 +249,26 @@ void setup()
         initLEDs();
         clearLEDs();
         showLEDs();
+
+        #if WITH_CHEAP_TFT
+            // give it time to see start up messages
+            delay(1200);
+        #endif
+        
         s_pTheSystem = new expSystem;
         s_pTheSystem->addConfig(new oldRigConfig(s_pTheSystem));
         s_pTheSystem->addConfig(new testConfig(s_pTheSystem));
         s_pTheSystem->begin();
         
         display(0,"system running ...",0);
-        #if WITH_CHEAP_TFT
-            mylcd.println("system running ...");
-        #endif        
     #else
         display(0,"    NO SYSTEM!!",0);
         #if WITH_CHEAP_TFT
             mylcd.println("    NO SYSTEM!!");
         #endif
     #endif
+    
+    
     
 }   // setup()
 
@@ -283,27 +288,8 @@ void loop()
     #endif
     
     #if WITH_SYSTEM
-        s_pTheSystem->task();
+        s_pTheSystem->updateUI();
     #endif
-    
-    
-    #if WITH_ROTARY
-        bool rotary_changed = pollRotary();
-        if (rotary_changed)
-        {
-            
-        }
-    #endif
-    
-    #if WITH_PEDALS
-        bool pedal_changed = pedalTask();
-        if (pedal_changed)
-        {
-            
-        }
-    #endif
-    
-    
     
     #if WITH_TOUCH && WITH_CHEAP_TFT && TOUCH_DRAW_TEST
     
