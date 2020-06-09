@@ -10,6 +10,7 @@
     #define LED_PURPLE 0xFF1088
     #define LED_ORANGE 0xE05800
     #define LED_WHITE  0xFFFFFF
+    #define LED_CYAN   0x0088FF
 #else   // Less intense...
     #define LED_RED    0x160000
     #define LED_GREEN  0x001600
