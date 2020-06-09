@@ -2,6 +2,7 @@
 #include <myDebug.h>
 #include "defines.h"
 #include "expSystem.h"
+#include "systemConfig.h"
 #include "myLeds.h"
 #include "pedals.h"
 #include "rotary.h"
@@ -12,145 +13,6 @@
 #define EXP_TIMER_PRIORITY  192
     // compared to presumed (higher) priority of 128
     // for USB, midi HOST, and other (serial) interrupts
-
-
-// THEORY OF OPERATION
-//
-// There are at least 3 interrupt timers (that I know of) going on at any time.
-//
-// - I presume there is a timer for the basic MIDI usb device functionality.
-// - I presume there is a timer if I am using the midi HOST functionality.
-// - I use a timer to check button, rotary, pedal, and serial states and send midi.
-//
-// Plus there are likely DMA interrupts used during showLEDs() and interrupts
-// for any serial IO that happens (the USB port and/or the 2nd Serial port).
-//
-// I presume the basic MIDI and midi HOST interrupt timers are at default (128) priority level
-// My basic timer loop will operate a lower priority (192) as per EXP_TIMER_INTERVAL.
-//
-// Funamental assumption is that I can send MIDI events from my interrupt handler.
-// Secondary assumption, at this time, is that showLEDs() is fast enough to also
-//     call from my interrupt handler.
-//
-// However, updating the TFT screen shall take place in the loop() method and may
-// be interrupted.
-//
-// (1) I need to add an on/off switch as some configuration changes *may* require
-//     reboots (i.e. turning the midi HOST on or off)
-
-
-
-
-//-----------------------------------------------------
-// configuration(0) systemConfig
-//-----------------------------------------------------
-
-class systemConfig : public expConfig
-{
-    public:
-        
-        systemConfig(expSystem *pSystem) :
-            expConfig(pSystem)
-        {
-            m_changed = false;
-            m_save_brightness = 0;
-            m_next_config = 0;
-        }
-        
-        virtual const char *name() { return "SYSTEM CONFIGURATION"; }
-        
-        virtual void begin()
-        {
-            expConfig::begin();
-            
-            m_changed = false;
-            m_save_brightness = getLEDBrightness();
-            m_next_config = m_pSystem->getPrevConfigNum();
-            
-            rawButtonArray *ba = m_pSystem->getRawButtonArray();
-            
-            ba->setButtonEventMask(0,0,BUTTON_EVENT_CLICK);
-            ba->setButtonEventMask(0,1,BUTTON_EVENT_CLICK);
-            ba->setButtonEventMask(0,3,BUTTON_EVENT_CLICK);
-            ba->setButtonEventMask(0,4,BUTTON_EVENT_CLICK | BUTTON_EVENT_LONG_CLICK);
-            
-            setLED(0,0,LED_RED);
-            setLED(0,1,LED_GREEN);
-            setLED(0,3,LED_YELLOW);
-            setLED(0,4,LED_PURPLE);
-            
-            for (int i=0; i<m_pSystem->getNumConfigs()-1; i++)
-            {
-                ba->setButtonEventMask(1,i,BUTTON_EVENT_CLICK);
-                setLED(1,i, i == m_next_config-1 ? LED_WHITE : LED_BLUE);
-            }
-            
-            showLEDs();
-        }
-    
-        virtual void onButtonEvent(int row, int col, int event)
-        {
-            display(0,"systemConfig(%d,%d) event(%s)",row,col,rawButtonArray::buttonEventName(event));
-            
-            if (row == 0)
-            {
-                if (col == 0)
-                {
-                    int brightness = getLEDBrightness();
-                    brightness -= 5;
-                    if (brightness < 5) brightness = 5;
-                    display(0,"decrease brightness to %d",brightness);
-                    setLEDBrightness(brightness);
-                    setLED(0,0,LED_RED);
-                    showLEDs();
-                }
-                else if (col == 1)
-                {
-                    int brightness = getLEDBrightness();
-                    brightness += 5;
-                    if (brightness > 100) brightness = 100;
-                    display(0,"increase brightness to %d",brightness);
-                    setLEDBrightness(brightness);
-                    setLED(0,1,LED_GREEN);
-                    showLEDs();
-                }
-                else if (col == 3)
-                {
-                    setLEDBrightness(m_save_brightness);
-                    m_pSystem->activateConfig(m_pSystem->getPrevConfigNum());
-                }
-                else if (col == 4)
-                {
-                    if (event == BUTTON_EVENT_LONG_CLICK)
-                    {
-                        int bright = getLEDBrightness();
-                        display(0,"write bright=%d and config=%d to EEPROM",bright,m_next_config);
-                        EEPROM.write(EEPROM_BRIGHTNESS,bright);
-                        EEPROM.write(EEPROM_CONFIG_NUM,m_next_config);
-                    }
-                    m_pSystem->activateConfig(m_next_config);
-                }
-            }
-            else if (row == 1)
-            {
-                if (col != m_next_config -1)
-                {
-                    setLED(1,m_next_config-1,LED_BLUE);
-                    m_next_config = col + 1;
-                    showLEDs();
-                }
-            }
-        }
-
-        
-    private:
-        
-        bool m_changed;
-        int m_save_brightness;
-        int m_next_config;
-        
-};
-
 
 
 //----------------------------------------
@@ -244,6 +106,9 @@ void expSystem::begin()
     
     int brightness = EEPROM.read(EEPROM_BRIGHTNESS);
     m_cur_config_num = EEPROM.read(EEPROM_CONFIG_NUM);
+    
+    m_cur_config_num = 0;
+        // for working on systemConfig
     
     display(0,"got bright=%d and config=%d from EEPROM",brightness,m_cur_config_num);
     

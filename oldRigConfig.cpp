@@ -5,7 +5,7 @@
 #include "defines.h"
 #include "pedals.h"
 
-#define SHOW_SENT_MIDI  1
+#define SHOW_SENT_MIDI  0
 
 
 
@@ -493,7 +493,11 @@ void oldRigConfig::updateUI()
             int v = getPedalValue(i);
             if (v != rig_pedal[i].last_displayed)
             {
-                display(0,"updateUI pedal(%d) changed to %d",i,v);
+                #if SHOW_SENT_MIDI
+                    // shows the frequency of UI vs MIDI messages on pedals
+                    display(0,"updateUI pedal(%d) changed to %d",i,v);
+                #endif
+                
                 rig_pedal[i].last_displayed = v;
                 if (!font_set)
                 {
