@@ -97,7 +97,6 @@ int guitar_effect_ccs[NUM_BUTTON_COLS] = {
 };
 
 
-
 //----------------
 // Quantiloop
 //----------------
@@ -229,6 +228,9 @@ oldRigPedal_t rig_pedal[NUM_PEDALS] = {
 // oldRigConfig
 //====================================================================
 
+bool full_redraw = -0;
+
+
 oldRigConfig::oldRigConfig(expSystem *pSystem) :
     expConfig(pSystem)
 {
@@ -246,6 +248,7 @@ oldRigConfig::oldRigConfig(expSystem *pSystem) :
 void oldRigConfig::begin()
 {
     expConfig::begin();
+    full_redraw = 1;
 
     rawButtonArray *ba = m_pSystem->getRawButtonArray();
     
@@ -276,38 +279,7 @@ void oldRigConfig::begin()
     }
 
     showLEDs();
-    
-    #if WITH_CHEAP_TFT
-        mylcd.Fill_Rect(0,230,480,30,TFT_YELLOW);
-        mylcd.setFont(Arial_16_Bold);   // Arial_16);
-        mylcd.Set_Text_colour(0);
-        mylcd.Set_Draw_color(TFT_YELLOW);
-        for (int i=0; i<NUM_PEDALS; i++)
-        {
-            rig_pedal[i].last_displayed = -1;
-            
-            #if 1
-                mylcd.printf_justified(
-                    i*120,
-                    240,
-                    120,
-                    30,
-                    LCD_JUST_CENTER,
-                    TFT_BLACK,
-                    TFT_YELLOW,
-                    "%s",
-                    rig_pedal[i].name);
-            #else
-                int offset = strlen(rig_pedal[i].name) < 5 ? 12 : 0;
-                mylcd.Set_Text_Cursor(25+i*120+offset, 230+6);
-                mylcd.print(rig_pedal[i].name);
-            #endif            
-            
-            if (i && i<NUM_PEDALS)
-                mylcd.Draw_Line(i*120,260,i*120,mylcd.Get_Display_Height()-1);
-        }
-    #endif
-    
+
     last_displayed_patch_num = -1;
     
 }
@@ -487,6 +459,44 @@ void oldRigConfig::onPedalEvent(int num, int val)
 void oldRigConfig::updateUI()
 {
     #if WITH_CHEAP_TFT
+    if (full_redraw)
+    {
+        full_redraw = false;
+        mylcd.Fill_Rect(0,230,480,30,TFT_YELLOW);
+        mylcd.setFont(Arial_16_Bold);   // Arial_16);
+        mylcd.Set_Text_colour(0);
+        mylcd.Set_Draw_color(TFT_YELLOW);
+        for (int i=0; i<NUM_PEDALS; i++)
+        {
+            rig_pedal[i].last_displayed = -1;
+            
+            #if 1
+                mylcd.printf_justified(
+                    i*120,
+                    240,
+                    120,
+                    30,
+                    LCD_JUST_CENTER,
+                    TFT_BLACK,
+                    TFT_YELLOW,
+                    "%s",
+                    rig_pedal[i].name);
+            #else
+                int offset = strlen(rig_pedal[i].name) < 5 ? 12 : 0;
+                mylcd.Set_Text_Cursor(25+i*120+offset, 230+6);
+                mylcd.print(rig_pedal[i].name);
+            #endif            
+            
+            if (i && i<NUM_PEDALS)
+                mylcd.Draw_Line(i*120,260,i*120,mylcd.Get_Display_Height()-1);
+        }
+    }
+    #endif
+        
+    
+    #if WITH_CHEAP_TFT
+    
+    
         bool font_set = false;
         for (int i=0; i<4; i++)
         {

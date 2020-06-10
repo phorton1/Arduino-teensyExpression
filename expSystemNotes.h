@@ -1,3 +1,49 @@
+
+// The upper right magenta <exit/save> button retains its functionality
+// The upper right optional <cancel> button retains it's functionality
+// The entire configuration can be saved or aborted (there is no cancel)
+
+//
+// KEYPAD
+//
+//                  up
+//             
+//           left  select  right
+//
+//                  down
+//
+
+
+// <Brightness>           70
+//       <up> <down> and <select> enabled
+//       
+//       buttons: NUMERICAL SPINNER <up> <down>
+//       touch:   SLIDER BAR with OK BUTTON
+//       rotary:  value
+//
+// <Config>          Old Rig  (short name)   
+//       <up> <down> and <select> enabled
+//
+//       buttons:  STRING SELECTION spinner
+//       touch:    STRING SELECTION LIST with OK button
+//       rotary:   PER-INDENT
+//
+// Calibrate Touch
+//       <select> enabled
+//
+//       buttons:  <select> cancels the process
+//       MODAL whole screen through operation ...
+//       rotary:  nothing
+//       
+
+
+
+
+
+
+
+
+
 // The entire program consists of the "expression system".
 //
 // TIME SLICING AND INTERRUPTS

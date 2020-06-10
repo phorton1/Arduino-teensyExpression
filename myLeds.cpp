@@ -73,6 +73,14 @@ void setLEDBrightness(int i)   // 0..100
 }
 
 
+void setLED(int num, unsigned color)
+{
+    int row = num / NUM_BUTTON_COLS;
+    int col = num % NUM_BUTTON_COLS;
+    setLED(row,col,color);
+}
+
+
 void setLED(int row, int col, unsigned color)
     //  0, 1, 2, 3, 4
     //  9, 8, 7, 6, 5

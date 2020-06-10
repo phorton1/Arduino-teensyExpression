@@ -1,12 +1,16 @@
 #ifndef __defines_h__
 #define __defines_h__
 
+
+#define VERSION   "1.2"
+
+
 // these defines are generally "ON" but are allowed to be
 // turned off piecemeal for debugging ...
 
 #define WITH_SYSTEM           1
 #define WITH_CHEAP_TFT        1         // Cheap Ardino 3.5" 320x480 TFT's
-#define WITH_TOUCH            0         // Cheap Arduino Resistive touch screen
+#define WITH_TOUCH            1         // Cheap Arduino Resistive touch screen
 #define WITH_ROTARY           1
 #define WITH_PEDALS           1
 
@@ -15,27 +19,20 @@
 // and here we define the defaults for those
 
 #define WITH_MIDI_HOST        1
-#define WITH_SERIAL_IO_PORT   1
+#define WITH_SERIAL_PORT   1
 
 #if WITH_MIDI_HOST
-    #define MIDI_HOST_DEFAULT  0
-    extern int usb_host_on;
+    #define DEFAULT_MIDI_HOST  0
+    extern int midi_host_on;
 #endif
 
-#if WITH_SERIAL_IO_PORT
-    #define SERIAL_IO_PORT_DEFAULT 0
-    extern int serial_io_on;
+#if WITH_SERIAL_PORT
+    #define DEFAULT_SERIAL_PORT 0
+    extern int serial_port_on;
 #endif
 
-//----------------------------
-// EEPROM LOCATIONS
-//----------------------------
-
-#define EEPROM_BRIGHTNESS       0
-#define EEPROM_CONFIG_NUM       1
-#define EEPROM_MIDI_HOST        2
-#define EEPROM_SERIAL_IO_PORT   3
-
+#define DEFAULT_CONFIG_NUM  1
+#define DEFAULT_BRIGHTNESS  60
 
     
 //----------------------------------------------------------------------
@@ -200,6 +197,22 @@
     #define XP  CHEAP_TFT_DATA1  // 13           // 9  maps to LCD_D1 on arduino    // can be a digital pin
 #endif
 
+
+
+
+
+//-----------------------------------
+// SETTINGS (PREFERENCES) OPTIONS
+//-----------------------------------
+//
+// These are modifiable by the systemConfig configuration.
+// They are used by the rest of the program, including configuration specific settings.
+
+
+#define EEPROM_BRIGHTNESS       0
+#define EEPROM_CONFIG_NUM       1
+#define EEPROM_MIDI_HOST        2
+#define EEPROM_SERIAL_PORT      3
 
 
 #endif  // !__defines_h__

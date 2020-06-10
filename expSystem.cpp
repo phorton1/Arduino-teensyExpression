@@ -70,9 +70,6 @@ void expConfig::onPedalEvent(int num, int val)
 // expSystem
 //----------------------------------------
 
-extern expSystem *s_pTheSystem;
-    // in teensyExpression.ino
-    
 
 expSystem::expSystem()
 {
@@ -106,16 +103,18 @@ void expSystem::begin()
     
     int brightness = EEPROM.read(EEPROM_BRIGHTNESS);
     m_cur_config_num = EEPROM.read(EEPROM_CONFIG_NUM);
+    if (m_cur_config_num == 255)
+        m_cur_config_num = DEFAULT_CONFIG_NUM;
     
+    // for working on systemConfig
     m_cur_config_num = 0;
-        // for working on systemConfig
     
-    display(0,"got bright=%d and config=%d from EEPROM",brightness,m_cur_config_num);
+    // display(0,"got bright=%d and config=%d from EEPROM",brightness,m_cur_config_num);
     
     if (brightness == 255)
-        brightness = 70;
+        brightness = DEFAULT_BRIGHTNESS;
     if (m_cur_config_num == 255)
-        m_cur_config_num = 1;
+        m_cur_config_num = DEFAULT_CONFIG_NUM;
     if (m_cur_config_num >= m_num_configs)
         m_cur_config_num = m_num_configs - 1;
 
@@ -135,9 +134,9 @@ void expSystem::staticOnButtonEvent(void *obj, int row, int col, int event)
 
 void expSystem::onButtonEvent(int row, int col, int event)
 {
-    display(0,"expSystem::onButtonEvent(%d,%d,%s)",row,col,rawButtonArray::buttonEventName(event));
+    // display(0,"expSystem::onButtonEvent(%d,%d,%s)",row,col,rawButtonArray::buttonEventName(event));
     
-    #ifdef USE_SERIAL_TO_RPI
+    #if 0 
         Serial3.print("E row(");
         Serial3.print(row,DEC);
         Serial3.print(") col(");
@@ -179,6 +178,8 @@ void expSystem::timer_handler()
             if (pollPedal(i))
                 s_pTheSystem->getCurConfig()->onPedalEvent(i,getPedalValue(i));
     #endif
+    
+    s_pTheSystem->getCurConfig()->timer_handler();
 }
 
 
@@ -220,6 +221,8 @@ void expSystem::activateConfig(int i)
     // clear the TFT and show the config title
     
     #if WITH_CHEAP_TFT
+    if (m_cur_config_num)
+    {
         mylcd.Fill_Screen(0);
         mylcd.setFont(Arial_16_Bold);
         mylcd.Set_Text_Cursor(10,10);
@@ -227,6 +230,7 @@ void expSystem::activateConfig(int i)
         mylcd.print(getCurConfig()->name());
         mylcd.Set_Draw_color(TFT_YELLOW);
 	    mylcd.Draw_Line(0,36,mylcd.Get_Display_Width()-1,36);
+    }
     #endif
     
     // start the configuration running

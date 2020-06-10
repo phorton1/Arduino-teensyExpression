@@ -1,7 +1,10 @@
 
 #include <myDebug.h>
 #include "defines.h"
+#include "expSystem.h"
 #include "systemConfig.h"
+#include "configOptions.h"
+#include "configEditors.h"
 #include "myLeds.h"
 #include "pedals.h"
 #include "rotary.h"
@@ -9,216 +12,157 @@
 
 
 
-#define COL_BRIGHTNESS_DOWN     0
-#define COL_BRIGHTNESS_UP       1
-#define COL_EXIT_CANCEL         3
-#define COL_EXIT_DONE           4
+
+#define BUTTON_BRIGHTNESS_DOWN  0
+#define BUTTON_BRIGHTNESS_UP    1
+#define BUTTON_EXIT_CANCEL      3
+#define BUTTON_EXIT_DONE        4
 
 #define ROW_CONFIGS             1
-
-
-#define ROTARY_FOR_BRIGHTNESS   1
-
-#define BRIGHNESS_INC_DEC       (100/INCS_PER_REV)      // one full revolution for 100
-#define BRIGHTNESS_STEEP        2.3
-#define BRIGHTNESS_OFFSET       0.10
-    // defines for ad-hoc curve for brighness    
+#define MAX_CONFIGS             NUM_BUTTON_COLS    // upto 5 configs
 
 
 
+configOption     rootOption;
+brightnessOption optBrightness(&rootOption);
 
-#define WITH_CURVE_EDITOR   1
+configNumOption  optConfigNum(&rootOption);
+configOption     optCalibrateTouch(&rootOption,"Calibrate Touch",OPTION_TYPE_TERMINAL);
+configOption     optPedals(&rootOption,"Pedals",OPTION_TYPE_MENU);
+midiHostOption   optMidiHost(&rootOption);
+serialPortOption optSerialPort(&rootOption);
 
-#if WITH_CURVE_EDITOR
+configOption     optCalibPedals(&optPedals,"Calibrate Pedals",OPTION_TYPE_MENU);
+configOption     optConfigPedals(&optPedals,"Configure Pedals",OPTION_TYPE_MENU);
 
-    #include "curves.h"
-    
-    #define NUM_TO_ROW(n)    (n / NUM_BUTTON_ROWS)
-    #define NUM_TO_COL(n)    (n % NUM_BUTTON_COLS)
-    #define RC_TO_NUM(r,c)   ((r)*NUM_BUTTON_COLS + (c))
-    
-    #define CURVE_BUTTON_CHOOSE_CURVE       20
-    #define CURVE_BUTTON_CHOOSE_POINT       15
-    #define CURVE_BUTTON_MOVE_UP            12
-    #define CURVE_BUTTON_MOVE_DOWN          22
-    #define CURVE_BUTTON_MOVE_LEFT          16
-    #define CURVE_BUTTON_MOVE_RIGHT         18
-    #define CURVE_BUTTON_CENTER             17
-    
-    #define NUM_CURVE_BUTTONS       7
-    
-    typedef struct
-    {
-        int row;
-        int col;
-        int command;
-        int color;
-    } curveButton_t;
-    
-    
-    curveButton_t  curve_button[NUM_CURVE_BUTTONS] = {
-        { 4, 0, CURVE_COMMAND_SELECT_NEXT_CURVE,  LED_BLUE   },
-        { 3, 0, CURVE_COMMAND_SELECT_NEXT_POINT,  LED_CYAN   },
-        { 2, 2, CURVE_COMMAND_MOVE_UP          ,  LED_GREEN  }, 
-        { 4, 2, CURVE_COMMAND_MOVE_DOWN        ,  LED_GREEN  }, 
-        { 3, 1, CURVE_COMMAND_MOVE_LEFT        ,  LED_GREEN  },
-        { 3, 3, CURVE_COMMAND_MOVE_RIGHT       ,  LED_GREEN  },
-        { 3, 2, CURVE_COMMAND_INC_PARAM        ,  LED_RED    }
-    };
-    
-    unsigned move_time = 0;
-    int move_command = 0;
-    
+configOption     optCalibPedal1(&optCalibPedals,"Calibrate Pedal1 (Synth)",  OPTION_TYPE_TERMINAL);
+configOption     optCalibPedal2(&optCalibPedals,"Calibrate Pedal2 (Loop)",   OPTION_TYPE_TERMINAL);
+configOption     optCalibPedal3(&optCalibPedals,"Calibrate Pedal3 (Wah)",    OPTION_TYPE_TERMINAL);
+configOption     optCalibPedal4(&optCalibPedals,"Calibrate Pedal4 (Guitar)", OPTION_TYPE_TERMINAL);
 
-    void enableCurveButtons(rawButtonArray *ba)
-    {
-        for (int i=0; i<NUM_CURVE_BUTTONS; i++)
-        {
-            curveButton_t *cb = &curve_button[i];
-            int event = 0;
-            int color = 0;
-            if (curve_command_can(cb->command))
-            {
-                event = BUTTON_EVENT_PRESS | BUTTON_EVENT_RELEASE;
-                color = cb->color;
-            }
-            ba->setButtonEventMask(cb->row,cb->col,event);
-            setLED(cb->row,cb->col,color);
-        }
-    }
-    
-    
-    bool handleCurveButton(rawButtonArray *ba, int row, int col, int event)
-    {
-        for (int i=0; i<NUM_CURVE_BUTTONS; i++)
-        {
-            curveButton_t *cb = &curve_button[i];
-            if (row == cb->row && col == cb->col)
-            {
-                if (event == BUTTON_EVENT_PRESS)
-                {
-                    curve_command(cb->command);
-                    enableCurveButtons(ba);
-                    if (i > 1)
-                    {
-                        move_time = millis();
-                        move_command = cb->command;
-                    }
-                }
-                else
-                {
-                    setLED(cb->row,cb->col,cb->color);
-                    move_time = 0;
-                    draw_curve(true);
-                }
-                showLEDs();
-                return true;
-            }
-        }
-        return false;
-    }
-    
-#endif
+configOption     optConfigPedal1(&optConfigPedals,"Configure Pedal1 (Synth)",  OPTION_TYPE_TERMINAL);
+configOption     optConfigPedal2(&optConfigPedals,"Configure Pedal2 (Loop)",   OPTION_TYPE_TERMINAL);
+configOption     optConfigPedal3(&optConfigPedals,"Configure Pedal3 (Wah)",    OPTION_TYPE_TERMINAL);
+configOption     optConfigPedal4(&optConfigPedals,"Configure Pedal4 (Guitar)", OPTION_TYPE_TERMINAL);
 
+configOption *cur_menu = 0;
+configOption *cur_option = 0;
+configOption *display_menu = 0;
+configOption *display_option = 0;
+
+bool cancel_enabled = false;
+bool in_terminal_mode = false;
+
+bool terminal_mode_draw_needed = false;
+int button_repeat = -1;
+unsigned button_repeat_time = 0;
 
 
 
 systemConfig::systemConfig(expSystem *pSystem) :
     expConfig(pSystem)
 {
-    m_orig_brightness   = 0;
-    m_orig_config_num   = 0;
-    
-    m_brightness        = 0;
-    m_config_num        = 0;
-    
-    m_last_changed      = -1;
-    m_last_brightness   = -1;
-    m_last_config_num   = -1;
+    optBrightness.setTerminalMode(
+        navInteger,         // functions in configEditors.h/cpp
+        drawInteger);
 }
 
 
-
-
-bool systemConfig::changed()
+bool config_changed()
 {
     return
-        m_brightness != m_orig_brightness ||
-        m_config_num != m_orig_config_num;
+        optBrightness.getValue() != optBrightness.getOrigValue() ||
+        optConfigNum.getValue() != optConfigNum.getOrigValue() ||
+        optMidiHost.getValue() != optMidiHost.getOrigValue() ||
+        optSerialPort.getValue() != optSerialPort.getOrigValue();
 }
-
-
-
 
 
 // virtual
 void systemConfig::begin()
 {
     expConfig::begin();
-    
-    m_last_changed      = -1;
-    m_last_brightness   = -1;
-    m_last_config_num   = -1;
-    m_cancel_enabled    = 0;
 
-    m_orig_brightness = m_brightness = getLEDBrightness();
-    m_orig_config_num = m_config_num = m_pSystem->getPrevConfigNum();
+    // setup option terminal nodes
+    // calls init() on entire tree
     
-    setRotary(ROTARY_FOR_BRIGHTNESS,1,100,BRIGHNESS_INC_DEC);
-    setRotaryValue(ROTARY_FOR_BRIGHTNESS, m_brightness);
+    rootOption.init();      
+
+    // initialize globals
+    
+    cur_menu = rootOption.pFirstChild;
+    cur_option = rootOption.pFirstChild;
+    cur_option->selected = 1;
+    display_menu = 0;
+    display_option = 0;
+    
+    cancel_enabled = false;
+    in_terminal_mode = false;
+    terminal_mode_draw_needed = false;
+    button_repeat = -1;
+    button_repeat_time = 0;
+
+    // setup buttons and leds
     
     rawButtonArray *ba = m_pSystem->getRawButtonArray();
+
+    ba->setButtonEventMask(BUTTON_BRIGHTNESS_DOWN, BUTTON_EVENT_PRESS | BUTTON_EVENT_CLICK);
+    ba->setButtonEventMask(BUTTON_BRIGHTNESS_UP,   BUTTON_EVENT_PRESS | BUTTON_EVENT_CLICK);
+    ba->setButtonEventMask(BUTTON_EXIT_DONE,       BUTTON_EVENT_CLICK | BUTTON_EVENT_LONG_CLICK);
     
-    ba->setButtonEventMask(0,COL_BRIGHTNESS_DOWN,   BUTTON_EVENT_CLICK);
-    ba->setButtonEventMask(0,COL_BRIGHTNESS_UP,     BUTTON_EVENT_CLICK);
-    ba->setButtonEventMask(0,COL_EXIT_DONE,         BUTTON_EVENT_CLICK | BUTTON_EVENT_LONG_CLICK);
+    setLED(BUTTON_BRIGHTNESS_DOWN, LED_RED);        
+    setLED(BUTTON_BRIGHTNESS_UP,   LED_GREEN);      
+    setLED(BUTTON_EXIT_DONE,       LED_PURPLE);     
+
+    ba->setButtonEventMask(BUTTON_MOVE_UP,      BUTTON_EVENT_PRESS | BUTTON_EVENT_RELEASE);
+    ba->setButtonEventMask(BUTTON_MOVE_DOWN,    BUTTON_EVENT_PRESS | BUTTON_EVENT_RELEASE);
+    ba->setButtonEventMask(BUTTON_MOVE_LEFT,    BUTTON_EVENT_PRESS | BUTTON_EVENT_RELEASE);
+    ba->setButtonEventMask(BUTTON_MOVE_RIGHT,   BUTTON_EVENT_PRESS | BUTTON_EVENT_RELEASE);
+    ba->setButtonEventMask(BUTTON_SELECT,       BUTTON_EVENT_PRESS | BUTTON_EVENT_RELEASE);
     
-    setLED(0,COL_BRIGHTNESS_DOWN,   LED_RED);        
-    setLED(0,COL_BRIGHTNESS_UP,     LED_GREEN);      
-    setLED(0,COL_EXIT_DONE,         LED_PURPLE);     
+    setLED(BUTTON_MOVE_UP,      LED_BLUE);
+    setLED(BUTTON_MOVE_DOWN,    LED_BLUE);
+    setLED(BUTTON_MOVE_LEFT,    LED_BLUE);
+    setLED(BUTTON_MOVE_RIGHT,   LED_BLUE);
+    setLED(BUTTON_SELECT,       LED_GREEN);
     
-    enableButtons();
+    // setup the config_num button row
     
-    for (int i=0; i<m_pSystem->getNumConfigs()-1; i++)
+    int num_show = m_pSystem->getNumConfigs()-1;
+    if (num_show >= MAX_CONFIGS) num_show = MAX_CONFIGS;
+    for (int i=0; i<num_show; i++)
     {
         ba->setButtonEventMask(ROW_CONFIGS,i,BUTTON_EVENT_CLICK);
-        setLED(1,i, i == m_config_num-1 ? LED_WHITE : LED_BLUE);
+        setLED(1,i, i == optConfigNum.value-1 ? LED_CYAN : LED_BLUE);
     }
     
-    #if WITH_CURVE_EDITOR
-        enableCurveButtons(ba);
-        draw_curve(true);
-    #endif
+    // finished
+    // do not call draw() here!
+    // only draw on the main thread ..
     
+    enableCancel();
     showLEDs();
     
-    // testing curves
-    // just show they are complicated.
-    //
-    // void showBrightnessCurve(float steep, float offset);
-    // showBrightnessCurve(BRIGHTNESS_STEEP,BRIGHTNESS_OFFSET);
-    
-}
+}   // systemConfig::begin
 
 
-void systemConfig::enableButtons()
+void systemConfig::enableCancel()
 {
-    bool is_changed = changed();
-    display(0,"enableButtons(%d)",is_changed);
-    if (is_changed !=  m_cancel_enabled)
+    bool is_changed = config_changed();
+
+    if (is_changed != cancel_enabled)
     {
-        m_cancel_enabled = is_changed;
-        rawButtonArray *ba = m_pSystem->getRawButtonArray();
+        cancel_enabled = is_changed;
+        int event_mask = 0;
+        int color = 0;
         if (is_changed)
         {
-            ba->setButtonEventMask(0,COL_EXIT_CANCEL,BUTTON_EVENT_CLICK);
-            setLED(0,COL_EXIT_CANCEL,LED_YELLOW);
+            event_mask = BUTTON_EVENT_CLICK;
+            color = LED_YELLOW;
         }
-        else
-        {
-            ba->setButtonEventMask(0,COL_EXIT_CANCEL,0);
-            setLED(0,COL_EXIT_CANCEL,0);
-        }
+        rawButtonArray *ba = m_pSystem->getRawButtonArray();
+        ba->setButtonEventMask(BUTTON_EXIT_CANCEL,event_mask);
+        setLED(BUTTON_EXIT_CANCEL,color);
     }
 }
 
@@ -226,149 +170,343 @@ void systemConfig::enableButtons()
 // virtual
 void systemConfig::onButtonEvent(int row, int col, int event)
 {
-    display(0,"systemConfig(%d,%d) event(%s)",row,col,rawButtonArray::buttonEventName(event));
-    
-    #if WITH_CURVE_EDITOR
-        if (handleCurveButton(m_pSystem->getRawButtonArray(),row,col,event))
-            return;
-    #endif
-    
-    if (row == 0)
+    // display(0,"systemConfig(%d,%d) event(%s)",row,col,rawButtonArray::buttonEventName(event));
+    int num = row * NUM_BUTTON_COLS + col;
+
+    if (num == BUTTON_MOVE_UP ||
+        num == BUTTON_MOVE_DOWN ||
+        num == BUTTON_MOVE_LEFT ||
+        num == BUTTON_MOVE_RIGHT ||
+        num == BUTTON_SELECT)
     {
-        if (col == COL_BRIGHTNESS_DOWN)
+        if (event == BUTTON_EVENT_PRESS)
         {
-            m_brightness -= 5;
-            if (m_brightness < 1) m_brightness = 1;
-            display(0,"decrease brightness to %d",m_brightness);
-            setRotaryValue(ROTARY_FOR_BRIGHTNESS, m_brightness);
-            setLEDBrightness(m_brightness);
-            setLED(0,0,LED_RED);
-            enableButtons();
-            showLEDs();
-        }
-        else if (col == COL_BRIGHTNESS_UP)
-        {
-            m_brightness += 5;
-            if (m_brightness > 100) m_brightness = 100;
-            display(0,"increase brightness to %d",m_brightness);
-            setRotaryValue(ROTARY_FOR_BRIGHTNESS, m_brightness);
-            setLEDBrightness(m_brightness);
-            setLED(0,1,LED_GREEN);
-            enableButtons();
-            showLEDs();
-        }
-        else if (col == COL_EXIT_CANCEL)  // abort - don't bother with colors
-        {
-            setLEDBrightness(m_orig_brightness);
-            m_pSystem->activateConfig(m_orig_config_num);
-        }
-        else if (col == COL_EXIT_DONE)
-        {
-            if (event == BUTTON_EVENT_LONG_CLICK)
+            if (!button_repeat_time &&
+                in_terminal_mode &&
+                num != BUTTON_SELECT)
             {
-                display(0,"write bright=%d and config=%d to EEPROM",m_brightness,m_config_num);
-                EEPROM.write(EEPROM_BRIGHTNESS,m_brightness);
-                EEPROM.write(EEPROM_CONFIG_NUM,m_config_num);
+                button_repeat = num;
+                button_repeat_time = millis();
             }
-            m_pSystem->activateConfig(m_config_num);
+            
+            onNavPad(num);
         }
-    }
-    else if (row == 1)
-    {
-        if (col != m_config_num-1)
+        else // if (event == BUTTON_EVENT_RELEASE)
         {
-            if (m_config_num)
-                setLED(1,m_config_num-1,LED_BLUE);
-            m_config_num = col + 1;
-            enableButtons();
+            setLED(num,num == BUTTON_SELECT ? LED_GREEN : LED_BLUE);
+            button_repeat = -1;
+            button_repeat_time = 0;
+        }
+
+        enableCancel();
+        showLEDs();
+    }
+    else if (num == BUTTON_BRIGHTNESS_UP ||
+        num == BUTTON_BRIGHTNESS_DOWN)
+    {
+        if (event == BUTTON_EVENT_PRESS)
+        {
+            if (!button_repeat_time)
+            {
+                button_repeat = num;
+                button_repeat_time = millis();
+            }
+            
+            int inc = num == BUTTON_BRIGHTNESS_UP ? 5 : -5;
+            optBrightness.setValue(optBrightness.value + inc);
+        }
+        else
+        {
+            button_repeat = -1;
+            button_repeat_time = 0;
+            setLED(num, num == BUTTON_BRIGHTNESS_UP ? LED_GREEN : LED_RED);
+            enableCancel();
             showLEDs();
         }
     }
-}
-
-
-
-int brightnessCurve(int x, int min, int max, float steep, float offset)
-    // curves are difficult.
-    // this works "so so" for brightness
-    // it producess an S curve of various steepness
-    // that you can move right or left.
-    // however, moving it right means that you will
-    // also need to scale it, and there are dead values near zero
-{
-    float x_float = ((float)x) / ((float) max-min);
-    x_float *= (1 - offset);
-    
-    float val = 1/ (    1 + pow( x_float/(1-x_float) , steep)     );
-    val = 1 - val;
-
-    int y = min + (max-min) * val;
-    
-    display(0,"curve(%d,%d,%d,%0.2f,0%2f) = %0.2f = %d",x,min,max,steep,offset,val,y);
-    return y;
-}
-
-
-
-void showBrightnessCurve(float steep, float offset)
-{
-    #define X_OFFSET    100.00
-    #define Y_OFFSET    100.00
-    #define CHART_MAX       199.00
-    
-    mylcd.Set_Draw_color(TFT_WHITE);
-    mylcd.Draw_Line(X_OFFSET,Y_OFFSET,X_OFFSET,Y_OFFSET+CHART_MAX);
-    mylcd.Draw_Line(X_OFFSET,Y_OFFSET+CHART_MAX,X_OFFSET+CHART_MAX,Y_OFFSET+CHART_MAX);
-    
-    for (int x=0; x<CHART_MAX; x++)
+    else if (row == ROW_CONFIGS)
     {
-        int y0 = CHART_MAX - x;     // line
-        int yc = CHART_MAX - brightnessCurve(x,0,CHART_MAX,steep,offset);
+        if (optConfigNum.value)
+            setLED(ROW_CONFIGS,optConfigNum.value-1,LED_BLUE);
+        optConfigNum.setValue(col + 1);
+        setLED(ROW_CONFIGS,col,LED_CYAN);
+        enableCancel();
+        showLEDs();
+    }
+
+    // exit / cancel
+    
+    else if (num == BUTTON_EXIT_CANCEL)  // abort - don't bother with colors
+    {
+        // no longer needed
+        // cur_option->selected = 0;
+        // all menu selected bits should be cleared in begin()
         
-        mylcd.Draw_Pixe(X_OFFSET + x, Y_OFFSET + y0, TFT_WHITE);
-        mylcd.Draw_Pixe(X_OFFSET + x, Y_OFFSET + yc, TFT_YELLOW);
+        setLEDBrightness(optBrightness.orig_value);
+        m_pSystem->activateConfig(optConfigNum.orig_value);
+    }
+    else if (num == BUTTON_EXIT_DONE)
+    {
+        if (event == BUTTON_EVENT_LONG_CLICK)
+        {
+            display(0,"write bright=%d and config=%d to EEPROM",
+                optBrightness.value,
+                optConfigNum.value);
+            EEPROM.write(EEPROM_BRIGHTNESS,optBrightness.value);
+            EEPROM.write(EEPROM_CONFIG_NUM,optConfigNum.value);
+            EEPROM.write(EEPROM_MIDI_HOST,optMidiHost.value);
+            EEPROM.write(EEPROM_SERIAL_PORT,optSerialPort.value);
+            
+            if ((optMidiHost.value != optMidiHost.orig_value) ||
+                (optSerialPort.value != optSerialPort.orig_value))
+            {
+                // REBOOT
+                #define RESTART_ADDR 0xE000ED0C
+                #define READ_RESTART() (*(volatile uint32_t *)RESTART_ADDR)
+                #define WRITE_RESTART(val) ((*(volatile uint32_t *)RESTART_ADDR) = (val))
+                Serial.end();
+                delay(200);
+                WRITE_RESTART(0x5FA0004);
+                
+            }
+        }
+
+        // no longer needed
+        // cur_option->selected = 0;
+
+        // you cannot change these at run time!!!
+        //
+        // midi_host_on = optMidiHost.value;
+        // serial_port_on = optSerialPort.value;
+        
+        m_pSystem->activateConfig(optConfigNum.value);
+    }
+    
+}
+
+
+
+
+
+
+void systemConfig::onNavPad(int num)
+{
+    if (in_terminal_mode)
+    {
+        // display(0,"onNavPad inTerminalMode(%d)",num);
+        (cur_option->pNavFunction)(cur_option,num);
+        return;
+    }
+    
+    if (num == BUTTON_MOVE_UP)
+    {
+        if (cur_option->pPrevOption)
+        {
+            cur_option->selected = 0;
+            cur_option = cur_option->pPrevOption;
+            cur_option->selected = 1;
+        }
+    }
+    else if (num == BUTTON_MOVE_DOWN)
+    {
+        if (cur_option->pNextOption)
+        {
+            cur_option->selected = 0;
+            cur_option = cur_option->pNextOption;
+            cur_option->selected = 1;
+        }
+    }
+    else if (num == BUTTON_MOVE_LEFT)
+    {
+        configOption *option = cur_option->pParent;
+        if (option != &rootOption)
+        {
+            cur_option->selected = 0;
+            cur_option->display_selected = -1;
+            
+            display_option = 0;
+            cur_menu = option->pParent->pFirstChild;
+            cur_option = option;
+        }
+    }
+    else if (num == BUTTON_SELECT)
+    {
+        if (cur_option->pFirstChild)
+        {
+            display_option = 0;
+            cur_menu = cur_option->pFirstChild;
+            cur_option = cur_option->pFirstChild;
+            cur_option->selected = 1;
+        }
+        else if (cur_option->type & OPTION_TYPE_IMMEDIATE)
+        {
+            if ((cur_option->type & OPTION_TYPE_CONFIG_NUM) && optConfigNum.value)
+                setLED(ROW_CONFIGS,cur_option->value-1,LED_BLUE);
+            cur_option->incValue(1);
+            if (cur_option->type & OPTION_TYPE_CONFIG_NUM)
+                setLED(ROW_CONFIGS,cur_option->value-1,LED_CYAN);
+        }
+        else if (cur_option->type & OPTION_TYPE_TERMINAL)
+        {
+            if (cur_option->pDrawFunction &&
+                cur_option->pNavFunction)
+            {
+                in_terminal_mode = true;
+                terminal_mode_draw_needed = true;
+            }
+        }
+
     }
 }
-
 
 
 // virtual
 void systemConfig::onRotaryEvent(int num, int val)
 {
-    // makes use of early, external, curve applied post-facto
-    // to linear "jumpy" rotary values ...
-    // works "so so" ...
-    // still a couple of dead clicks at top and bottom
-    
     display(0,"systemConfig::onRotaryEvent(%d) val=%d",num,val);
-    if (num == ROTARY_FOR_BRIGHTNESS)
+}
+
+
+// virtual
+void systemConfig::updateUI()
+{
+    draw();
+}
+
+
+
+#define LINE_HEIGHT     45
+#define TOP_OFFSET      50
+#define TEXT_OFFSET     10
+#define HIGHLIGHT_OFFSET 3
+
+#define LEFT_OFFSET     20
+#define RIGHT_OFFSET    20
+
+#define NUMBER_WIDTH    120
+#define MID_OFFSET      (WIDTH/2)
+
+
+void systemConfig::draw()
+{
+    if (in_terminal_mode)
     {
-        m_brightness = brightnessCurve(val,1,100,BRIGHTNESS_STEEP,BRIGHTNESS_OFFSET);
-        setLEDBrightness(m_brightness);
-        enableButtons();
-        showLEDs();
+        (cur_option->pDrawFunction)(cur_option);
+        return;
+    }
+    
+    bool draw_all = false;
+    
+    // title
+    
+    if (display_menu != cur_menu)
+    {
+        display_menu = cur_menu;
+        draw_all = true;
+        
+        mylcd.setFont(Arial_16_Bold);
+        mylcd.Set_Text_Cursor(10,10);
+        mylcd.Set_Text_colour(TFT_YELLOW);
+        mylcd.Set_Draw_color(TFT_YELLOW);
+        mylcd.Fill_Rect(0,0,WIDTH,HEIGHT,0);
+        
+        if (cur_option->pParent == &rootOption)
+            mylcd.print( m_pSystem->getCurConfig()->name());
+        else
+        {
+            configOption *opt = cur_option->pParent;
+            mylcd.print(opt->title);
+        }
+
+	    mylcd.Draw_Line(0,36,WIDTH-1,36);
+    }
+
+    
+
+    mylcd.setFont(Arial_20);
+
+    int num = 0;
+    int y = TOP_OFFSET;
+    configOption *opt = cur_menu;
+    
+    while (opt)
+    {
+        num++;
+        
+        bool draw_selected = opt->display_selected != opt->selected;
+        bool draw_value = opt->display_value != opt->value;
+        opt->display_selected = opt->selected;
+        opt->display_value = opt->value;
+        
+        if (draw_all || draw_selected)
+        {
+            int color = TFT_BLACK;
+            if (opt->selected)
+                color = TFT_BLUE;
+                
+            // don't need to draw black on a full redraw
+            
+            if (color != TFT_BLACK || !draw_all)            
+                mylcd.Fill_Rect(0,y,WIDTH,LINE_HEIGHT-HIGHLIGHT_OFFSET,color);
+    
+            mylcd.Set_Text_colour(TFT_YELLOW);
+            mylcd.Set_Text_Cursor(LEFT_OFFSET,y + TEXT_OFFSET);
+            mylcd.print(num,DEC);
+            mylcd.print(". ");
+            mylcd.print(opt->title);
+        }
+
+        if (opt->type & OPTION_TYPE_VALUE && (
+            draw_all || draw_selected || draw_value))
+        {
+            mylcd.printf_justified(
+                MID_OFFSET,
+                y + TEXT_OFFSET,
+                MID_OFFSET - RIGHT_OFFSET,
+                LINE_HEIGHT - TEXT_OFFSET - HIGHLIGHT_OFFSET,
+                LCD_JUST_RIGHT,
+                TFT_WHITE,
+                opt->selected ? TFT_BLUE : TFT_BLACK,
+                "%s",
+                opt->getValueString());
+        }
+
+        opt = opt->pNextOption;
+        y += LINE_HEIGHT;
     }
 }
 
 
 
 // virtual
-void systemConfig::updateUI()
+void systemConfig::timer_handler()
 {
-    #if WITH_CURVE_EDITOR
-        if (move_time)
+    static elapsedMillis timer2 = 0;
+    
+    if (button_repeat_time)
+    {
+        int dif = millis() - button_repeat_time;
+        if (dif > 350)
         {
-            unsigned elapsed = millis() - move_time;
-            if (elapsed > 400 && (elapsed % 30 == 0))
+            // starts repeating after 350ms
+            // starts at 10 per second and accelerates to 200 per second over one seconds
+
+            dif -= 350;
+            if (dif > 1500) dif = 1500;
+            unsigned interval = 1500 - dif;
+            interval = 5 + (interval / 8);
+        
+            if (timer2 > interval)
             {
-                if (curve_command_can(move_command))
-                    curve_command(move_command);
-                else move_time = 0;
+                int row = button_repeat / NUM_BUTTON_COLS;
+                int col = button_repeat % NUM_BUTTON_COLS;
+                
+                onButtonEvent(row,col,BUTTON_EVENT_PRESS);
+                // (cur_option->pNavFunction)(cur_option,button_repeat);
+                timer2 = 0;
             }
         }
-        // else
-        //     draw_curve(false);
-    #endif    
+    }    
 }
 
 

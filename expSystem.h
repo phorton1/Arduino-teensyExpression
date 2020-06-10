@@ -14,8 +14,6 @@
 #endif
 
 
-#define USE_SERIAL_TO_RPI   0
-
 
 class expSystem;
     // forwards
@@ -30,6 +28,7 @@ class expConfig
         ~expConfig() {}
         
         virtual const char *name() = 0;
+        virtual const char *short_name() = 0;
         
         
         virtual void begin();
@@ -40,6 +39,7 @@ class expConfig
         virtual void onRotaryEvent(int num, int val);
         virtual void onPedalEvent(int num, int val);
         virtual void updateUI() {}
+        virtual void timer_handler()  {}
         
     protected:
         friend class expSystem;
@@ -69,7 +69,9 @@ class expSystem
         int getNumConfigs()     { return m_num_configs; }
         int getCurConfigNum()   { return m_cur_config_num; }
         int getPrevConfigNum()  { return m_prev_config_num; }
-        expConfig *getCurConfig() { return m_pConfigs[m_cur_config_num]; }
+        expConfig *getCurConfig()   { return m_pConfigs[m_cur_config_num]; }
+        expConfig *getConfig(int i) { return m_pConfigs[i]; }
+        
         void addConfig(expConfig *pConfig);
         
         rawButtonArray *getRawButtonArray()  { return m_pRawButtonArray; }
@@ -95,6 +97,9 @@ class expSystem
             // registered button event handler.
 
 };
+
+extern expSystem *s_pTheSystem;
+
 
 
 #endif // !__exp_system_h__

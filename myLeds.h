@@ -23,10 +23,14 @@
 
 extern void initLEDs();
 extern void clearLEDs();
+
 extern int getLEDBrightness();
 extern void setLEDBrightness(int brightness);   // 0..100
+
+extern void setLED(int num, unsigned color);
 extern void setLED(int row, int col, unsigned color);
 extern void showLEDs(bool force=false);
+
 extern void LEDFancyStart();
 
 

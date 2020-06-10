@@ -4,8 +4,6 @@
 #include <EEPROM.h>
 
 
-#define VERSION   "1.2"
-
 #if WITH_SYSTEM
     #include "myLeds.h"
     #include "expSystem.h"
@@ -33,8 +31,8 @@
 #endif
 
 
-#if WITH_SERIAL_IO_PORT
-    int serial_io_on = 0;
+#if WITH_SERIAL_PORT
+    int serial_port_on = 0;
 #endif
     
     
@@ -46,7 +44,7 @@
     USBHub hub2(myusb);
     MIDIDevice midi1(myusb);
     
-    int usb_host_on = 0;
+    int midi_host_on = 0;
 #endif
 
 
@@ -95,9 +93,9 @@ void setup()
     
     #if defined(USB_SERIAL) || defined(USB_MIDI_SERIAL)
         Serial.begin(115200);
-        
         elapsedMillis serial_started = 0;
         while (serial_started<1000 && !Serial) {}
+        delay(400);
         display(0,"teensyExpression version %s started",VERSION);
     #endif
 
@@ -145,18 +143,18 @@ void setup()
         display(0,"    NO CHEAP_TFT!!",0);
     #endif
     
-    #if WITH_SERIAL_IO_PORT
-        serial_io_on = EEPROM.read(EEPROM_SERIAL_IO_PORT);
-        if (serial_io_on == 255)
-            serial_io_on = SERIAL_IO_PORT_DEFAULT;
+    #if WITH_SERIAL_PORT
+        serial_port_on = EEPROM.read(EEPROM_SERIAL_PORT);
+        if (serial_port_on == 255)
+            serial_port_on = DEFAULT_SERIAL_PORT;
     
-        display(0,"    SERIAL_IO_PORT %s",serial_io_on?"ON":"OFF");
+        display(0,"    SERIAL_PORT %s",serial_port_on?"ON":"OFF");
         #if WITH_CHEAP_TFT
-            mylcd.print("    SERIAL_IO_PORT ");
-            mylcd.println(serial_io_on?"ON":"OFF");
+            mylcd.print("    SERIAL_PORT ");
+            mylcd.println(serial_port_on?"ON":"OFF");
         #endif
         
-        if (serial_io_on)
+        if (serial_port_on)
         {
             Serial3.begin(115200);
             Serial3.println("teensy expression Serial3 to rPi started");
@@ -174,17 +172,17 @@ void setup()
         // use too much power, Teensy at least completes USB enumeration, which
         // makes isolating the power issue easier.
 
-        int usb_host_on = EEPROM.read(EEPROM_MIDI_HOST);
-        if (usb_host_on == 255)
-            usb_host_on = MIDI_HOST_DEFAULT;
+        midi_host_on = EEPROM.read(EEPROM_MIDI_HOST);
+        if (midi_host_on == 255)
+            midi_host_on = DEFAULT_MIDI_HOST;
             
-        display(0,"    USB_HOST %s",usb_host_on?"ON":"OFF");
+        display(0,"    MiDI_HOST %s",midi_host_on?"ON":"OFF");
         #if WITH_CHEAP_TFT
-            mylcd.print("    USB_HOST ");
-            mylcd.println(usb_host_on?"ON":"OFF");
+            mylcd.print("    MiDI_HOST ");
+            mylcd.println(midi_host_on?"ON":"OFF");
         #endif
 
-        if (usb_host_on)
+        if (midi_host_on)
         {
             // delay(1500);
             myusb.begin();

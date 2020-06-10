@@ -86,8 +86,13 @@ class rawButtonArray
         
         int getButtonEventMask(int row, int col)
             { return m_buttons[row][col].m_event_mask; }
+        int getButtonEventMask(int num)
+            { return m_buttons[num / NUM_BUTTON_COLS][num % NUM_BUTTON_COLS].m_event_mask; }
+            
         void setButtonEventMask(int row, int col, int mask)
             { m_buttons[row][col].m_event_mask = mask;}
+        void setButtonEventMask(int num, int mask)
+            { m_buttons[num / NUM_BUTTON_COLS][num % NUM_BUTTON_COLS].m_event_mask = mask;}
         
         void task();
         

@@ -10,6 +10,8 @@ class oldRigConfig : public expConfig
         
         oldRigConfig(expSystem *pSystem);
         virtual const char *name() { return "Old Rig Configuration"; }
+        virtual const char *short_name()    { return "Old Rig"; }
+        
         
         virtual void begin();
 

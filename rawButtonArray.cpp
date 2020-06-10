@@ -2,6 +2,8 @@
 #include "rawButtonArray.h"
 #include "myLeds.h"
 
+#define dbg_btn 1
+
 
 static rawButtonArray *s_pThis = 0;
 
@@ -23,14 +25,14 @@ int col_pins[5] = {29,30,31,32,33};
     // if defined, we delay the SINGLE CLICK until we are sure
     // we are out of the zone
 
-#define DO_DEBOUNCE        0
+#define DO_DEBOUNCE        1
     // does not seem to be necessary.
     // in timer version, a period of time is implicit, so this should be turned off
     // in loop() version, maybe we are getting by because of display() calls
     // so *this* might still be needed.
 
 #if DO_DEBOUNCE
-    #define DEBOUNCE_MILLIS    5
+    #define DEBOUNCE_MILLIS    50
 #endif
 
 #define BUTTON_STATE_PRESSED  0x0001
@@ -45,7 +47,7 @@ rawButtonArray::rawButtonArray(void *pObj, handleButtonEventFxn *callback)
     m_pObj = pObj;
     m_callback = callback;
 
-    display(0,"rawButtonArray::begin()",0);
+    display(dbg_btn,"rawButtonArray::begin()",0);
 
     for (int row=0; row<NUM_BUTTON_ROWS; row++)
     {
@@ -56,7 +58,7 @@ rawButtonArray::rawButtonArray(void *pObj, handleButtonEventFxn *callback)
         pinMode(col_pins[col],INPUT_PULLDOWN);            // guessing that pins 7 and 8 doent have pulldowns
     
 #if DO_DEBOUNCE
-    display(0,"    WITH DEBOUNCE!",0);
+    display(dbg_btn,"    WITH DEBOUNCE!",0);
 #endif
 
     proc_leave();
@@ -123,7 +125,7 @@ void rawButtonArray::task()
                 
                 if ((pButton->m_event_state & BUTTON_STATE_PRESSED) != is_pressed)
                 {
-                    display(0,"BUTTON(%d,%d) %s",row,col,is_pressed?"DOWN":"UP");
+                    display(dbg_btn,"BUTTON(%d,%d) %s",row,col,is_pressed?"DOWN":"UP");
                     
                     // set or clear the state bit
                     
