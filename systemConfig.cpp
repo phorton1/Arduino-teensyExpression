@@ -58,6 +58,23 @@ int button_repeat = -1;
 unsigned button_repeat_time = 0;
 
 
+void reboot(int num)
+{
+    Serial.end();
+    for (int i=0; i<21; i++)
+    {
+        setLED(num,i & 1 ? LED_RED : 0);
+        showLEDs();
+        delay(80);
+    }
+    // REBOOT
+    #define RESTART_ADDR 0xE000ED0C
+    #define READ_RESTART() (*(volatile uint32_t *)RESTART_ADDR)
+    #define WRITE_RESTART(val) ((*(volatile uint32_t *)RESTART_ADDR) = (val))
+    WRITE_RESTART(0x5FA0004);
+}
+
+
 
 systemConfig::systemConfig(expSystem *pSystem) :
     expConfig(pSystem)
@@ -109,10 +126,12 @@ void systemConfig::begin()
     ba->setButtonEventMask(BUTTON_BRIGHTNESS_DOWN, BUTTON_EVENT_PRESS | BUTTON_EVENT_CLICK);
     ba->setButtonEventMask(BUTTON_BRIGHTNESS_UP,   BUTTON_EVENT_PRESS | BUTTON_EVENT_CLICK);
     ba->setButtonEventMask(BUTTON_EXIT_DONE,       BUTTON_EVENT_CLICK | BUTTON_EVENT_LONG_CLICK);
+    ba->setButtonEventMask(BUTTON_EXIT_CANCEL,     BUTTON_EVENT_CLICK | BUTTON_EVENT_LONG_CLICK);
     
     setLED(BUTTON_BRIGHTNESS_DOWN, LED_RED);        
     setLED(BUTTON_BRIGHTNESS_UP,   LED_GREEN);      
     setLED(BUTTON_EXIT_DONE,       LED_PURPLE);     
+    setLED(BUTTON_EXIT_CANCEL,     LED_ORANGE);     
 
     ba->setButtonEventMask(BUTTON_MOVE_UP,      BUTTON_EVENT_PRESS | BUTTON_EVENT_RELEASE);
     ba->setButtonEventMask(BUTTON_MOVE_DOWN,    BUTTON_EVENT_PRESS | BUTTON_EVENT_RELEASE);
@@ -154,10 +173,10 @@ void systemConfig::enableCancel()
     {
         cancel_enabled = is_changed;
         int event_mask = 0;
-        int color = 0;
+        int color = LED_ORANGE;
         if (is_changed)
         {
-            event_mask = BUTTON_EVENT_CLICK;
+            event_mask = BUTTON_EVENT_CLICK | BUTTON_EVENT_LONG_CLICK;
             color = LED_YELLOW;
         }
         rawButtonArray *ba = m_pSystem->getRawButtonArray();
@@ -238,12 +257,21 @@ void systemConfig::onButtonEvent(int row, int col, int event)
     
     else if (num == BUTTON_EXIT_CANCEL)  // abort - don't bother with colors
     {
-        // no longer needed
-        // cur_option->selected = 0;
-        // all menu selected bits should be cleared in begin()
-        
-        setLEDBrightness(optBrightness.orig_value);
-        m_pSystem->activateConfig(optConfigNum.orig_value);
+        if (event == BUTTON_EVENT_LONG_CLICK)
+        {
+            reboot(num);
+        }
+        else 
+        {
+            setLED(num,cancel_enabled ? LED_YELLOW : LED_ORANGE);
+            showLEDs();
+            
+            if (cancel_enabled)
+            {
+                setLEDBrightness(optBrightness.orig_value);
+                m_pSystem->activateConfig(optConfigNum.orig_value);
+            }
+        }
     }
     else if (num == BUTTON_EXIT_DONE)
     {
@@ -260,19 +288,9 @@ void systemConfig::onButtonEvent(int row, int col, int event)
             if ((optMidiHost.value != optMidiHost.orig_value) ||
                 (optSerialPort.value != optSerialPort.orig_value))
             {
-                // REBOOT
-                #define RESTART_ADDR 0xE000ED0C
-                #define READ_RESTART() (*(volatile uint32_t *)RESTART_ADDR)
-                #define WRITE_RESTART(val) ((*(volatile uint32_t *)RESTART_ADDR) = (val))
-                Serial.end();
-                delay(200);
-                WRITE_RESTART(0x5FA0004);
-                
+                reboot(num);                
             }
         }
-
-        // no longer needed
-        // cur_option->selected = 0;
 
         // you cannot change these at run time!!!
         //
