@@ -34,6 +34,10 @@ class expConfig
         virtual void begin();
             // derived classes should call base class method FIRST
             // base class clears all button registrations.
+        virtual void end()  {}
+            // called when the config is taken out of focus, they
+            // don't generally need to worry about buttons and LEDs,
+            // but may want to unregister midi event handlers, etc
             
         virtual void onButtonEvent(int row, int col, int event);
         virtual void onRotaryEvent(int num, int val);

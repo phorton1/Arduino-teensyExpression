@@ -4,13 +4,10 @@
 #include "expSystem.h"
 #include "systemConfig.h"
 #include "configOptions.h"
-#include "configEditors.h"
 #include "myLeds.h"
 #include "pedals.h"
 #include "rotary.h"
 #include <EEPROM.h>
-
-
 
 
 #define BUTTON_BRIGHTNESS_DOWN  0
@@ -53,7 +50,6 @@ configOption *display_option = 0;
 bool cancel_enabled = false;
 bool in_terminal_mode = false;
 
-bool terminal_mode_draw_needed = false;
 int button_repeat = -1;
 unsigned button_repeat_time = 0;
 
@@ -79,9 +75,6 @@ void reboot(int num)
 systemConfig::systemConfig(expSystem *pSystem) :
     expConfig(pSystem)
 {
-    optBrightness.setTerminalMode(
-        navInteger,         // functions in configEditors.h/cpp
-        drawInteger);
 }
 
 
@@ -95,6 +88,15 @@ bool config_changed()
 }
 
 
+void systemConfig::notifyTerminalModeEnd()
+    // called by terminal nodes to end their sessions
+{
+    in_terminal_mode = 0;
+    display_menu = 0;
+    display_option = 0;
+}
+
+
 // virtual
 void systemConfig::begin()
 {
@@ -103,7 +105,7 @@ void systemConfig::begin()
     // setup option terminal nodes
     // calls init() on entire tree
     
-    rootOption.init();      
+    rootOption.init(this);      
 
     // initialize globals
     
@@ -115,7 +117,6 @@ void systemConfig::begin()
     
     cancel_enabled = false;
     in_terminal_mode = false;
-    terminal_mode_draw_needed = false;
     button_repeat = -1;
     button_repeat_time = 0;
 
@@ -311,8 +312,7 @@ void systemConfig::onNavPad(int num)
 {
     if (in_terminal_mode)
     {
-        // display(0,"onNavPad inTerminalMode(%d)",num);
-        (cur_option->pNavFunction)(cur_option,num);
+        cur_option->terminalNav(num);
         return;
     }
     
@@ -366,14 +366,8 @@ void systemConfig::onNavPad(int num)
         }
         else if (cur_option->type & OPTION_TYPE_TERMINAL)
         {
-            if (cur_option->pDrawFunction &&
-                cur_option->pNavFunction)
-            {
-                in_terminal_mode = true;
-                terminal_mode_draw_needed = true;
-            }
+            in_terminal_mode = cur_option->beginTerminalMode();
         }
-
     }
 }
 
@@ -409,7 +403,7 @@ void systemConfig::draw()
 {
     if (in_terminal_mode)
     {
-        (cur_option->pDrawFunction)(cur_option);
+        cur_option->terminalDraw();
         return;
     }
     
@@ -520,7 +514,6 @@ void systemConfig::timer_handler()
                 int col = button_repeat % NUM_BUTTON_COLS;
                 
                 onButtonEvent(row,col,BUTTON_EVENT_PRESS);
-                // (cur_option->pNavFunction)(cur_option,button_repeat);
                 timer2 = 0;
             }
         }

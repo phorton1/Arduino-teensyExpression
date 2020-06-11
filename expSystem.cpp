@@ -74,7 +74,7 @@ void expConfig::onPedalEvent(int num, int val)
 expSystem::expSystem()
 {
     m_num_configs = 0;
-    m_cur_config_num = 0;
+    m_cur_config_num = -1;
     m_prev_config_num = 0;
 
     for (int i=0; i<MAX_EXP_CONFIGS; i++)
@@ -91,37 +91,26 @@ expSystem::expSystem()
 
 void expSystem::begin()
 {
-    proc_entry();
-    
-    #if 0
-        for (int row=0; row<NUM_BUTTON_ROWS; row++)
-            for (int col=0; col<NUM_BUTTON_COLS; col++)
-                m_pRawButtonArray->setButtonEventMask(row,col,BUTTON_ALL_EVENTS);
-    #endif
-    
-    // get the current configuration number and brightness from EEPROM
+    // get the brightness from EEPROM
     
     int brightness = EEPROM.read(EEPROM_BRIGHTNESS);
-    m_cur_config_num = EEPROM.read(EEPROM_CONFIG_NUM);
-    if (m_cur_config_num == 255)
-        m_cur_config_num = DEFAULT_CONFIG_NUM;
-    
-    // for working on systemConfig
-    m_cur_config_num = 0;
-    
-    // display(0,"got bright=%d and config=%d from EEPROM",brightness,m_cur_config_num);
-    
     if (brightness == 255)
         brightness = DEFAULT_BRIGHTNESS;
-    if (m_cur_config_num == 255)
-        m_cur_config_num = DEFAULT_CONFIG_NUM;
-    if (m_cur_config_num >= m_num_configs)
-        m_cur_config_num = m_num_configs - 1;
-
     setLEDBrightness(brightness);        
-    activateConfig(m_cur_config_num);
+
+    // get config_num from EEPROM and activate it
     
-    proc_leave();
+    int config_num = EEPROM.read(EEPROM_CONFIG_NUM);
+    if (config_num == 255)
+        config_num = DEFAULT_CONFIG_NUM;
+    if (config_num == 255)
+        config_num = DEFAULT_CONFIG_NUM;
+    if (config_num >= m_num_configs)
+        config_num = m_num_configs - 1;
+
+    config_num = 0;
+        // for working on systemConfig
+    activateConfig(config_num);
 }
 
 
@@ -215,7 +204,15 @@ void expSystem::activateConfig(int i)
         my_error("attempt to activate illegal configuarion %d",i);
         return;
     }
-    m_prev_config_num = m_cur_config_num;
+    
+    // deactivate previous configuration
+    
+    if (m_cur_config_num >= 0)
+    {
+        getCurConfig()->end();
+        m_prev_config_num = m_cur_config_num;
+    }
+    
     m_cur_config_num = i;
     
     // clear the TFT and show the config title

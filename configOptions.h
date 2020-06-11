@@ -2,7 +2,6 @@
 #define __configOptions_h_
 
 #include "systemConfig.h"
-#include "myLeds.h"
 
 
 #define OPTION_TYPE_MENU         0x8000     // item represents a submenu
@@ -18,7 +17,7 @@
 // used in configEditors.cpp
 
 class configOption;
-
+        
 extern bool terminal_mode_draw_needed;
 extern bool in_terminal_mode;
 extern configOption *display_menu;
@@ -30,39 +29,23 @@ typedef void drawHandler(configOption *caller);
 
 
 
+
 class configOption
 {
     public:
     
-        configOption()
-        {
-            init(0,"",0,0,0);
-        }
-        
-        configOption(configOption *parent, const char *title, int type)
-        {
-            init(parent,title,type,0,0);
-        }
+        configOption();
+        configOption(configOption *parent, const char *title, int type);
+        configOption(configOption *parent, const char *title, int type, int min, int max);
+
+    // protected:
+        // friend class systemConfig;
     
-        configOption(configOption *parent, const char *title, int type, int min, int max)
-        {
-            init(parent,title,type,min,max);
-        }
-    
-        virtual void init()
+        void init(systemConfig *sysConfig);
+            // non-virtual entry point for root node
+        virtual void init();
             // called recursively during begin() on subclasses that
             // are linked to other objects to initialize the value, etc
-        {
-            value            = 0;
-            orig_value       = 0;
-            display_value    = -1;
-            selected         = 0;
-            display_selected = 0;
-            
-            configOption *opt = pFirstChild;
-            while (opt) { opt->init(); opt=opt->pNextOption; }
-        }
-
         
         virtual int   getValue()              { return value; }
         virtual int   getOrigValue()          { return orig_value; }
@@ -71,27 +54,24 @@ class configOption
         virtual const char *getValueString()  { return ""; }
         virtual const char *getTitle()        { return title; }
 
-        virtual void  setValue(int i)   
-        {
-            value = i;  // enforces min/max
-            if (value > max_value) value = max_value;
-            if (value < min_value) value = min_value;
-        }
-        virtual void incValue(int inc_dec)  // wraps
-        {
-            value += inc_dec;   // wraps thru min/max
-            if (value > max_value) value = min_value;
-            if (value < min_value) value = max_value;
-        }
+        virtual void  setValue(int i);      // enforces min/max
+        virtual void incValue(int inc_dec); // wraps
         
-    protected:
          
+    protected:
         friend class systemConfig;
         
-        
         const char *title;
-        int  type;
+        int         type;
+        
+        configOption *pParent;
+        configOption *pNextOption;
+        configOption *pPrevOption;
+        configOption *pFirstChild;
+        configOption *pLastChild;
 
+        systemConfig *m_pSysConfig;
+        
         int  value;
         int  orig_value;
         int  display_value;
@@ -101,55 +81,22 @@ class configOption
         int  selected;
         int  display_selected;
     
-        configOption *pParent;
-        configOption *pNextOption;
-        configOption *pPrevOption;
-        configOption *pFirstChild;
-        configOption *pLastChild;
-    
-        navButtonHandler *pNavFunction;
-        drawHandler *pDrawFunction;
-    
-        void setTerminalMode(
-            navButtonHandler *navFunction,
-            drawHandler *drawFunction)
-        {
-            pNavFunction  = navFunction;
-            pDrawFunction = drawFunction;
-        }
+        // terminal mode support
         
+        virtual bool beginTerminalMode()  { return false; }
+            // implemented classes should return true
+            // and must call systemConfig::notifyTerminalModeEnd() when finished
+        virtual void terminalNav(int num) {}
+        virtual void terminalDraw()       {}
+            // For the duration, these methods will be called.
+
+        bool draw_needed;
+        bool redraw_needed;
         
     private:
         
-        void init(configOption *parent, const char *tit, int typ, int min, int max)
-        {
-            title         = tit;
-            type          = typ;
-            pParent       = parent;
-            min_value     = min;
-            max_value     = max;
-
-            value         = 0;
-            orig_value    = 0;
-            display_value = -1;
-            selected      = 0;
-            display_selected = 0;
-    
-            pNavFunction = 0;
-            pDrawFunction = 0;
-            
-            pPrevOption = 0;
-            
-            if (parent)
-                pPrevOption = parent->pLastChild;
-            if (pPrevOption)
-                pPrevOption->pNextOption = this;
-            if (parent && !parent->pFirstChild)
-                parent->pFirstChild = this;
-            if (parent)
-                parent->pLastChild = this;
-        }
-
+        void init_cold(configOption *parent, const char *tit, int typ, int min, int max);
+            // ctor initialization
 };
 
 
@@ -157,21 +104,15 @@ class configOption
 class integerOption : public configOption
 {
     public:
-        
-        integerOption(configOption *parent, const char *title, int type, int min, int max) :
-            configOption(parent,title,type | OPTION_TYPE_VALUE,min,max)
-        {}
-    
-        virtual const char *getValueString()
-        {
-            sprintf(buffer,"%d",value);
-            return (const char *) buffer;
-        }
-        
+        integerOption(configOption *parent, const char *title, int type, int min, int max);
+        virtual const char *getValueString();
     protected:
+
+        virtual bool beginTerminalMode();
+        virtual void terminalNav(int num);
+        virtual void terminalDraw();
         
         char buffer[10];        // biggest number!
-
 };
 
 
@@ -179,64 +120,26 @@ class integerOption : public configOption
 class brightnessOption : public integerOption
 {
     public:
-        
-        brightnessOption(configOption *parent) :
-            integerOption(parent,"Brightness",
-                OPTION_TYPE_TERMINAL | OPTION_TYPE_BRIGHTNESS,1,100)
-        {}
-        
-        virtual void init()
-        {
-            integerOption::init();
-            value = getLEDBrightness(); 
-            orig_value = value;
-            display_value = -1;
-        }
-        virtual void  setValue(int i)
-        {
-            integerOption::setValue(i);
-            setLEDBrightness(value);
-        }
-    
+        brightnessOption(configOption *parent);
+        virtual void init();
+        virtual void  setValue(int i);
 };
 
 
 class configNumOption : public integerOption
 {
     public:
-        
-        configNumOption(configOption *parent) :
-            integerOption(parent,"Config",
-                OPTION_TYPE_IMMEDIATE | OPTION_TYPE_CONFIG_NUM,1,0)
-        {}
-    
-        virtual void init()
-        {
-            integerOption::init();
-            value = s_pTheSystem->getPrevConfigNum();
-            max_value = s_pTheSystem->getNumConfigs() - 1;
-            orig_value = value;
-            display_value = -1;
-        }
-        virtual const char *getValueString()
-        {
-            return s_pTheSystem->getConfig(value)->short_name();
-        }
+        configNumOption(configOption *parent);
+        virtual void init();
+        virtual const char *getValueString();
 };
 
 
 class onOffOption : public integerOption
 {
     public:
-        
-        onOffOption(configOption *parent, const char *title) :
-            integerOption(parent,title,OPTION_TYPE_IMMEDIATE,0,1)
-        {}
-        
-        virtual const char *getValueString()
-        {
-            return value ? "ON" : "OFF";
-        }
+        onOffOption(configOption *parent, const char *title);
+        virtual const char *getValueString();
 };
 
 
@@ -244,26 +147,16 @@ class onOffOption : public integerOption
 class midiHostOption : public onOffOption
 {
     public:
-        midiHostOption(configOption *parent) :
-            onOffOption(parent,"Midi Host") {}
-        void init()
-        {
-            onOffOption::init();
-            orig_value = value = midi_host_on;
-        }
+        midiHostOption(configOption *parent);
+        virtual void init();
 };
 
 
 class serialPortOption : public onOffOption
 {
     public:
-        serialPortOption(configOption *parent) :
-            onOffOption(parent,"Serial Port") {}
-        void init()
-        {
-            onOffOption::init();
-            orig_value = value = serial_port_on;
-        }
+        serialPortOption(configOption *parent);
+        virtual void init();
 };
 
 
