@@ -9,6 +9,7 @@
     #include "expSystem.h"
     #include "oldRigConfig.h"
     #include "testConfig.h"
+    #include "midiHostConfig.h"
     
     expSystem *s_pTheSystem;
 #endif
@@ -256,6 +257,7 @@ void setup()
         s_pTheSystem = new expSystem;
         s_pTheSystem->addConfig(new oldRigConfig(s_pTheSystem));
         s_pTheSystem->addConfig(new testConfig(s_pTheSystem));
+        s_pTheSystem->addConfig(new midiHostConfig(s_pTheSystem));
         s_pTheSystem->begin();
         
         display(0,"system running ...",0);

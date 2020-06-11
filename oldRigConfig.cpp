@@ -112,7 +112,7 @@ int guitar_effect_ccs[NUM_BUTTON_COLS] = {
     // Type: Momentary Action   Up/MinValue: 0   Down/MaxValue:127
     //       not Latching, Continuous
     // Action: Rec-Play-Dub TrackN
-    // Hold Action: Undo/Redo/Clear
+    // Hold Action: Undo/Red
     // Double Tap Action: Stop Track
 #define LOOP_CONTROL_CLEAR_ALL      24
     // Midi Command: CC     (not Note On/Off)

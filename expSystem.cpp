@@ -108,8 +108,10 @@ void expSystem::begin()
     if (config_num >= m_num_configs)
         config_num = m_num_configs - 1;
 
-    config_num = 0;
-        // for working on systemConfig
+    config_num = 3;
+        // override EEPROM setting 
+        // for working on a particular config
+        
     activateConfig(config_num);
 }
 
