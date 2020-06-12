@@ -494,9 +494,8 @@ void oldRigConfig::updateUI()
     #endif
         
     
-    #if WITH_CHEAP_TFT
-    
-    
+    #if WITH_CHEAP_TFT && WITH_PEDALS
+
         bool font_set = false;
         for (int i=0; i<4; i++)
         {

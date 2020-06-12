@@ -1,10 +1,19 @@
 #ifndef __defines_h__
 #define __defines_h__
 
-
 #define VERSION   "1.2"
 
 
+#define NAME_MIDI_DEVICE_AS_FISHMAN 0
+    // There is a scheme to name the MIDI device as the FTP Triple Play
+    // including providing the correct Device and Product IDs, and naming
+    // the end points to TP guitar, but I was still unable to spoof it.
+    // Closest I have come is to use loopMidi ... but it does not do
+    // senstivity ("audio not found").  So the names are not, per se
+    // as important.  I cannot remember how I got sensitivity (B7 1F xy
+    // where x is string and y is senstivity) working.
+    
+    
 // these defines are generally "ON" but are allowed to be
 // turned off piecemeal for debugging ...
 

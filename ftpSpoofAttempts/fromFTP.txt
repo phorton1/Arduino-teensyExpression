@@ -1,0 +1,197 @@
+ TIMESTAMP IN PORT STATUS DATA1 DATA2 CHAN NOTE EVENT               
+ 00004F4E   1  --     B0    65    00    1  ---  CC: RPN MSB           
+ 00004F4E   1  --     B0    64    01    1  ---  CC: RPN LSB           
+ 00004F4E   1  --     B0    06    40    1  ---  CC: Data Entry MSB    
+ 00004F4F   1  --     B0    26    00    1  ---  CC: Data Entry LSB    
+ 00004F50   1  --     B1    65    00    2  ---  CC: RPN MSB           
+ 00004F50   1  --     B1    64    01    2  ---  CC: RPN LSB           
+ 00004F51   1  --     B1    06    40    2  ---  CC: Data Entry MSB    
+ 00004F51   1  --     B1    26    00    2  ---  CC: Data Entry LSB    
+ 00004F52   1  --     B2    65    00    3  ---  CC: RPN MSB           
+ 00004F52   1  --     B2    64    01    3  ---  CC: RPN LSB           
+ 00004F52   1  --     B2    06    40    3  ---  CC: Data Entry MSB    
+ 00004F53   1  --     B2    26    00    3  ---  CC: Data Entry LSB    
+ 00004F53   1  --     B3    65    00    4  ---  CC: RPN MSB           
+ 00004F54   1  --     B3    64    01    4  ---  CC: RPN LSB           
+ 00004F54   1  --     B3    06    40    4  ---  CC: Data Entry MSB    
+ 00004F55   1  --     B3    26    00    4  ---  CC: Data Entry LSB    
+ 00004F55   1  --     B4    65    00    5  ---  CC: RPN MSB           
+ 00004F55   1  --     B4    64    01    5  ---  CC: RPN LSB           
+ 00004F56   1  --     B4    06    40    5  ---  CC: Data Entry MSB    
+ 00004F56   1  --     B4    26    00    5  ---  CC: Data Entry LSB    
+ 00004F57   1  --     B5    65    00    6  ---  CC: RPN MSB           
+ 00004F57   1  --     B5    64    01    6  ---  CC: RPN LSB           
+ 00004F58   1  --     B5    06    40    6  ---  CC: Data Entry MSB    
+ 00004F58   1  --     B5    26    00    6  ---  CC: Data Entry LSB    
+ 00004F59   1  --     B6    65    00    7  ---  CC: RPN MSB           
+ 00004F5A   1  --     B6    64    01    7  ---  CC: RPN LSB           
+ 00004F5A   1  --     B6    06    40    7  ---  CC: Data Entry MSB    
+ 00004F5B   1  --     B6    26    00    7  ---  CC: Data Entry LSB    
+ 00004F5B   1  --     BA    65    00   11  ---  CC: RPN MSB           
+ 00004F5C   1  --     BA    64    01   11  ---  CC: RPN LSB           
+ 00004F5C   1  --     BA    06    40   11  ---  CC: Data Entry MSB    
+ 00004F5C   1  --     BA    26    00   11  ---  CC: Data Entry LSB    
+ 00004F5D   1  --     BB    65    00   12  ---  CC: RPN MSB           
+ 00004F5D   1  --     BB    64    01   12  ---  CC: RPN LSB           
+ 00004F5D   1  --     BB    06    40   12  ---  CC: Data Entry MSB    
+ 00004F5E   1  --     BB    26    00   12  ---  CC: Data Entry LSB    
+ 00004F5E   1  --     BC    65    00   13  ---  CC: RPN MSB           
+ 00004F5F   1  --     BC    64    01   13  ---  CC: RPN LSB           
+ 00004F5F   1  --     BC    06    40   13  ---  CC: Data Entry MSB    
+ 00004F60   1  --     BC    26    00   13  ---  CC: Data Entry LSB    
+ 00004F60   1  --     BD    65    00   14  ---  CC: RPN MSB           
+ 00004F61   1  --     BD    64    01   14  ---  CC: RPN LSB           
+ 00004F61   1  --     BD    06    40   14  ---  CC: Data Entry MSB    
+ 00004F62   1  --     BD    26    00   14  ---  CC: Data Entry LSB    
+ 00004F62   1  --     BE    65    00   15  ---  CC: RPN MSB           
+ 00004F63   1  --     BE    64    01   15  ---  CC: RPN LSB           
+ 00004F64   1  --     BE    06    40   15  ---  CC: Data Entry MSB    
+ 00004F64   1  --     BE    26    00   15  ---  CC: Data Entry LSB    
+ 00004F65   1  --     BF    65    00   16  ---  CC: RPN MSB           
+ 00004F65   1  --     BF    64    01   16  ---  CC: RPN LSB           
+ 00004F65   1  --     BF    06    40   16  ---  CC: Data Entry MSB    
+ 00004F65   1  --     BF    26    00   16  ---  CC: Data Entry LSB    
+ 00004F66   1  --     B0    65    00    1  ---  CC: RPN MSB           
+ 00004F66   1  --     B0    64    00    1  ---  CC: RPN LSB           
+ 00004F67   1  --     B0    06    0C    1  ---  CC: Data Entry MSB    
+ 00004F67   1  --     B0    26    00    1  ---  CC: Data Entry LSB    
+ 00004F68   1  --     B1    65    00    2  ---  CC: RPN MSB           
+ 00004F68   1  --     B1    64    00    2  ---  CC: RPN LSB           
+ 00004F69   1  --     B1    06    0C    2  ---  CC: Data Entry MSB    
+ 00004F69   1  --     B1    26    00    2  ---  CC: Data Entry LSB    
+ 00004F6A   1  --     B2    65    00    3  ---  CC: RPN MSB           
+ 00004F6A   1  --     B2    64    00    3  ---  CC: RPN LSB           
+ 00004F6A   1  --     B2    06    0C    3  ---  CC: Data Entry MSB    
+ 00004F6B   1  --     B2    26    00    3  ---  CC: Data Entry LSB    
+ 00004F6B   1  --     B3    65    00    4  ---  CC: RPN MSB           
+ 00004F6C   1  --     B3    64    00    4  ---  CC: RPN LSB           
+ 00004F6C   1  --     B3    06    0C    4  ---  CC: Data Entry MSB    
+ 00004F6D   1  --     B3    26    00    4  ---  CC: Data Entry LSB    
+ 00004F6D   1  --     B4    65    00    5  ---  CC: RPN MSB           
+ 00004F6E   1  --     B4    64    00    5  ---  CC: RPN LSB           
+ 00004F6E   1  --     B4    06    0C    5  ---  CC: Data Entry MSB    
+ 00004F6F   1  --     B4    26    00    5  ---  CC: Data Entry LSB    
+ 00004F6F   1  --     B5    65    00    6  ---  CC: RPN MSB           
+ 00004F70   1  --     B5    64    00    6  ---  CC: RPN LSB           
+ 00004F70   1  --     B5    06    0C    6  ---  CC: Data Entry MSB    
+ 00004F71   1  --     B5    26    00    6  ---  CC: Data Entry LSB    
+ 00004F71   1  --     B6    65    00    7  ---  CC: RPN MSB           
+ 00004F72   1  --     B6    64    00    7  ---  CC: RPN LSB           
+ 00004F72   1  --     B6    06    0C    7  ---  CC: Data Entry MSB    
+ 00004F73   1  --     B6    26    00    7  ---  CC: Data Entry LSB    
+ 00004F73   1  --     BA    65    00   11  ---  CC: RPN MSB           
+ 00004F73   1  --     BA    64    00   11  ---  CC: RPN LSB           
+ 00004F74   1  --     BA    06    0C   11  ---  CC: Data Entry MSB    
+ 00004F74   1  --     BA    26    00   11  ---  CC: Data Entry LSB    
+ 00004F75   1  --     BB    65    00   12  ---  CC: RPN MSB           
+ 00004F75   1  --     BB    64    00   12  ---  CC: RPN LSB           
+ 00004F76   1  --     BB    06    0C   12  ---  CC: Data Entry MSB    
+ 00004F76   1  --     BB    26    00   12  ---  CC: Data Entry LSB    
+ 00004F77   1  --     BC    65    00   13  ---  CC: RPN MSB           
+ 00004F78   1  --     BC    64    00   13  ---  CC: RPN LSB           
+ 00004F78   1  --     BC    06    0C   13  ---  CC: Data Entry MSB    
+ 00004F78   1  --     BC    26    00   13  ---  CC: Data Entry LSB    
+ 00004F79   1  --     BD    65    00   14  ---  CC: RPN MSB           
+ 00004F7A   1  --     BD    64    00   14  ---  CC: RPN LSB           
+ 00004F7A   1  --     BD    06    0C   14  ---  CC: Data Entry MSB    
+ 00004F7A   1  --     BD    26    00   14  ---  CC: Data Entry LSB    
+ 00004F7B   1  --     BE    65    00   15  ---  CC: RPN MSB           
+ 00004F7B   1  --     BE    64    00   15  ---  CC: RPN LSB           
+ 00004F7B   1  --     BE    06    0C   15  ---  CC: Data Entry MSB    
+ 00004F7C   1  --     BE    26    00   15  ---  CC: Data Entry LSB    
+ 00004F7C   1  --     BF    65    00   16  ---  CC: RPN MSB           
+ 00004F7D   1  --     BF    64    00   16  ---  CC: RPN LSB           
+ 00004F7D   1  --     BF    06    0C   16  ---  CC: Data Entry MSB    
+ 00004F7E   1  --     BF    26    00   16  ---  CC: Data Entry LSB    
+ 00004F7E   1  --     B7    1F    0C    8  ---  Control Change        
+ 00004F7F   1  --     B7    3F    00    8  ---  Control Change        
+ 00004F7F   1  --     B7    1F    05    8  ---  Control Change        
+ 00004F80   1  --     B7    3F    03    8  ---  Control Change        
+ 00004F80   1  --     B7    1F    55    8  ---  Control Change        
+ 00004F81   1  --     B7    3F    00    8  ---  Control Change        
+ 00004F81   1  --     B7    1F    1E    8  ---  Control Change        
+ 00004F82   1  --     B7    3F    00    8  ---  Control Change        
+ 00004F82   1  --     B1    00    00    2  ---  CC: Bank MSB          
+ 00004F83   1  --     B1    20    00    2  ---  CC: Bank LSB          
+ 00004F83   1  --     C1    00    --    2  ---  PC: Acc. Grand Piano  
+ 00004F83   1  --     E1    00    40    2  ---  Pitch Bend            
+ 00004F84   1  --     B1    7B    00    2  ---  CC: All Notes Off     
+ 00004F84   1  --     B0    00    00    1  ---  CC: Bank MSB          
+ 00004F85   1  --     B0    20    00    1  ---  CC: Bank LSB          
+ 00004F85   1  --     C0    00    --    1  ---  PC: Acc. Grand Piano  
+ 00004F86   1  --     E0    00    40    1  ---  Pitch Bend            
+ 00004F86   1  --     B0    7B    00    1  ---  CC: All Notes Off     
+ 00004F87   1  --     B7    1F    55    8  ---  Control Change        
+ 00004F87   1  --     B7    3F    00    8  ---  Control Change        
+ 00004F8C   1  --     F0  Buffer:    25 Bytes   System Exclusive      
+ SYSX: F0 00 01 6E 01 43 0E 50 6F 6C 79 20 50 72 6F 67 72 61
+ SYSX: 6D 20 31 06 06 01 F7
+ 00004F8C   1  --     B0    65    00    1  ---  CC: RPN MSB           
+ 00004F8C   1  --     B0    64    00    1  ---  CC: RPN LSB           
+ 00004F8E   1  --     B0    06    02    1  ---  CC: Data Entry MSB    
+ 00004F8E   1  --     B0    26    00    1  ---  CC: Data Entry LSB    
+ 00004F8F   1  --     B1    65    00    2  ---  CC: RPN MSB           
+ 00004F8F   1  --     B1    64    00    2  ---  CC: RPN LSB           
+ 00004F8F   1  --     B1    06    02    2  ---  CC: Data Entry MSB    
+ 00004F8F   1  --     B1    26    00    2  ---  CC: Data Entry LSB    
+ 00004F90   1  --     B2    65    00    3  ---  CC: RPN MSB           
+ 00004F90   1  --     B2    64    00    3  ---  CC: RPN LSB           
+ 00004F91   1  --     B2    06    02    3  ---  CC: Data Entry MSB    
+ 00004F91   1  --     B2    26    00    3  ---  CC: Data Entry LSB    
+ 00004F92   1  --     B3    65    00    4  ---  CC: RPN MSB           
+ 00004F92   1  --     B3    64    00    4  ---  CC: RPN LSB           
+ 00004F93   1  --     B3    06    02    4  ---  CC: Data Entry MSB    
+ 00004F93   1  --     B3    26    00    4  ---  CC: Data Entry LSB    
+ 00004F93   1  --     B4    65    00    5  ---  CC: RPN MSB           
+ 00004F94   1  --     B4    64    00    5  ---  CC: RPN LSB           
+ 00004F94   1  --     B4    06    02    5  ---  CC: Data Entry MSB    
+ 00004F95   1  --     B4    26    00    5  ---  CC: Data Entry LSB    
+ 00004F95   1  --     B5    65    00    6  ---  CC: RPN MSB           
+ 00004F96   1  --     B5    64    00    6  ---  CC: RPN LSB           
+ 00004F96   1  --     B5    06    02    6  ---  CC: Data Entry MSB    
+ 00004F97   1  --     B5    26    00    6  ---  CC: Data Entry LSB    
+ 00004F97   1  --     B6    65    00    7  ---  CC: RPN MSB           
+ 00004F98   1  --     B6    64    00    7  ---  CC: RPN LSB           
+ 00004F98   1  --     B6    06    02    7  ---  CC: Data Entry MSB    
+ 00004F99   1  --     B6    26    00    7  ---  CC: Data Entry LSB    
+ 00004F99   1  --     BA    65    00   11  ---  CC: RPN MSB           
+ 00004F9A   1  --     BA    64    00   11  ---  CC: RPN LSB           
+ 00004F9A   1  --     BA    06    02   11  ---  CC: Data Entry MSB    
+ 00004F9B   1  --     BA    26    00   11  ---  CC: Data Entry LSB    
+ 00004F9B   1  --     BB    65    00   12  ---  CC: RPN MSB           
+ 00004F9C   1  --     BB    64    00   12  ---  CC: RPN LSB           
+ 00004F9C   1  --     BB    06    02   12  ---  CC: Data Entry MSB    
+ 00004F9D   1  --     BB    26    00   12  ---  CC: Data Entry LSB    
+ 00004F9D   1  --     BC    65    00   13  ---  CC: RPN MSB           
+ 00004F9D   1  --     BC    64    00   13  ---  CC: RPN LSB           
+ 00004F9F   1  --     BC    06    02   13  ---  CC: Data Entry MSB    
+ 00004F9F   1  --     BC    26    00   13  ---  CC: Data Entry LSB    
+ 00004F9F   1  --     BD    65    00   14  ---  CC: RPN MSB           
+ 00004F9F   1  --     BD    64    00   14  ---  CC: RPN LSB           
+ 00004FA0   1  --     BD    06    02   14  ---  CC: Data Entry MSB    
+ 00004FA0   1  --     BD    26    00   14  ---  CC: Data Entry LSB    
+ 00004FA1   1  --     BE    65    00   15  ---  CC: RPN MSB           
+ 00004FA1   1  --     BE    64    00   15  ---  CC: RPN LSB           
+ 00004FA2   1  --     BE    06    02   15  ---  CC: Data Entry MSB    
+ 00004FA2   1  --     BE    26    00   15  ---  CC: Data Entry LSB    
+ 00004FA3   1  --     BF    65    00   16  ---  CC: RPN MSB           
+ 00004FA3   1  --     BF    64    00   16  ---  CC: RPN LSB           
+ 00004FA4   1  --     BF    06    02   16  ---  CC: Data Entry MSB    
+ 00004FA4   1  --     BF    26    00   16  ---  CC: Data Entry LSB    
+ 00004FA5   1  --     B7    1F    0C    8  ---  Control Change        
+ 00004FA5   1  --     B7    3F    00    8  ---  Control Change        
+ 00004FA6   1  --     B7    1F    05    8  ---  Control Change        
+ 00004FA6   1  --     B7    3F    03    8  ---  Control Change        
+ 00004FA6   1  --     B7    1F    55    8  ---  Control Change        
+ 00004FA7   1  --     B7    3F    00    8  ---  Control Change        
+ 00004FA7   1  --     B7    1F    1E    8  ---  Control Change        
+ 00004FA8   1  --     B7    3F    00    8  ---  Control Change        
+ 00004FA8   1  --     E1    00    40    2  ---  Pitch Bend            
+ 00004FA9   1  --     E0    00    40    1  ---  Pitch Bend            
+ 00004FA9   1  --     B7    1F    55    8  ---  Control Change        
+ 00004FAA   1  --     B7    3F    00    8  ---  Control Change        
+ 00004FAE   1  --     F0  Buffer:    25 Bytes   System Exclusive      
+ SYSX: F0 00 01 6E 01 43 0E 50 6F 6C 79 20 50 72 6F 67 72 61
+ SYSX: 6D 20 31 06 06 01 F7
+ 00004FAF   1  --     B0    07    43    1  ---  CC: Volume            
+ 00004FAF   1  --     B1    07    43    2  ---  CC: Volume            
