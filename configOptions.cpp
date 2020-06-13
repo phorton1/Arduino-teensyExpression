@@ -1,5 +1,6 @@
 #include "configOptions.h"
 #include <myDebug.h>
+#include "myTFT.h"
 #include "myLeds.h"
 
 
@@ -161,12 +162,12 @@ void integerOption::terminalDraw()
         draw_needed = false;
         redraw_needed = true;
         
-        mylcd.Fill_Rect(0,0,WIDTH,HEIGHT,0);
+        mylcd.Fill_Rect(0,0,TFT_WIDTH,TFT_HEIGHT,0);
         mylcd.setFont(Arial_32_Bold);
         mylcd.printf_justified(
             30,
             30,
-            WIDTH - 60,
+            TFT_WIDTH - 60,
             80,
             LCD_JUST_CENTER,
             TFT_YELLOW,
@@ -239,8 +240,8 @@ configNumOption::configNumOption(configOption *parent) :
 void configNumOption::init()
 {
     integerOption::init();
-    value = s_pTheSystem->getPrevConfigNum();
-    max_value = s_pTheSystem->getNumConfigs() - 1;
+    value = theSystem.getPrevConfigNum();
+    max_value = theSystem.getNumConfigs() - 1;
     orig_value = value;
     display_value = -1;
 }
@@ -249,7 +250,7 @@ void configNumOption::init()
 // virtual
 const char *configNumOption::getValueString()
 {
-    return s_pTheSystem->getConfig(value)->short_name();
+    return theSystem.getConfig(value)->short_name();
 }
 
 

@@ -2,21 +2,11 @@
 #define __exp_system_h__
 
 #include "defines.h"
-#include "rawButtonArray.h"
+#include <Arduino.h>        // for intevalTimer
 
-#if WITH_CHEAP_TFT
-    #include <LCDWIKI_GUI.h>    // my modified Core graphics library
-    #include <LCDWIKI_KBV.h>    // my modified Hardware-specific library
-    #include <font_Arial.h>
-    #include <font_ArialBold.h>
-    
-    extern LCDWIKI_KBV mylcd;
-#endif
-
-
+#define MAX_EXP_CONFIGS     10
 
 class expSystem;
-    // forwards
 
 
 class expConfig
@@ -24,12 +14,15 @@ class expConfig
 {
     public:
         
-        expConfig(expSystem *pSystem);
+        expConfig();
         ~expConfig() {}
         
         virtual const char *name() = 0;
         virtual const char *short_name() = 0;
         
+    protected:
+
+        friend class expSystem;
         
         virtual void begin();
             // derived classes should call base class method FIRST
@@ -39,23 +32,20 @@ class expConfig
             // don't generally need to worry about buttons and LEDs,
             // but may want to unregister midi event handlers, etc
             
-        virtual void onButtonEvent(int row, int col, int event);
-        virtual void onRotaryEvent(int num, int val);
-        virtual void onPedalEvent(int num, int val);
+        virtual void onRotaryEvent(int num, int val)  {}
+        virtual void onPedalEvent(int num, int val)   {}
+        virtual void onButtonEvent(int row, int col, int event) {}
+        virtual void onMidiEvent(uint32_t msg) {}
+        #if WITH_MIDI_HOST
+            void onMidiHostEvent(uint32_t msg) {}
+        #endif
+        
         virtual void updateUI() {}
         virtual void timer_handler()  {}
-        
-    protected:
-        friend class expSystem;
-        
-        expSystem *m_pSystem;
-            // pointer to the parent system
+        virtual void critical_timer_handler() {}
+       
 };
 
-
-
-
-#define MAX_EXP_CONFIGS   10
 
 
 class expSystem
@@ -70,16 +60,18 @@ class expSystem
         
         void activateConfig(int i);
 
-        int getNumConfigs()     { return m_num_configs; }
-        int getCurConfigNum()   { return m_cur_config_num; }
-        int getPrevConfigNum()  { return m_prev_config_num; }
+        int getNumConfigs()         { return m_num_configs; }
+        int getCurConfigNum()       { return m_cur_config_num; }
+        int getPrevConfigNum()      { return m_prev_config_num; }
         expConfig *getCurConfig()   { return m_pConfigs[m_cur_config_num]; }
         expConfig *getConfig(int i) { return m_pConfigs[i]; }
         
         void addConfig(expConfig *pConfig);
         
-        rawButtonArray *getRawButtonArray()  { return m_pRawButtonArray; }
-            
+        void pedalEvent(int num, int val);
+        void rotaryEvent(int num, int val);
+        void buttonEvent(int row, int col, int event);
+        
     private:
 
         int m_num_configs;
@@ -87,22 +79,21 @@ class expSystem
         int m_prev_config_num;
         expConfig *m_pConfigs[MAX_EXP_CONFIGS];
             
-            
-        rawButtonArray *m_pRawButtonArray;
-        static void staticOnButtonEvent(void *obj, int row, int col, int event);
-        void onButtonEvent(int row, int col, int event);
-            // the button array and its event handlers.
-            // button events are then dispatched to the current configuration.
-        
         IntervalTimer m_timer;
+        IntervalTimer m_critical_timer;
+        
         static void timer_handler();
-            // the timer and handler that calls rawButtonArray::task()
-            // and expConvertors::task(), which then calls back to the
-            // registered button event handler.
-
+        static void critical_timer_handler();
+        
+        void midiEvent(uint32_t msg);
+        #if WITH_MIDI_HOST
+            void midiHostEvent(uint32_t msg);
+        #endif
 };
 
-extern expSystem *s_pTheSystem;
+
+extern expSystem theSystem;
+    // in teensyExpression.ino
 
 
 

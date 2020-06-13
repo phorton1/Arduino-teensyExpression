@@ -1,19 +1,143 @@
 #ifndef _pedals_h_
 #define _pedals_h_
 
+#include "defines.h"
+#if WITH_PEDALS
+
 
 #define NUM_PEDALS  4
 
-
-extern void initPedals();
-extern bool pollPedal(int i);
-    // returns true if any pedal has changed value
-extern int getPedalValue(int i);
-    // return the value of the pedal
-    
+// for the time being there is one set of values for the pedals
+// across all configurations.  An idea is then to have "pedal sets"
+// that can be shared between different configurations while still
+// allowing for multiple definitions.
 
 
-// extern void startCalibrate(int pedal)
+#define PEDAL_EPROM_BYTES_PER_PEDAL
+
+#define PEDAL_CURVE_TYPE_LINEAR         0       // default and only currently implemented one
+#define PEDAL_CURVE_TYPE_ASYMPTOTIC     1
+#define PEDAL_CURVE_TYPE_SCURVE         2
+
+#define MAX_PEDAL_CURVE_POINTS          2       // number of movable points (with weights)
+
+typedef struct
+{
+    int x;          // 0..127
+    int y;      
+    int weight;
     
+} pedalPoint_t;
+
+
+class expressionPedal
+{
+    public:
+        
+        int getNum()                    { return m_num; }
+        const char *getName()           { return m_name; }
+        
+        int getValue()                  { return m_value; }
+        bool displayValueChanged()      { return m_last_value != m_value; }
+        void clearDisplayValueChanged() { m_last_value = m_value; }
+        
+        int getCalibMin()               { return m_calib_min; }
+        int getCalibMax()               { return m_calib_max; }
+        int getCurveType()              { return m_curve_type; }
+        int getValueMin()               { return m_value_min; }
+        int getValueMax()               { return m_value_max; }
+
+        void setCalibMin(int i)         { if (i>=m_calib_max) i=m_calib_max-1;  if (i<0) i=0; m_calib_min = i; }
+        void setCalibMax(int i)         { if (i<=m_calib_min) i=m_calib_min+1;  if (i>1023) i=1023; m_calib_max = i; }
+        void setCurveType(int i)        { if (i<0) i=0; if (i>2) i=2;  m_curve_type = i; }
+        void setValueMin(int i)         { if (i>=m_value_max) i=m_value_max-1;  if (i<0) i=0; m_value_min = i; }
+        void setValueMax(int i)         { if (i<=m_value_min) i=m_value_min+1;  if (i>127) i=127; m_value_max = i; }
+        
+        pedalPoint_t *getPoint(int i)   { return &m_points[i]; }
+        
+        void readFromEEPROM();
+        void saveToEEPROM();
+        
+        
+    protected:
+        
+        friend class pedalManager;
+
+        expressionPedal() {}
+        
+        void init(
+            int num,
+            int pin,
+            const char *name,
+            int value_max=127);
+        
+        void poll();
+        
+    private:
+        
+        // construction paramaters
+        
+        int     m_num;       
+        int     m_pin;          // defined in pedals.cpp
+        int     m_pedal_num;    // they know this too ...
+        const char *m_name;
+
+        // configuration in EEPROM
+        
+        int     m_calib_min;      // defaults in pedals.cpp
+        int     m_calib_max;      // 0..1023
+        int     m_curve_type;     // 0..2 (also defines number of points)
+        int     m_value_min;      // 0..127
+        int     m_value_max;
+        pedalPoint_t m_points[MAX_PEDAL_CURVE_POINTS];
+                              
+        // runtime working variables                              
+
+        int      m_raw_value;         // 0..1023
+        int      m_direction;
+        unsigned m_settle_time; 
+        
+        // defines the "curve" for the pedals
+        
+        int      m_value;
+        int      m_last_value;
+        
+        // for editing
+        
+        int      m_cur_point;
+            // min=0, max=m_curve_type+1
+            // in between are m_curve_type points that are called
+            // "mid", or "left" and "right"
+
+};
+
+
+
+class pedalManager
+{
+    public:
+
+        pedalManager() {}
+        
+        void init();
+            // called at runtime to setup pedals from EEPROM
+        
+        void task();
+            // polls pedals, may call expSystem::onPedalEvent()
+            
+        expressionPedal *getPedal(int i)  { return &m_pedals[i]; }
+        
+        
+    private:
+        
+        expressionPedal m_pedals[NUM_PEDALS];
+        
+};
+
     
+extern pedalManager thePedals;
+
+  
+    
+#endif      // WITH_PEDALS
 #endif      // !_pedals_h_  

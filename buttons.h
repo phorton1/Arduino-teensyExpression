@@ -1,12 +1,7 @@
-#ifndef __rawButtonArray_h
-#define __rawButtonArray_h
+#ifndef __buttons_h__
+#define __buttons_h__
 
-#include <Arduino.h>
-
-#define NUM_BUTTON_COLS   5
-#define NUM_BUTTON_ROWS   5
-    // origin top left
-
+#include "defines.h"
 
 // PRESS and RELEASE are sent out as they happen.
 //      The basic idea is that there are time critical things you want
@@ -48,15 +43,11 @@
     // for registration only
 
 
-
-typedef void handleButtonEventFxn(void *obj, int row, int col, int event);
-    // callback method
-
-class rawButton
+class arrayedButton
 {
     public:
         
-        rawButton()
+        arrayedButton()
         {
             m_event_mask = 0;
             m_event_state = 0;
@@ -64,7 +55,7 @@ class rawButton
             m_debounce_time = 0;
         }
         
-        ~rawButton() {}
+        ~arrayedButton() {}
 
         int m_event_mask;
         int m_event_state;
@@ -76,11 +67,14 @@ class rawButton
 
 
 
-class rawButtonArray
+class buttonArray
 {
     public:
         
-        rawButtonArray(void *pObj, handleButtonEventFxn *callback);
+        buttonArray();
+        
+        void init();
+        void task();
         
         static const char *buttonEventName(int event);
         
@@ -94,15 +88,17 @@ class rawButtonArray
         void setButtonEventMask(int num, int mask)
             { m_buttons[num / NUM_BUTTON_COLS][num % NUM_BUTTON_COLS].m_event_mask = mask;}
         
-        void task();
         
     private:
         
-        void *m_pObj;
-        handleButtonEventFxn *m_callback;
         int m_data[NUM_BUTTON_ROWS];
-        rawButton m_buttons[NUM_BUTTON_ROWS][NUM_BUTTON_COLS];
+        arrayedButton m_buttons[NUM_BUTTON_ROWS][NUM_BUTTON_COLS];
 };
 
 
-#endif // !__myButtonArray_h
+
+extern buttonArray theButtons;
+
+
+
+#endif // !__buttons_h__

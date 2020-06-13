@@ -8,19 +8,18 @@ class oldRigConfig : public expConfig
 {
     public:
         
-        oldRigConfig(expSystem *pSystem);
-        virtual const char *name() { return "Old Rig Configuration"; }
-        virtual const char *short_name()    { return "Old Rig"; }
-        
-        
-        virtual void begin();
-
-        virtual void onButtonEvent(int row, int col, int event);
-        virtual void onPedalEvent(int num, int val);
-        virtual void updateUI();
+        oldRigConfig();
         
 
     private:
+
+        virtual const char *name() { return "Old Rig Configuration"; }
+        virtual const char *short_name()    { return "Old Rig"; }
+        
+        virtual void begin();
+        virtual void onButtonEvent(int row, int col, int event);
+        virtual void onPedalEvent(int num, int val);
+        virtual void updateUI();
         
         int m_cur_patch_num;    // 0..14
         bool m_effect_toggle[NUM_BUTTON_COLS];

@@ -1,7 +1,6 @@
 
 #include "myLeds.h"
-#include "rawButtonArray.h"
-//#include <Arduino.h>
+#include "defines.h"
 #include <WS2812Serial.h>
 
 

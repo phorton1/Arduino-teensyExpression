@@ -8,9 +8,9 @@ class testConfig : public expConfig
 {
     public:
         
-        testConfig(expSystem *pSystem) :
-            expConfig(pSystem)
-        {}
+        testConfig() {}
+        
+    private:
         
         virtual const char *name() { return "My Midi Controller"; }
         virtual const char *short_name()    { return "Demo Config"; }

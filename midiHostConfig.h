@@ -2,30 +2,6 @@
 #define _midiHostConfig_h_
 
 #include "expSystem.h"
-#include <USBHost_t36.h>
-
-
-
-#define FAST_ECHO_MIDI    1
-    // 32bit words in timer_handler()
-#define PASS_THRU    0
-    // unworking calls from onXXX methods
-
-
-
-class myMidiHostDevice : public MIDIDevice
-{
-    public:
-    
-        myMidiHostDevice(USBHost &host) :
-            MIDIDevice(host)   {}
-
-        #if FAST_ECHO_MIDI
-            uint32_t myRead(uint8_t channel=0);
-        #endif
-            
-};
-
 
 
 
@@ -33,19 +9,20 @@ class midiHostConfig : public expConfig
 {
     public:
         
-        midiHostConfig(expSystem *pSystem);
+        midiHostConfig();
 
-    protected:
+    private:
         
         virtual const char *name()          { return "Midi Host Test Configuration"; }
         virtual const char *short_name()    { return "MidiHost Test"; }
         virtual void begin();
-        virtual void end();
         virtual void updateUI();
         
         virtual void onButtonEvent(int row, int col, int event);
-        virtual void onRotaryEvent(int num, int val) {}        
-        virtual void timer_handler();
+        virtual void onMidiEvent(uint32_t msg);
+        #if WITH_MIDI_HOST
+            virtual void onMidiHostEvent(uint32_t msg);
+        #endif
         
         bool draw_needed;
         bool redraw_needed;

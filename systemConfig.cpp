@@ -4,7 +4,9 @@
 #include "expSystem.h"
 #include "systemConfig.h"
 #include "configOptions.h"
+#include "myTFT.h"
 #include "myLeds.h"
+#include "buttons.h"
 #include "pedals.h"
 #include "rotary.h"
 #include <EEPROM.h>
@@ -72,8 +74,7 @@ void reboot(int num)
 
 
 
-systemConfig::systemConfig(expSystem *pSystem) :
-    expConfig(pSystem)
+systemConfig::systemConfig()
 {
 }
 
@@ -122,23 +123,21 @@ void systemConfig::begin()
 
     // setup buttons and leds
     
-    rawButtonArray *ba = m_pSystem->getRawButtonArray();
-
-    ba->setButtonEventMask(BUTTON_BRIGHTNESS_DOWN, BUTTON_EVENT_PRESS | BUTTON_EVENT_CLICK);
-    ba->setButtonEventMask(BUTTON_BRIGHTNESS_UP,   BUTTON_EVENT_PRESS | BUTTON_EVENT_CLICK);
-    ba->setButtonEventMask(BUTTON_EXIT_DONE,       BUTTON_EVENT_CLICK | BUTTON_EVENT_LONG_CLICK);
-    ba->setButtonEventMask(BUTTON_EXIT_CANCEL,     BUTTON_EVENT_CLICK | BUTTON_EVENT_LONG_CLICK);
+    theButtons.setButtonEventMask(BUTTON_BRIGHTNESS_DOWN, BUTTON_EVENT_PRESS | BUTTON_EVENT_CLICK);
+    theButtons.setButtonEventMask(BUTTON_BRIGHTNESS_UP,   BUTTON_EVENT_PRESS | BUTTON_EVENT_CLICK);
+    theButtons.setButtonEventMask(BUTTON_EXIT_DONE,       BUTTON_EVENT_CLICK | BUTTON_EVENT_LONG_CLICK);
+    theButtons.setButtonEventMask(BUTTON_EXIT_CANCEL,     BUTTON_EVENT_CLICK | BUTTON_EVENT_LONG_CLICK);
     
     setLED(BUTTON_BRIGHTNESS_DOWN, LED_RED);        
     setLED(BUTTON_BRIGHTNESS_UP,   LED_GREEN);      
     setLED(BUTTON_EXIT_DONE,       LED_PURPLE);     
     setLED(BUTTON_EXIT_CANCEL,     LED_ORANGE);     
 
-    ba->setButtonEventMask(BUTTON_MOVE_UP,      BUTTON_EVENT_PRESS | BUTTON_EVENT_RELEASE);
-    ba->setButtonEventMask(BUTTON_MOVE_DOWN,    BUTTON_EVENT_PRESS | BUTTON_EVENT_RELEASE);
-    ba->setButtonEventMask(BUTTON_MOVE_LEFT,    BUTTON_EVENT_PRESS | BUTTON_EVENT_RELEASE);
-    ba->setButtonEventMask(BUTTON_MOVE_RIGHT,   BUTTON_EVENT_PRESS | BUTTON_EVENT_RELEASE);
-    ba->setButtonEventMask(BUTTON_SELECT,       BUTTON_EVENT_PRESS | BUTTON_EVENT_RELEASE);
+    theButtons.setButtonEventMask(BUTTON_MOVE_UP,      BUTTON_EVENT_PRESS | BUTTON_EVENT_RELEASE);
+    theButtons.setButtonEventMask(BUTTON_MOVE_DOWN,    BUTTON_EVENT_PRESS | BUTTON_EVENT_RELEASE);
+    theButtons.setButtonEventMask(BUTTON_MOVE_LEFT,    BUTTON_EVENT_PRESS | BUTTON_EVENT_RELEASE);
+    theButtons.setButtonEventMask(BUTTON_MOVE_RIGHT,   BUTTON_EVENT_PRESS | BUTTON_EVENT_RELEASE);
+    theButtons.setButtonEventMask(BUTTON_SELECT,       BUTTON_EVENT_PRESS | BUTTON_EVENT_RELEASE);
     
     setLED(BUTTON_MOVE_UP,      LED_BLUE);
     setLED(BUTTON_MOVE_DOWN,    LED_BLUE);
@@ -148,11 +147,11 @@ void systemConfig::begin()
     
     // setup the config_num button row
     
-    int num_show = m_pSystem->getNumConfigs()-1;
+    int num_show = theSystem.getNumConfigs()-1;
     if (num_show >= MAX_CONFIGS) num_show = MAX_CONFIGS;
     for (int i=0; i<num_show; i++)
     {
-        ba->setButtonEventMask(ROW_CONFIGS,i,BUTTON_EVENT_CLICK);
+        theButtons.setButtonEventMask(ROW_CONFIGS,i,BUTTON_EVENT_CLICK);
         setLED(1,i, i == optConfigNum.value-1 ? LED_CYAN : LED_BLUE);
     }
     
@@ -180,8 +179,7 @@ void systemConfig::enableCancel()
             event_mask = BUTTON_EVENT_CLICK | BUTTON_EVENT_LONG_CLICK;
             color = LED_YELLOW;
         }
-        rawButtonArray *ba = m_pSystem->getRawButtonArray();
-        ba->setButtonEventMask(BUTTON_EXIT_CANCEL,event_mask);
+        theButtons.setButtonEventMask(BUTTON_EXIT_CANCEL,event_mask);
         setLED(BUTTON_EXIT_CANCEL,color);
     }
 }
@@ -190,7 +188,7 @@ void systemConfig::enableCancel()
 // virtual
 void systemConfig::onButtonEvent(int row, int col, int event)
 {
-    // display(0,"systemConfig(%d,%d) event(%s)",row,col,rawButtonArray::buttonEventName(event));
+    // display(0,"systemConfig(%d,%d) event(%s)",row,col,buttonArray::buttonEventName(event));
     int num = row * NUM_BUTTON_COLS + col;
 
     if (num == BUTTON_MOVE_UP ||
@@ -270,7 +268,7 @@ void systemConfig::onButtonEvent(int row, int col, int event)
             if (cancel_enabled)
             {
                 setLEDBrightness(optBrightness.orig_value);
-                m_pSystem->activateConfig(optConfigNum.orig_value);
+                theSystem.activateConfig(optConfigNum.orig_value);
             }
         }
     }
@@ -298,7 +296,7 @@ void systemConfig::onButtonEvent(int row, int col, int event)
         // midi_host_on = optMidiHost.value;
         // serial_port_on = optSerialPort.value;
         
-        m_pSystem->activateConfig(optConfigNum.value);
+        theSystem.activateConfig(optConfigNum.value);
     }
     
 }
@@ -396,7 +394,7 @@ void systemConfig::updateUI()
 #define RIGHT_OFFSET    20
 
 #define NUMBER_WIDTH    120
-#define MID_OFFSET      (WIDTH/2)
+#define MID_OFFSET      (TFT_WIDTH/2)
 
 
 void systemConfig::draw()
@@ -420,17 +418,17 @@ void systemConfig::draw()
         mylcd.Set_Text_Cursor(10,10);
         mylcd.Set_Text_colour(TFT_YELLOW);
         mylcd.Set_Draw_color(TFT_YELLOW);
-        mylcd.Fill_Rect(0,0,WIDTH,HEIGHT,0);
+        mylcd.Fill_Rect(0,0,TFT_WIDTH,TFT_HEIGHT,0);
         
         if (cur_option->pParent == &rootOption)
-            mylcd.print( m_pSystem->getCurConfig()->name());
+            mylcd.print( theSystem.getCurConfig()->name());
         else
         {
             configOption *opt = cur_option->pParent;
             mylcd.print(opt->title);
         }
 
-	    mylcd.Draw_Line(0,36,WIDTH-1,36);
+	    mylcd.Draw_Line(0,36,TFT_WIDTH-1,36);
     }
 
     
@@ -459,7 +457,7 @@ void systemConfig::draw()
             // don't need to draw black on a full redraw
             
             if (color != TFT_BLACK || !draw_all)            
-                mylcd.Fill_Rect(0,y,WIDTH,LINE_HEIGHT-HIGHLIGHT_OFFSET,color);
+                mylcd.Fill_Rect(0,y,TFT_WIDTH,LINE_HEIGHT-HIGHLIGHT_OFFSET,color);
     
             mylcd.Set_Text_colour(TFT_YELLOW);
             mylcd.Set_Text_Cursor(LEFT_OFFSET,y + TEXT_OFFSET);

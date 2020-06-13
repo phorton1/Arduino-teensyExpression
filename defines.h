@@ -3,6 +3,11 @@
 
 #define VERSION   "1.2"
 
+// This program must always run as a teensy MIDI device.
+// It is optional to have it also run as a teensy Serial device.
+// Calls to myDebug::display(), etc, vanish if
+// !defined(USB_SERIAL) && !defined(USB_MIDI_SERIAL)
+
 
 #define NAME_MIDI_DEVICE_AS_FISHMAN 0
     // There is a scheme to name the MIDI device as the FTP Triple Play
@@ -17,18 +22,13 @@
 // these defines are generally "ON" but are allowed to be
 // turned off piecemeal for debugging ...
 
-#define WITH_SYSTEM           1
-#define WITH_CHEAP_TFT        1         // Cheap Ardino 3.5" 320x480 TFT's
+
 #define WITH_TOUCH            1         // Cheap Arduino Resistive touch screen
 #define WITH_ROTARY           1
 #define WITH_PEDALS           1
-
-// these defines are iffy
-// there are program options to turn them on or off at runtime as well
-// and here we define the defaults for those
-
 #define WITH_MIDI_HOST        1
-#define WITH_SERIAL_PORT   1
+#define WITH_SERIAL_PORT      1
+
 
 #if WITH_MIDI_HOST
     #define DEFAULT_MIDI_HOST  0
@@ -40,8 +40,12 @@
     extern int serial_port_on;
 #endif
 
+
 #define DEFAULT_CONFIG_NUM  1
 #define DEFAULT_BRIGHTNESS  60
+
+#define NUM_BUTTON_COLS   5
+#define NUM_BUTTON_ROWS   5
 
     
 //----------------------------------------------------------------------
@@ -109,6 +113,19 @@
 // I had to add 10K resistors to the 1/4" pedal jacks to
 // the insertion switch to ground them when not in use!
 
+
+#define PIN_BUTTON_OUT0         24  
+#define PIN_BUTTON_OUT1         25  
+#define PIN_BUTTON_OUT2         26  
+#define PIN_BUTTON_OUT3         27  
+#define PIN_BUTTON_OUT4         28  
+#define PIN_BUTTON_IN0          29  
+#define PIN_BUTTON_IN1          30  
+#define PIN_BUTTON_IN2          31  
+#define PIN_BUTTON_IN3          32  
+#define PIN_BUTTON_IN4          33
+
+
 #if WITH_ROTARY
     #define ROTARY_1A   4     // mashed up pin assignments
     #define ROTARY_1B   6     
@@ -128,9 +145,11 @@
     #define PIN_EXPR4    20  // A9
 #endif
 
+
 //-----------------------------------------
 // CHEAP TFT and TOUCH SCREEN
 //-----------------------------------------
+// Always defined as of now
 // Cheap Ardino 3.5" 320x480 TFT's
 // Uses my modified version of LCDWIKI, which
 //
@@ -148,54 +167,20 @@
 // - softened up the validity checks
 // - reset all the pinModes when finished
 
-#if WITH_CHEAP_TFT || WITH_TOUCH
-    #define CHEAP_TFT_DATA0     19      // needed by ts
-    #define CHEAP_TFT_DATA1     13      // needed by ts
-    #define CHEAP_TFT_DATA2     34
-    #define CHEAP_TFT_DATA3     35
-    #define CHEAP_TFT_DATA4     36
-    #define CHEAP_TFT_DATA5     37
-    #define CHEAP_TFT_DATA6     38
-    #define CHEAP_TFT_DATA7     39
-    
-    #define CHEAP_TFT_RD         14
-    #define CHEAP_TFT_WR         15
-    #define CHEAP_TFT_CD_RS      16      // needed by ts - labelled "RS" on board
-    #define CHEAP_TFT_CS         17      // needed by ts
-    #define CHEAP_TFT_RESET      18
-#endif
+#define CHEAP_TFT_DATA0     19      // needed by ts
+#define CHEAP_TFT_DATA1     13      // needed by ts
+#define CHEAP_TFT_DATA2     34
+#define CHEAP_TFT_DATA3     35
+#define CHEAP_TFT_DATA4     36
+#define CHEAP_TFT_DATA5     37
+#define CHEAP_TFT_DATA6     38
+#define CHEAP_TFT_DATA7     39
 
-
-#if WITH_CHEAP_TFT
-    #define TFT_BLACK   0x0000
-    #define TFT_BLUE    0x001F
-    #define TFT_RED     0xF800
-    #define TFT_GREEN   0x07E0
-    #define TFT_CYAN    0x07FF
-    #define TFT_MAGENTA 0xF81F
-    #define TFT_YELLOW  0xFFE0
-    #define TFT_WHITE   0xFFFF
-    
-    // #define TFT_BLACK       0x0000      /*   0,   0,   0 */
-    // #define TFT_NAVY        0x000F      /*   0,   0, 128 */
-    // #define TFT_DARKGREEN   0x03E0      /*   0, 128,   0 */
-    // #define TFT_DARKCYAN    0x03EF      /*   0, 128, 128 */
-    // #define TFT_MAROON      0x7800      /* 128,   0,   0 */
-    // #define TFT_PURPLE      0x780F      /* 128,   0, 128 */
-    // #define TFT_OLIVE       0x7BE0      /* 128, 128,   0 */
-    // #define TFT_LIGHTGREY   0xC618      /* 192, 192, 192 */
-    // #define TFT_DARKGREY    0x7BEF      /* 128, 128, 128 */
-    // #define TFT_BLUE        0x001F      /*   0,   0, 255 */
-    // #define TFT_GREEN       0x07E0      /*   0, 255,   0 */
-    // #define TFT_CYAN        0x07FF      /*   0, 255, 255 */
-    // #define TFT_RED         0xF800      /* 255,   0,   0 */
-    // #define TFT_MAGENTA     0xF81F      /* 255,   0, 255 */
-    // #define TFT_YELLOW      0xFFE0      /* 255, 255,   0 */
-    // #define TFT_WHITE       0xFFFF      /* 255, 255, 255 */
-    // #define TFT_ORANGE      0xFD20      /* 255, 165,   0 */
-    // #define TFT_GREENYELLOW 0xAFE5      /* 173, 255,  47 */
-    // #define TFT_PINK        0xF81F    
-#endif
+#define CHEAP_TFT_RD         14
+#define CHEAP_TFT_WR         15
+#define CHEAP_TFT_CD_RS      16      // needed by ts - labelled "RS" on board
+#define CHEAP_TFT_CS         17      // needed by ts
+#define CHEAP_TFT_RESET      18
 
 
 #if WITH_TOUCH
@@ -205,9 +190,6 @@
     #define YM  CHEAP_TFT_DATA0  // 14=A0        // 8  maps to LCD_D0 on arduino    // can be a digital pin
     #define XP  CHEAP_TFT_DATA1  // 13           // 9  maps to LCD_D1 on arduino    // can be a digital pin
 #endif
-
-
-
 
 
 //-----------------------------------

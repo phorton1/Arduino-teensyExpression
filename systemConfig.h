@@ -3,9 +3,6 @@
 
 #include "expSystem.h"
 
-#define WIDTH           480
-#define HEIGHT          320
-
 #define BUTTON_MOVE_UP          12
 #define BUTTON_MOVE_LEFT        16
 #define BUTTON_MOVE_RIGHT       18
@@ -17,14 +14,7 @@ class systemConfig : public expConfig
 {
     public:
         
-        systemConfig(expSystem *pSystem);
-        virtual const char *name()          { return "SYSTEM CONFIGURATION"; }
-        virtual const char *short_name()    { return "Sys Config"; }
-        
-        virtual void begin();
-        virtual void updateUI();
-        virtual void onButtonEvent(int row, int col, int event);
-        virtual void onRotaryEvent(int num, int val);        
+        systemConfig();
 
         void notifyTerminalModeEnd();
             // called by options with implemented terminal modes
@@ -33,10 +23,18 @@ class systemConfig : public expConfig
 
     private:
         
+        virtual const char *name()          { return "SYSTEM CONFIGURATION"; }
+        virtual const char *short_name()    { return "Sys Config"; }
+        
+        virtual void begin();
+        virtual void updateUI();
+        virtual void timer_handler();
+        virtual void onButtonEvent(int row, int col, int event);
+        virtual void onRotaryEvent(int num, int val);        
+
         void draw();
         void enableCancel();
         void onNavPad(int num);
-        virtual void timer_handler();
         
 };
 

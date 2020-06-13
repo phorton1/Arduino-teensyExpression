@@ -1,9 +1,11 @@
 #include "oldRigConfig.h"
-
-#include "myLeds.h"
 #include <myDebug.h>
 #include "defines.h"
+#include "myLeds.h"
+#include "myTFT.h"
 #include "pedals.h"
+#include "buttons.h"
+
 
 #define SHOW_SENT_MIDI  0
 
@@ -231,15 +233,14 @@ oldRigPedal_t rig_pedal[NUM_PEDALS] = {
 bool full_redraw = -0;
 
 
-oldRigConfig::oldRigConfig(expSystem *pSystem) :
-    expConfig(pSystem)
+oldRigConfig::oldRigConfig()
 {
-    m_cur_patch_num = -1;    // 0..14
     for (int col=0; col<NUM_BUTTON_COLS; col++)
     {
         m_effect_toggle[col] = 0;
         m_loop_touched[col] = 0;
     }
+    m_cur_patch_num = -1;    // 0..14
     m_loop_last_touched = -1;
 }
     
@@ -249,20 +250,19 @@ void oldRigConfig::begin()
 {
     expConfig::begin();
     full_redraw = 1;
+    last_displayed_patch_num = -1;
 
-    rawButtonArray *ba = m_pSystem->getRawButtonArray();
-    
     for (int col=0; col<NUM_BUTTON_COLS; col++)
     {
-        ba->setButtonEventMask(0,col,BUTTON_EVENT_CLICK);
-        ba->setButtonEventMask(1,col,BUTTON_EVENT_CLICK);
-        ba->setButtonEventMask(2,col,BUTTON_EVENT_CLICK);
-        ba->setButtonEventMask(3,col,
+        theButtons.setButtonEventMask(0,col,BUTTON_EVENT_CLICK);
+        theButtons.setButtonEventMask(1,col,BUTTON_EVENT_CLICK);
+        theButtons.setButtonEventMask(2,col,BUTTON_EVENT_CLICK);
+        theButtons.setButtonEventMask(3,col,
             col == 4 ?
              (BUTTON_EVENT_CLICK | BUTTON_EVENT_LONG_CLICK) :
              BUTTON_EVENT_CLICK);
         
-        ba->setButtonEventMask(4,col,  
+        theButtons.setButtonEventMask(4,col,  
             col == 4 ?
              (BUTTON_EVENT_CLICK | BUTTON_EVENT_LONG_CLICK) : 
              (BUTTON_EVENT_PRESS | BUTTON_EVENT_RELEASE) );
@@ -279,9 +279,6 @@ void oldRigConfig::begin()
     }
 
     showLEDs();
-
-    last_displayed_patch_num = -1;
-    
 }
 
         
@@ -458,9 +455,10 @@ void oldRigConfig::onPedalEvent(int num, int val)
 // virtual
 void oldRigConfig::updateUI()
 {
-    #if WITH_CHEAP_TFT
+    bool draw_full = false;
     if (full_redraw)
     {
+        draw_full = true;
         full_redraw = false;
         mylcd.Fill_Rect(0,230,480,30,TFT_YELLOW);
         mylcd.setFont(Arial_16_Bold);   // Arial_16);
@@ -491,23 +489,23 @@ void oldRigConfig::updateUI()
                 mylcd.Draw_Line(i*120,260,i*120,mylcd.Get_Display_Height()-1);
         }
     }
-    #endif
-        
     
-    #if WITH_CHEAP_TFT && WITH_PEDALS
+    #if WITH_PEDALS
 
         bool font_set = false;
         for (int i=0; i<4; i++)
         {
-            int v = getPedalValue(i);
-            if (v != rig_pedal[i].last_displayed)
+            expressionPedal *pedal = thePedals.getPedal(i);
+            if (draw_full || pedal->displayValueChanged())
             {
+                pedal->clearDisplayValueChanged();
+                int v = pedal->getValue();
+
                 #if SHOW_SENT_MIDI
                     // shows the frequency of UI vs MIDI messages on pedals
                     display(0,"updateUI pedal(%d) changed to %d",i,v);
                 #endif
                 
-                rig_pedal[i].last_displayed = v;
                 if (!font_set)
                 {
                     mylcd.setFont(Arial_40_Bold);   // Arial_40);
@@ -515,50 +513,46 @@ void oldRigConfig::updateUI()
                     font_set = 1;                    
                 }
                
-                #if 1 
-                    mylcd.printf_justified(
-                        12+i*120,
-                        260+14,
-                        100,
-                        45,
-                        LCD_JUST_CENTER,
-                        TFT_WHITE,
-                        TFT_BLACK,
-                        "%d",
-                        v);
-                #else                
-                    mylcd.Fill_Rect(12+i*120,260+10,100,45,0);
-                    mylcd.Set_Text_Cursor(12+i*120, 260+10);
-                    if (v < 100) mylcd.print(" ");
-                    if (v < 10) mylcd.print(" ");
-                    mylcd.print(v,DEC);
-                #endif
+                mylcd.printf_justified(
+                    12+i*120,
+                    260+14,
+                    100,
+                    45,
+                    LCD_JUST_CENTER,
+                    TFT_WHITE,
+                    TFT_BLACK,
+                    "%d",
+                    v);
             }
         }
         
-        if (last_displayed_patch_num != m_cur_patch_num)
-        {
-            last_displayed_patch_num = m_cur_patch_num;
-            mylcd.setFont(Arial_40_Bold);   // Arial_40);
-            int y = 75;
-            mylcd.printf_justified(
-                0,y,mylcd.Get_Display_Width(),mylcd.getFontHeight(),
-                LCD_JUST_CENTER,
-                TFT_CYAN,
-                TFT_BLACK,
-                "%s",
-                synth_patch[m_cur_patch_num].short_name);
-
-            y += mylcd.getFontHeight();
-            mylcd.setFont(Arial_32);   // Arial_40);
-            mylcd.printf_justified(
-                0,y,mylcd.Get_Display_Width(),mylcd.getFontHeight(),
-                LCD_JUST_CENTER,
-                TFT_MAGENTA,
-                TFT_BLACK,
-                "%s",
-                synth_patch[m_cur_patch_num].long_name);
-        }
+    #endif  // WITH_PEDALS
         
-    #endif
+
+    if (m_cur_patch_num >= 0 &&
+        (draw_full ||
+         last_displayed_patch_num != m_cur_patch_num))
+    {
+        last_displayed_patch_num = m_cur_patch_num;
+        mylcd.setFont(Arial_40_Bold);   // Arial_40);
+        int y = 75;
+        mylcd.printf_justified(
+            0,y,mylcd.Get_Display_Width(),mylcd.getFontHeight(),
+            LCD_JUST_CENTER,
+            TFT_CYAN,
+            TFT_BLACK,
+            "%s",
+            synth_patch[m_cur_patch_num].short_name);
+
+        y += mylcd.getFontHeight();
+        mylcd.setFont(Arial_32);   // Arial_40);
+        mylcd.printf_justified(
+            0,y,mylcd.Get_Display_Width(),mylcd.getFontHeight(),
+            LCD_JUST_CENTER,
+            TFT_MAGENTA,
+            TFT_BLACK,
+            "%s",
+            synth_patch[m_cur_patch_num].long_name);
+    }
+    
 }

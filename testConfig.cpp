@@ -1,7 +1,7 @@
-#include "testConfig.h"
-#include "myLeds.h"
 #include <myDebug.h>
-
+#include "testConfig.h"
+#include "myTFT.h"
+#include "myLeds.h"
 
 bool draw_needed = false;
 

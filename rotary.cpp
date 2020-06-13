@@ -2,9 +2,10 @@
 
 #if WITH_ROTARY     // empty compile if not
     
-#include "rotary.h"
 #include <myDebug.h>
+#include "rotary.h"
 #include "defines.h"
+#include "expSystem.h"
 
     
 #define DEBUG_ROTARY  0
@@ -75,7 +76,7 @@ int getRotaryValue(int i)
 }
 
 
-bool pollRotary(int i)
+bool _pollRotary(int i)
 {
     int aval = digitalRead(rotary[i].pinA);
     if (rotary[i].pollA == aval)
@@ -109,6 +110,12 @@ bool pollRotary(int i)
 }
 
 
+void pollRotary()
+{
+    for (int i=0; i<NUM_ROTARY; i++)
+        if (_pollRotary(i))
+            theSystem.rotaryEvent(i,rotary[i].value);
+}
 
 
 #endif // WITH_ROTARY     // empty compile if not
