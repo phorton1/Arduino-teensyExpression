@@ -1,0 +1,125 @@
+TO SPOOF FTP EDITOR USING midiOx and loopMidi
+
+(1) Create a loopMidi device called "Fishman TriplePlay"
+
+(2) In MidiOX, select the second (loopMidi) "Fishman TriplePlay" input
+(3) select the first (orig) "Fishman TriplePlay" output
+(4) In "routings" route the one to the other.
+
+I would *think* that this is spoofing the INPUT to the controller by
+providing an alternate endpoint that the FTP editor is using, YET
+it "feels" like I am seeing the controller OUTPUT because, for instance,
+when I turn the controller volume control, I see a series of 
+CC Volume messages (sent on channels 1 and 2 in thie case)
+
+
+    TIMESTAMP IN PORT STATUS DATA1 DATA2 CHAN NOTE EVENT               
+    0006B87B   2  --     B0    07    6E    1  ---  CC: Volume            
+    0006B87B   2  --     B1    07    6E    2  ---  CC: Volume            
+    0006B8B5   2  --     B0    07    6F    1  ---  CC: Volume            
+    0006B8B5   2  --     B1    07    6F    2  ---  CC: Volume            
+    0006B8D2   2  --     B0    07    71    1  ---  CC: Volume
+    ....
+    
+    Yet I DON'T see active sensing messages coming from the controller ...
+    
+(5) REVERSE EXPERIMENT
+    select the first (orig) FTP input device
+    and route it to the second (loopMidi?) output device,
+    AND I SEE NOTHING
+    
+    Unfortunately I cannot really tell which is which.
+    
+(6) Note that I cannot select the "MIDIIN2 (Fishman TriplePlay)"
+    OR "MIDIOUT2 (Fishman TriplePlay)" ports while the FTP editor
+    is running, but when I DO select them, I start seeing 
+    active sensing messages coming from the controller.
+    
+    That makes me think that the FTP editor is really using those
+    "other" MIDIIN2 and MIDIOUT2 devices ...
+    
+    
+(7) Just adding two loopMidi ports, I notice that they are added
+    in midiOX BEFORE the existing Fishman ports ...
+    
+    So maybe I have it backwards
+    
+    SOMETHING IS FUCKING WORKING
+    
+    
+(8) OK, I created a pair of loopMidi devices, "MIDIIN2 (Fishman TriplePlay)"
+    and "MIDIOUT2 (Fishman TriplePlay)", then in MidiOX, I connect the second
+    (real) MIDIIN2 to the output (loopMidi) MIDIIN2, and I connect the first
+    (fake) MIDIOUT2 to the output (real) MIDIOUT2 ... although I do not "see"
+    any trafic, it appears to be working.
+    
+    I also discovered that you can use the MidiOX "View-SysEx" window to send
+    other messages to the controller ... So, when I typed the following into
+    the window:
+    
+            b7 1f 3c
+            b7 3f 01     <--- last byte is "string-value"
+            
+    and send it to the controller (without the FTP editor running) and then
+    start the FTP editor, the value for string 1 has changed to "2" (1 based),
+    where S is 0..5 for string 1..6 and V is 0..15 for sensitivity 1..16
+
+    It appears as if "b7 1f 3c" is the "command" for set string senstivity
+    to the following value, cuz when I send the "3F" message by itself,
+    nothing happens.
+    
+    Note that I can still send these messages, and they appear to affect
+    the controller, while the FTP editor is running, but it does not show
+    the changes until I restart it ...
+    
+(9)  Trying it again with just the "Fishman TriplePlay" output device
+     
+     - Nada
+     
+     FTP editor not happy if I take over just the Fishman Triple Play
+     output port, but when I remove all the loopback ports, I see it
+     worked.
+     
+(10) Trying the loopback on the Fishman TriplePlay
+
+    Henceforth "FTP" stands for "Fishman TriplePlay"
+    
+    a. create loopMidi FTP device
+    b. in MidiOx, loop the fake (first) FTP to the
+       second (real) output one.
+       
+    that worked!
+    
+    
+(11) Trying complete spoof
+
+    Create the "MIDIIN2 (FTP)", "MIDIOUT2 (FTP)", and "FTP" loopMidi Devices
+    - connect the first (fake) MIDIOUT2 input to the second (real) MIDIOUT2 output
+    - connect the second (real) MIDDIN2 input to the first (fake) MIDIIN2 output
+    - connect the first (fake) FTP input to the second (real) FTP output
+    - connect the second (real) FTP input to the first (fake) FTP output
+     
+    This creates a feedback loop of some kind where the inputs and outputs
+    are always going.
+    
+
+================================================================
+
+(12)  OK SO I FINALLY FIGURED THE SPOOF OUT
+
+    a. Create the "MIDIIN2 (FTP)", "MIDIOUT2 (FTP)", and "FTP" loopMidi Devices
+    b. connect the first (fake) MIDIOUT2 input to the second (real) MIDIOUT2 output
+    c. connect the second (real) MIDDIN2 input to the first (fake) MIDIIN2 output
+    d. connect the second (real) FTP input to the first (fake) FTP output
+    
+    This stops the endless loops, and lets me see (A) what the FTP editor
+    sends to the controller, and (B) what the controller replies with.
+    
+    Note that MidiOx's idea of "input" and "output" monitors is not very useful
+    as all message go to both windows, so you might as well only look at the
+    input monitor ...
+    
+    
+MOVING TO A DOC FILE SO THAT I CAN HAVE PICTURES ....
+
+  
