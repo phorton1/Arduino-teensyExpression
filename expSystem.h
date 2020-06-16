@@ -37,7 +37,7 @@ class expConfig
         virtual void onButtonEvent(int row, int col, int event) {}
         virtual void onMidiEvent(uint32_t msg) {}
         #if WITH_MIDI_HOST
-            void onMidiHostEvent(uint32_t msg) {}
+            virtual void onMidiHostEvent(uint32_t msg) {}
         #endif
         
         virtual void updateUI() {}
