@@ -1,0 +1,61 @@
+
+POLY (MONO) MODE
+
+    poly = all strings on channel 1
+    mono = each string on channel 1..6
+    
+    DOES NOT REQUIRE BOOTING CONTROLLER WITH UP BUTTON PRESSED
+    which puts you in "hardware" mode.   The FTP accepts patch
+    and bank changes when booted normally.
+    
+    When booted normally it comes up in hardware patch #1, which
+    is PolyProgram1, which has it's poly/mono bit set to "poly".
+    
+    At this time the full first bank has that setting.
+    And the full second bank are called "MonoProgram1..n" and
+    have the bit set to "mono".
+    
+    So, to effect a change to mono (each note on a channel) mode,
+    you just have to select the second bank, or for poly, the 1st.
+    Which are 0 based, so you send out a "bank change" midi miessage
+    
+    
+    BANK CHANGE, sent in two messages
+    
+        Bx 00 yy ... x is channel, yy is bank MSB
+        Bx 20 zz ... x is channel, zz is bank LSB
+    
+    PATCH CHANGE
+    
+        Cx yy  ... x is channel yy is patch number
+        
+    FTP
+    
+        The FTP receives it's patch/bank messages on channel 1.
+        It requies that you also send a patch change
+        after you set the bank LSB.  It will respond with
+        a 25 byte "patch" name sysex.  So, skipping the MSB:
+        
+        poly mode:
+            
+            B0 20 00
+            C0 00 00
+    
+        mono mode:
+        
+            B0 20 01
+            C0 00 00
+    
+
+SPLITS and LAYERS
+
+    I wanna see if the controller sends out grouped messages
+    according to splits, or if that's merely data used by
+    an FTP program.
+    
+    Does not appear so.  I created a split for the bottom
+    two strings on MonoProgram2, and I still get strings
+    1-6 on separate channels.
+    
+    
+    
