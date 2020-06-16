@@ -179,7 +179,10 @@ static void usb_setup(void)
 {
 	const uint8_t *data = NULL;
 	uint32_t datalen = 0;
-	const usb_descriptor_list_t *list;
+	
+	// prh - remove the const
+	usb_descriptor_list_t *list;
+	
 	uint32_t size;
 	volatile uint8_t *reg;
 	uint8_t epconf;
