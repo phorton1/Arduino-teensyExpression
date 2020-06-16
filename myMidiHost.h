@@ -6,13 +6,17 @@
 
 
 class myMidiHostDevice : public MIDIDevice
+    // requires slightly modified USBHost_t36.h
 {
     public:
     
         myMidiHostDevice(USBHost &host) :
             MIDIDevice(host)   {}
-        uint32_t myRead(uint8_t channel=0);
-            // requires slightly modified USBHost_t36.h
+        
+        #if 0   // obsolete
+            virtual uint32_t myRead(uint8_t channel=0);
+        #endif
+        virtual void rx_data(const Transfer_t *transfer);
 
 };
 

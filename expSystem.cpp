@@ -14,8 +14,28 @@
     // 5000 us = 5 ms == 200 times per second
 #define EXP_TIMER_PRIORITY  192
     // compared to default priority of 128
-#define EXP_CRITICAL_TIMER_INTERVAL 2000
-    // 2000 us = 2 ms == 500 times per second
+#define EXP_CRITICAL_TIMER_INTERVAL 10000
+    // 2000 us = 2 ms == 500 times per second      ... has problems
+    // 1000 us                                     ... has problems
+    // 100  us - 1/10 ms = 10,000 times per second ... works, but
+    // 500  us = 1/2 ms = 2000 times per second    ... wow, is that the spec?
+    
+    // 1. I have more or less determined that the timer doesnt start again
+    //    until the handler has returned.
+    // 2. At some point the timer uses so much resources that the rest of
+    //    the system is non functional
+    // 3. I am just servicing a queue from an interrupt anyways. The most
+    //    critical is to receive from the hosted device and send to the
+    //    actual device, and currently, I am not responding directly to the
+    //    usb_host interrupts, but rather, using a seperate timer loop to
+    //    read what it has enqued.  I bumped the RX_QUEUE_SIZE for the
+    //    midi device in USBHost_t36.h, and now I can reliably, if oafishly,
+    //    turn the FTP on, and get all the bytes it sends, more or less
+    //    regardless of the critical loop timing interval, which worked
+    //    as high as 10000 (every 10 ms) or more, or even ridiculous values
+    //    like 100000 (10 times per second).
+    
+    
 #define EXP_CRITICAL_TIMER_PRIORITY  64
     // compared to default priority of 128
 
@@ -188,17 +208,18 @@ void expSystem::timer_handler()
 }
 
 
+
 // static
 void expSystem::critical_timer_handler()
 {
-    #if WITH_MIDI_HOST
-        myusb.Task();
+    #if 0 && WITH_MIDI_HOST
+        // myusb.Task();       // does nothing on midi host device!
         uint32_t msg = midi1.myRead();		// read from host
         if (msg) theSystem.midiHostEvent(msg);
     #endif
     
     uint32_t msg2 = usb_midi_read_message();  // read from device   
-    if (msg2) theSystem.midiEvent(msg);
+    if (msg2) theSystem.midiEvent(msg2);
 
     theSystem.getCurConfig()->critical_timer_handler();
 }
@@ -219,12 +240,14 @@ void expSystem::rotaryEvent(int num, int value)
 
 void expSystem::midiEvent(uint32_t msg)
 {
+    // display(0,"expSystem::midiEvent(%08x)",msg);
     getCurConfig()->onMidiEvent(msg);
 }
 
 #if WITH_MIDI_HOST
     void expSystem::midiHostEvent(uint32_t msg)
     {
+        // display(0,"expSystem::midiHostEvent(%08x) to m_cur_config_num=%d",msg,m_cur_config_num);
         getCurConfig()->onMidiHostEvent(msg);
     }
 #endif
