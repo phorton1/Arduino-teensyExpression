@@ -15,14 +15,12 @@
 // that did not allow me to fluidly set them at run time.   I had to create the actual
 // structures and copy them in toto.
 
-#define MIDI_NAME       {'t','e','e','n','s','y','E','s','p','r','e','s','s','i','o','n'}
-uint16_t MIDI_NAME_INT[] = {'t','e','e','n','s','y','E','s','p','r','e','s','s','i','o','n'};
+#define MIDI_NAME       {'t','e','e','n','s','y','E','x','p','r','e','s','s','i','o','n'}
 #define MIDI_NAME_LEN   16                                              // padding words ^^^^
 
 // added ability to change and init usb at runtime
 
-#define MIDI_NAME_FISHMAN  {'F','i','s','h','m','a','n',' ','T','x','i','p','l','e','P','l','a','y'}
-uint16_t MIDI_NAME_FISHMAN_INT[] = {'F','i','s','h','m','a','n',' ','T','r','i','p','l','e','P','l','a','y'};
+#define MIDI_NAME_FISHMAN  {'F','i','s','h','m','a','n',' ','T','r','i','p','l','e','P','l','a','y'}
 #define MIDI_NAME_FISHMAN_LEN   18
 
 
@@ -45,16 +43,6 @@ struct usb_string_descriptor_struct usb_string_product_name = {
     3,
     {0,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,0}     // 24
 };
-
-
-
-
-
-
-uint8_t *debug_name()
-{
-    return (uint8_t *)&usb_string_product_name;
-}
 
 
 void setMidiName(int i)
