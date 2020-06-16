@@ -125,6 +125,8 @@ static uint8_t device_descriptor[] = {
 #define CONFIG1_DESC_SIZE		MIDI_INTERFACE_DESC_POS+MIDI_INTERFACE1_DESC_SIZE
 #define CONFIG2_DESC_SIZE		MIDI_INTERFACE_DESC_POS+MIDI_INTERFACE2_DESC_SIZE
 
+// prh - doesnt work
+// uint16_t MIDI_NUM_CABLES = CONFIG1_NUM_CABLES;
 
 
 //------------------------------------------------------------------------------
@@ -700,8 +702,13 @@ usb_descriptor_list_t usb_descriptor_list[] = {
 };
 
 
+
+
 void setFishmanFTPDescriptor()
 {
+    // prh - doesnt work
+    // MIDI_NUM_CABLES = CONFIG2_NUM_CABLES;
+    
     // bump the product vid so you don't have to uninstall
     
     device_descriptor[uniqueIDOffset]++;

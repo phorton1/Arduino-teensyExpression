@@ -13,26 +13,15 @@
 //
 // This version WORKS as a midi host to the FTP dongle, appears in
 // windows as a "Fishman TriplePlay" with similarly named
-// midi ports, and successfully runs within the Windows FTP Editor !!
-// REQUIRES setting MIDI4+SERIAL in Arduino IDE, and uninstalling windows
-//    device upon name changes.
+// midi ports, and successfully runs within the Windows FTP Editor
 //
-// I DON't LIKE THAT THERE 8 MIDI DEVICES WITH NO MEANINGFUL NAMES
+// REQUIRES setting MIDI4+SERIAL in Arduino IDE, as I did not want
+// to muck around with Paul's midi.h file where it checks MIDI_NUM_CABLES
+// inline, and IT is compiled with the original usb_desc.h, and it
+// will not work properly as just a MIDI device (which uses SEREMU.
 //
-//    do I wanna get into the whole desceiptors mess?
-//    would need to denormalize usb_desc.c and for safety
-//    a renamed version of prh_usb_desc.h, and tweak the
-//    shit out of it to get it to happen at run time.
-//
-//    What I would like is the teensyExpression device to have
-//    two jacks (labelled "in" and "out"), and when I wanna spoof
-//    the FTP editor, there would be the four required jacks.
-//    When running on the iPad, there should only be one device,
-//    since nobody pays attentions to routines anyways.
-//
-//    
-// I am checking in messy code because it has been a long road
-// getting here, and I don't want to lose this.
+// Also note that the COM port changes from 3 to 11 when you change
+// the configuration.
 //
 // As it stands right now, I am using a modified version of Paul's
 // USBHost_t36.h file that exposes variables on it's MIDIDevice class,

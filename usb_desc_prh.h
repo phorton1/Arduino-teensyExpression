@@ -48,6 +48,7 @@
 // The configuration is MIDI+SERIAL and the number of cables can vary.
 
 // extern uint16_t MIDI_NUM_CABLES;
+// prh - doesnt work
 
 #define VENDOR_ID		        0x16C0
 #define PRODUCT_ID		        0x0489
@@ -70,7 +71,7 @@
 #define CDC_RX_SIZE             64
 #define CDC_TX_SIZE             64
 #define MIDI_INTERFACE          2	// MIDI
-#define MIDI_NUM_CABLES         2                // prh made into run-time variable
+// #define MIDI_NUM_CABLES         2                // prh made into run-time variable
 #define MIDI_TX_ENDPOINT        4
 #define MIDI_TX_SIZE            64
 #define MIDI_RX_ENDPOINT        5

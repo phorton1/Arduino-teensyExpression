@@ -106,11 +106,13 @@ void midiHostConfig::onButtonEvent(int row, int col, int event)
 	{
 		display(0,"Sending control change B7 1F 3C as device",0);
 
-		#if 1
+		#if 0
 			uint32_t msg = 0x3c1Fb70b;
+			// doesn't pay any attention to MIDI_NUM_CABLES
 			usb_midi_write_packed(msg);		// write as device
 			usb_midi_flush_output();
 		#else
+			// Does pay attention to cables
 			usbMIDI.sendControlChange(0x1F, 0x3C, 8, 0);
 				// should send B7 1F 3C
 		#endif
