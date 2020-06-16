@@ -12,10 +12,25 @@
 // Fishman TriplePlay MIDI HOST Spoof Notes
 //
 // This version WORKS as a midi host to the FTP dongle, appears in
-// windows as a "Fishman TriplePlay" with the properly named
-// MIDIIN2 and MIDIOUT2 midi ports, and successfully runs within
-// the Windows FTP Editor !!
+// windows as a "Fishman TriplePlay" with similarly named
+// midi ports, and successfully runs within the Windows FTP Editor !!
+// REQUIRES setting MIDI4+SERIAL in Arduino IDE, and uninstalling windows
+//    device upon name changes.
 //
+// I DON't LIKE THAT THERE 8 MIDI DEVICES WITH NO MEANINGFUL NAMES
+//
+//    do I wanna get into the whole desceiptors mess?
+//    would need to denormalize usb_desc.c and for safety
+//    a renamed version of prh_usb_desc.h, and tweak the
+//    shit out of it to get it to happen at run time.
+//
+//    What I would like is the teensyExpression device to have
+//    two jacks (labelled "in" and "out"), and when I wanna spoof
+//    the FTP editor, there would be the four required jacks.
+//    When running on the iPad, there should only be one device,
+//    since nobody pays attentions to routines anyways.
+//
+//    
 // I am checking in messy code because it has been a long road
 // getting here, and I don't want to lose this.
 //
