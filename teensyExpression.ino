@@ -1,6 +1,4 @@
 
-
-
 #include "defines.h"
 #include <myDebug.h>
 #include <EEPROM.h>
@@ -12,6 +10,9 @@
 #include "oldRigConfig.h"
 #include "testConfig.h"
 #include "midiHostConfig.h"
+#include <EEPROM.h>
+
+
 
 #define WITH_SDCARD   0
 #define TOUCH_DRAW_TEST  0
@@ -171,7 +172,9 @@ void setup()
 {
     // start the teensyDuino (self) USB device
     
-    setFishmanFTPDescriptor();
+    uint8_t start_as_ftp = EEPROM.read(EEPROM_SPOOF_FTP);
+    if (start_as_ftp != 255 && start_as_ftp)
+        setFishmanFTPDescriptor();
     my_usb_init();
     delay(1000);
 

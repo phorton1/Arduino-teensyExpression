@@ -160,4 +160,13 @@ class serialPortOption : public onOffOption
 };
 
 
+class spoofFTPOption : public onOffOption
+{
+    public:
+        spoofFTPOption(configOption *parent);
+        virtual void init();
+};
+
+
+
 #endif  // !__configOptions_h_

@@ -2,6 +2,7 @@
 #include <myDebug.h>
 #include "myTFT.h"
 #include "myLeds.h"
+#include <EEPROM.h>
 
 
 
@@ -296,6 +297,22 @@ void serialPortOption::init()
     onOffOption::init();
     orig_value = value = serial_port_on;
 }
+
+
+
+
+spoofFTPOption::spoofFTPOption(configOption *parent) :
+    onOffOption(parent,"Spoof FTP") {}
+    
+// virtual
+void spoofFTPOption::init()
+{
+    onOffOption::init();
+    uint8_t v = EEPROM.read(EEPROM_SPOOF_FTP);
+    orig_value = value = (v != 255) ? v : 0;
+}
+
+
 
 
 

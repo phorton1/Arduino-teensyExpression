@@ -195,6 +195,7 @@
 #define EEPROM_CONFIG_NUM       1
 #define EEPROM_MIDI_HOST        2
 #define EEPROM_SERIAL_PORT      3
+#define EEPROM_SPOOF_FTP        4
 
 
 #endif  // !__defines_h__

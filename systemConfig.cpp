@@ -24,12 +24,11 @@
 
 configOption     rootOption;
 brightnessOption optBrightness(&rootOption);
-
 configNumOption  optConfigNum(&rootOption);
-configOption     optCalibrateTouch(&rootOption,"Calibrate Touch",OPTION_TYPE_TERMINAL);
 configOption     optPedals(&rootOption,"Pedals",OPTION_TYPE_MENU);
-midiHostOption   optMidiHost(&rootOption);
-serialPortOption optSerialPort(&rootOption);
+configOption     optSystem(&rootOption,"System",OPTION_TYPE_MENU);
+spoofFTPOption   optSpoofFTP(&rootOption);
+
 
 configOption     optCalibPedals(&optPedals,"Calibrate Pedals",OPTION_TYPE_MENU);
 configOption     optConfigPedals(&optPedals,"Configure Pedals",OPTION_TYPE_MENU);
@@ -43,6 +42,13 @@ configOption     optConfigPedal1(&optConfigPedals,"Configure Pedal1 (Synth)",  O
 configOption     optConfigPedal2(&optConfigPedals,"Configure Pedal2 (Loop)",   OPTION_TYPE_TERMINAL);
 configOption     optConfigPedal3(&optConfigPedals,"Configure Pedal3 (Wah)",    OPTION_TYPE_TERMINAL);
 configOption     optConfigPedal4(&optConfigPedals,"Configure Pedal4 (Guitar)", OPTION_TYPE_TERMINAL);
+
+
+midiHostOption   optMidiHost(&optSystem);
+serialPortOption optSerialPort(&optSystem);
+configOption     optCalibrateTouch(&optSystem,"Calibrate Touch",OPTION_TYPE_TERMINAL);
+
+
 
 configOption *cur_menu = 0;
 configOption *cur_option = 0;
@@ -283,9 +289,11 @@ void systemConfig::onButtonEvent(int row, int col, int event)
             EEPROM.write(EEPROM_CONFIG_NUM,optConfigNum.value);
             EEPROM.write(EEPROM_MIDI_HOST,optMidiHost.value);
             EEPROM.write(EEPROM_SERIAL_PORT,optSerialPort.value);
+            EEPROM.write(EEPROM_SPOOF_FTP,optSpoofFTP.value);
             
             if ((optMidiHost.value != optMidiHost.orig_value) ||
-                (optSerialPort.value != optSerialPort.orig_value))
+                (optSerialPort.value != optSerialPort.orig_value) ||
+                (optSpoofFTP.value != optSpoofFTP.orig_value))
             {
                 reboot(num);                
             }
