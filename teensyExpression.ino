@@ -165,7 +165,7 @@ void setup()
     // Only initialize the serial port if it's in the build options
     // Wait up to 1 second for it to start .. 
     
-    #if defined(USB_SERIAL) || defined(USB_MIDI_SERIAL)
+    #if 1 || defined(USB_SERIAL) || defined(USB_MIDI_SERIAL)
         Serial.begin(115200);
         elapsedMillis serial_started = 0;
         while (serial_started<1000 && !Serial) {}

@@ -575,20 +575,25 @@ typedef union
 		// 0x3C1FB70B    =   B7 1F  3C    
 		
 		#if SHOW_MIDI_EVENTS
-			if ((msg & 0xFF00) == 0xFE00)	 // filter out active sensing
-				return;
-			#if 1
-				if (msg & 0xf0)					// filter out duplicate events from cable 1
-					return;
-			#endif
+			// if (0 && (msg & 0xFF00) == 0xFE00)	 // filter out active sensing
+			// 	return;
+			// #if 0
+			// 	if (msg & 0xf0)					// filter out duplicate events from cable 1
+			// 		return;
+			// #endif
 				
 				// I *think* I only need one of the two cables,
 				// not sure exactly which is which.
 				
-			// printBuffered("host  <-- %08X",msg);
+			printBuffered("host  <-- %08X",msg);
 		#endif
 		
-		#if MIDI_PASS_THRU
+		#if 0 && MIDI_PASS_THRU && !USE_MIDI_HOST_IRQ
+			
+			// the !USE_MIDI_HOST_IRQ is not needed as this
+			// method will not be called in case USE_MIDI_HOST_IRQ=1
+			// but I included it for sanity
+			
 			usb_midi_write_packed(msg);		// write as device
 			usb_midi_flush_output();
 		#endif		

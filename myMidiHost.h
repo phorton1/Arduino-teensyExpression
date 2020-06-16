@@ -4,6 +4,7 @@
 #include <Arduino.h>
 #include <USBHost_t36.h>
 
+#define USE_MIDI_HOST_IRQ   1
 
 class myMidiHostDevice : public MIDIDevice
     // requires slightly modified USBHost_t36.h
@@ -13,10 +14,10 @@ class myMidiHostDevice : public MIDIDevice
         myMidiHostDevice(USBHost &host) :
             MIDIDevice(host)   {}
         
-        #if 0   // obsolete
-            virtual uint32_t myRead(uint8_t channel=0);
+        #if USE_MIDI_HOST_IRQ
+            virtual void rx_data(const Transfer_t *transfer);
         #endif
-        virtual void rx_data(const Transfer_t *transfer);
+            virtual uint32_t myRead(uint8_t channel=0);
 
 };
 

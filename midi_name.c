@@ -9,7 +9,7 @@
 // Edit these lines to create your own name.  The length must
 // match the number of characters in your custom name.
 
-#if NAME_MIDI_DEVICE_AS_FISHMAN
+#if 1   //  NAME_MIDI_DEVICE_AS_FISHMAN
         #define MIDI_NAME   {'F','i','s','h','m','a','n',' ','T','r','i','p','l','e','P','l','a','y'}
         #define MIDI_NAME_LEN  18
 #else
