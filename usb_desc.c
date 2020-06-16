@@ -1,3 +1,16 @@
+// prh - what I would like is a way to cleanly change
+// between what I have configured for the teenyduino USB
+// device (i.e. SERIAL+MIDI), and an emulation of at least
+// the specific FTP device, without having to recompile
+// between them.
+//
+// I not only need to change the descriptors used by teensyduino,
+// perhaps via "extern" pointers to their data structures, but
+// I also have to be careful about use of constants by other code,
+// and be careful about endpoint numbers, configurations, etc.
+
+
+
 /* Teensyduino Core Library
  * http://www.pjrc.com/teensy/
  * Copyright (c) 2017 PJRC.COM, LLC.
