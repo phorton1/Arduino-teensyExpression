@@ -1,3 +1,8 @@
+// prh - I had to create this copy of the file
+// to override the static usb_init() method, and
+// make it called at runtime as my_usb_init() because
+// paul calls usb_init() all over from static methods
+
 /* Teensyduino Core Library
  * http://www.pjrc.com/teensy/
  * Copyright (c) 2017 PJRC.COM, LLC.
@@ -1107,6 +1112,31 @@ void usb_isr(void)
 
 
 void usb_init(void)
+	// prh - null placekeep called by static methods
+	// when I want to call it over and over at runtime
+{}
+
+
+
+void my_usb_halt(void)
+	// prh - my implmentation to halt the usb device
+{
+	serial_print("usb_halt\n");
+	for (int i=0; i <= NUM_ENDPOINTS*4; i++) {
+		table[i].desc = 0;
+		table[i].addr = 0;
+	}
+	// reset USB module
+	USB0_USBTRC0 = USB_USBTRC_USBRESET;
+	while ((USB0_USBTRC0 & USB_USBTRC_USBRESET) != 0) ; // wait for reset to end
+}
+
+
+
+
+void my_usb_init(void)
+	// prh - original implemention, but called at runtime
+	// void usb_init(void)
 {
 	int i;
 

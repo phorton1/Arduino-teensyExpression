@@ -159,9 +159,21 @@
 // setup
 //-----------------------------------------------------------
 
+extern "C" {
+    extern void setMidiName(int i);     // in midi_names.c
+    extern void my_usb_init();          // in usb_dev.c
+}
+
+
 
 void setup()
 {
+    // start the teensyDuino (self) USB device
+    
+    setMidiName(1);
+    my_usb_init();
+    delay(1000);
+
     // Only initialize the serial port if it's in the build options
     // Wait up to 1 second for it to start .. 
     

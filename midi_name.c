@@ -2,25 +2,69 @@
 // placed into a .c file (its own tab).  It can not be in
 // a .cpp file or your main sketch (the .ino file).
 
+#include <Arduino.h>
 #include "usb_names.h"
 #include "defines.h"
+#include <myDebug.h>
 
 
-// Edit these lines to create your own name.  The length must
-// match the number of characters in your custom name.
 
-#if 1   //  NAME_MIDI_DEVICE_AS_FISHMAN
-        #define MIDI_NAME   {'F','i','s','h','m','a','n',' ','T','r','i','p','l','e','P','l','a','y'}
-        #define MIDI_NAME_LEN  18
-#else
-        #define MIDI_NAME   {'t','e','e','n','s','y','E','x','p','r','e','s','s','i','o','n'}
-        #define MIDI_NAME_LEN  16
-#endif
+// my original version of midi_name.c
+//
+// This was weird.  There's something about the compilation of these static structures
+// that did not allow me to fluidly set them at run time.   I had to create the actual
+// structures and copy them in toto.
 
-// Do not change this part.  This exact format is required by USB.
+#define MIDI_NAME       {'t','e','e','n','s','y','E','s','p','r','e','s','s','i','o','n'}
+uint16_t MIDI_NAME_INT[] = {'t','e','e','n','s','y','E','s','p','r','e','s','s','i','o','n'};
+#define MIDI_NAME_LEN   16                                              // padding words ^^^^
+
+// added ability to change and init usb at runtime
+
+#define MIDI_NAME_FISHMAN  {'F','i','s','h','m','a','n',' ','T','x','i','p','l','e','P','l','a','y'}
+uint16_t MIDI_NAME_FISHMAN_INT[] = {'F','i','s','h','m','a','n',' ','T','r','i','p','l','e','P','l','a','y'};
+#define MIDI_NAME_FISHMAN_LEN   18
+
+
+struct usb_string_descriptor_struct usb_string_product_name_normal = {
+    2 + MIDI_NAME_LEN * 2,  // uint8_t bLength;
+    3,                      // uint8_t bDescriptorType;
+    MIDI_NAME               // uint16_t wString[];
+};
+
+
+struct usb_string_descriptor_struct usb_string_product_name_fishman = {
+    2 + MIDI_NAME_FISHMAN_LEN * 2,  // uint8_t bLength;
+    3,                      // uint8_t bDescriptorType;
+    MIDI_NAME_FISHMAN       // uint16_t wString[];
+};
+
 
 struct usb_string_descriptor_struct usb_string_product_name = {
-        2 + MIDI_NAME_LEN * 2,
-        3,
-        MIDI_NAME
+    0,
+    3,
+    {0,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,0}     // 24
 };
+
+
+
+
+
+
+uint8_t *debug_name()
+{
+    return (uint8_t *)&usb_string_product_name;
+}
+
+
+void setMidiName(int i)
+{
+    if (i == 0)
+    {
+        memcpy(&usb_string_product_name,&usb_string_product_name_normal,2 + MIDI_NAME_LEN * 2);
+    }
+    else
+    {
+        memcpy(&usb_string_product_name,&usb_string_product_name_fishman,2 + MIDI_NAME_FISHMAN_LEN * 2);
+    }
+}
