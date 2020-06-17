@@ -42,7 +42,6 @@ class expConfig
         
         virtual void updateUI() {}
         virtual void timer_handler()  {}
-        virtual void critical_timer_handler() {}
        
 };
 

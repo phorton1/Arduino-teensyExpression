@@ -1,4 +1,5 @@
 
+#include <EEPROM.h>
 #include <myDebug.h>
 #include "expSystem.h"
 #include "myTFT.h"
@@ -7,7 +8,7 @@
 #include "pedals.h"
 #include "rotary.h"
 #include "myMidiHost.h"
-#include <EEPROM.h>
+#include "midiQueue.h"
 
 // Fishman TriplePlay MIDI HOST Spoof Notes
 //
@@ -18,7 +19,7 @@
 // REQUIRES setting MIDI4+SERIAL in Arduino IDE, as I did not want
 // to muck around with Paul's midi.h file where it checks MIDI_NUM_CABLES
 // inline, and IT is compiled with the original usb_desc.h, and it
-// will not work properly as just a MIDI device (which uses SEREMU.
+// will not work properly as just a MIDI device (which uses SEREMU).
 //
 // Also note that the COM port changes from 3 to 11 when you change
 // the configuration.
@@ -39,36 +40,27 @@
 //      Which has been modified to expose protected vars
 //         and make a method rx_data() virtual
 //      Spoof requires setting MIDI4+SERIAL in Arduino IDE
-//           And simply modifying the name of the device 
-//           to "Fishman TriplePlay" in midi_names.c
-//           It DOES NOT require spoofing the descriptors, etc.
 //      Hooks rx_data(), which is the host usb IRQ handler, to
 //           directly call the low level 'C' routines
 //           usb_midi_write_packed(msg) and usb_midi_flush_output()
-//           upon every receive packet.
-//
+//           upon every received packet.
 //
 // DEVICE (teensyDuino "self") usbMidi
 //      Variable Name: usbMIDI (hardwired)
 //      available based on USB Setting in Arduino IDE
 //      I get it's messages based on calls to low calls to
 //         low levl usb_midi_read_message() 'C' function
-//         in current "critical_timer_handler()" implementation
-//      which calls midiHostConfig::onMidiHostEvent() which
-//         is where they get written TO the hosted device (FTP)
+//         in the critical_timer_handler() implementation
+//      which is where they get written TO the hosted device (FTP)
 //         via the exposed USBHost_t36 MIDIDevice myMidiHost
-//         midi1.write_packed(msg)
-//
-// This checked in, working spoof, uses the USE_MIDI_HOST_IRQ=1
-// define in myMidiHost.h to override the rx_data() method and
-// send the bytes to the teensyduino device directly from the IRQ.
+//         midi1.write_packed(msg) method
 //
 // IT WAS IMPORTANT AND HARD TO FIND THAT I HAD TO LOWER THE PRIORITY
 // OF THE critical_timer to let the host usb IRQs have priority.
 //
-// As it stands now THE SYSTEM IS NOT SYMETTRIC.  We read from the
-// host based on direct usb IRQ's, but we read from the device based
-// on a timer loop and the usb_midi_read_message() function.
+// THE SYSTEM IS NOT SYMETTRIC.  We read from the host based on direct
+// usb IRQ's, but we read from the device based on a timer loop and the
+// usb_midi_read_message() function.
 //
 // The IRQ is enqueing the 32bit messages (and I also modified USBHost_t36.h
 // to increase the midi rx buffer size from 80 to 2048), which are currently,
@@ -78,42 +70,48 @@
 // a single queue of 32 bit words, and to decode and show the queued messages
 // separately for display.
 //
-// I have high hopes that this is going to let me play the midi guitar through
-// teensyExpression device, but there is much work left to be done.
+
+
+//-------------------------------------
+// critical timer loop
+//-------------------------------------
+// The critical_timer_handler() is ONLY used to dequeue DEVICE
+// (teensyDuino) usb midi events and send them as rapidly as
+// possible to the Hosted device and enqueue them for further
+// processing in the normal processing loop.
+
+#define EXP_CRITICAL_TIMER_INTERVAL 1000
+#define EXP_CRITICAL_TIMER_PRIORITY  192
+    // Available priorities:
+    // Cortex-M4: 0,16,32,48,64,80,96,112,128,144,160,176,192,208,224,240
+    // Cortex-M0: 0,64,128,192
+
+
+//----------------------------------
+// normal timer loop
+//----------------------------------
+// The "normal" timer loop does the bulk of the work in the system.
+// It is used to
 //
-// Checking in !!!
+//      (a) check the BUTTONS, PEDALS, and ROTARY states and
+//          generate events based on their changes.
+//      (b) process incoming or outgoing MIDI as necessary
+//          to generate program related events based on them.
+//      (c) re-enqueue the incoming and outgoing (processed) MIDI
+//          messags for display.
+//      (d) used variously by other objects to implement key
+//          repeats, etc.
 
 
 #define EXP_TIMER_INTERVAL 5000
     // 5000 us = 5 ms == 200 times per second
-#define EXP_TIMER_PRIORITY  192
+#define EXP_TIMER_PRIORITY  240                     // lowest priority
     // compared to default priority of 128
     
-#if USE_MIDI_HOST_IRQ
-    #define EXP_CRITICAL_TIMER_INTERVAL 1000
-    #define EXP_CRITICAL_TIMER_PRIORITY  192
-#else
-    #define EXP_CRITICAL_TIMER_INTERVAL 1000
-    #define EXP_CRITICAL_TIMER_PRIORITY  64
-    // compared to default priority of 128
-#endif
-
-    // 2000 us = 2 ms == 500 times per second      ... has problems
-    // 1000 us                                     ... has problems
-    // 100  us - 1/10 ms = 10,000 times per second ... works, but
-    // 500  us = 1/2 ms = 2000 times per second    ... wow, is that the spec?
-    
-    // 1. I have more or less determined that the timer doesnt start again
-    //    until the handler has returned.
-    // 2. At some point the timer uses so much resources that the rest of
-    //    the system is non functional
-    // 3. I am just servicing a queue from an interrupt anyways. The most
-    //    critical is to receive from the hosted device and send to the
-    //    actual device, and currently, I am not responding directly to the
-    //    usb_host interrupts, but rather, using a seperate timer loop to
-    //    read what it has enqued.  
-    
-    
+// 1. I have more or less determined that the timers don't start again
+//    until the handler has returned.
+// 2. At some point the timers use so much resources that the rest of
+//    the system is non functional
 
 
 expSystem theSystem;
@@ -201,7 +199,6 @@ void expSystem::begin()
 //-------------------------------------------------
 // Config management
 //-------------------------------------------------
-
     
 void expSystem::addConfig(expConfig *pConfig)
 {
@@ -257,53 +254,8 @@ void expSystem::activateConfig(int i)
 
 
 //-----------------------------------------
-// timer and events
+// events
 //-----------------------------------------
-
-void expSystem::updateUI()
-{
-    getCurConfig()->updateUI();
-}
-
-
-
-// static
-void expSystem::timer_handler()
-{
-    theButtons.task();
-    
-    #if WITH_PEDALS
-        thePedals.task();
-    #endif
-    
-    #if WITH_ROTARY
-        pollRotary();
-    #endif
-    
-    theSystem.getCurConfig()->timer_handler();
-}
-
-
-
-// static
-void expSystem::critical_timer_handler()
-{
-    #if WITH_MIDI_HOST  // && !USE_MIDI_HOST_IRQ
-        myusb.Task();       // does nothing on midi host device!
-        uint32_t msg = midi1.myRead();		// read from host
-        if (msg)
-        {
-            theSystem.midiHostEvent(msg);
-            // msg = midi1.myRead();
-        }
-    #endif
-    
-    uint32_t msg2 = usb_midi_read_message();  // read from device   
-    if (msg2) theSystem.midiEvent(msg2);
-
-    theSystem.getCurConfig()->critical_timer_handler();
-}
-
 
 
 void expSystem::pedalEvent(int num, int value)
@@ -350,6 +302,74 @@ void expSystem::buttonEvent(int row, int col, int event)
         getCurConfig()->onButtonEvent(row,col,event);
     }
 }
+
+
+
+
+
+
+//-----------------------------------------
+// timer handlers
+//-----------------------------------------
+
+
+// static
+void expSystem::critical_timer_handler()
+{
+    uint32_t msg = usb_midi_read_message();  // read from device
+    
+    if (msg)
+    {
+        #if WITH_MIDI_HOST  
+            midi1.write_packed(msg);
+        #endif
+        
+        // initially gonna just handle the mssages from the
+        // FTP controller cable #1
+        
+        enqueueProcess(msg);
+    }
+}
+
+
+
+
+// static
+void expSystem::timer_handler()
+{
+    theButtons.task();
+    
+    #if WITH_PEDALS
+        thePedals.task();
+    #endif
+    
+    #if WITH_ROTARY
+        pollRotary();
+    #endif
+
+    // process incoming and outgoing midi events
+    // for now, all we do is add them to yet another queue
+    // for display.  Later, when we have figured it out,
+    // we will generate an event to the current configuration.
+    
+    uint32_t msg = dequeueProcess();
+    if (msg)
+    {
+        // showRawMessage(msg);
+        enqueueDisplay(msg);
+    }
+    
+    theSystem.getCurConfig()->timer_handler();
+}
+
+
+
+void expSystem::updateUI()
+{
+    getCurConfig()->updateUI();
+    showDisplayQueue();
+}
+
 
 
 
