@@ -5,6 +5,33 @@
 #include "myLeds.h"
 #include "buttons.h"
 
+// This file brings up the question of possibly implementing configurations
+// that are NOT user selectable, like the FTP tuner/sensitivity "dialog"
+// instead of using the systemConfig - preferences approach.
+//
+// Which then harkens to a base class that has the arrow keys, and
+// a general "back" functionality that can return to a given configuration,
+// (i.e. a stack of active configurations).
+//
+// I also need to look at Scrolling option lists in systemConfig, the
+// touchScreen, and the possibility of gestures (i.e. swipe right) to
+// alliviate the need to put a "back" button on every configuration screen
+// if I am going to use the touch.
+//
+// I almost hate to digress to the touchscreen calibration (as well as the
+// pedal calibration and curves), because it would be more fun to see the
+// FTP thing light up.
+//
+// But there's a ton of work to get this right.  I am more of the assumption
+// than ever that the FTP config and foot pedals are more or less "global",
+// though there *might* be 'sets' of pedal configs for different end-user
+// configurations, I think the FTP stuff is to unweildy to have multiple
+// isntances floating around.  And I have not seriously approached, at all,
+// the use of the rotary controls.
+//
+// Sheesh, there's a tone of work to do.
+
+
 #define SHOW_MIDI_EVENTS   1
 
 

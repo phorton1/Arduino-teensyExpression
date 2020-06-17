@@ -50,6 +50,7 @@ note_t * findNote(uint8_t val, uint8_t string)
     return 0;
 }
 
+
 void deleteNote(uint8_t val, uint8_t string)
 {
     note_t *note = findNote(val,string);
@@ -67,20 +68,12 @@ void deleteNote(uint8_t val, uint8_t string)
     if (note == last_note)
         last_note = note->prev;
         
-    // maybe these should be checked ...
-    // 
-    // if (note == most_recent_note)
-    //     most_recent_note = 0;
-    //     
-    // if (note == tuning_note)
-    //     tuning_note = 0;    
+    if (note == most_recent_note)
+        most_recent_note = 0;
+        
+    if (note == tuning_note)
+        tuning_note = 0;    
 
-    // clear persistent notes
-    
-    most_recent_note = 0;
-    tuning_note = 0;
-    
-    
     delete note;
 }
 

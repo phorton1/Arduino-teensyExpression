@@ -10,8 +10,10 @@ typedef struct noteStruct
     uint8_t val;
     uint8_t vel;
     uint8_t string;
-    int fret;           // note that this concievably could be less than zero with alternate tunings at this time
-    int tuning;         // starts as NO_TUNING_YET
+
+    int fret;                   // note that this concievably could be less than zero with alternate tunings at this time
+    int tuning;                 // starts as NO_TUNING_YET
+
     noteStruct *prev;
     noteStruct *next;
     

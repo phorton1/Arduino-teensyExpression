@@ -28,8 +28,13 @@ class msgUnion
 };
 
 
-extern bool showActiveSense;
+// debugging visibility fileter
+
 extern int showSysex;   // 0,1, or 2 for detail
+extern bool showActiveSense;
+extern bool showTuningMessages;
+extern bool showNoteInfoMessages;
+
 
 
 extern void showRawMessage(uint32_t i);
