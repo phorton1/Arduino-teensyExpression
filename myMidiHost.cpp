@@ -10,7 +10,18 @@ myMidiHostDevice midi1(myusb);
 extern void enqueueProcess(uint32_t msg);
     // in expSystem.cpp
 
+#define SPOOF_FTP_BATTERY  0
+#if SPOOF_FTP_BATTERY
+    uint8_t ftp_command = 0;
+    uint8_t battery_level = 0x4c;
+    int direction = -1;
+#endif
 
+
+//  071fb79b
+
+#define FTP_COMMAND_MASK 0x001Fb71b
+#define FTP_VALUE_MASK   0x003Fb71b
 
 // made virtual in USBHost_t36.h
 void myMidiHostDevice::rx_data(const Transfer_t *transfer)
@@ -26,6 +37,27 @@ void myMidiHostDevice::rx_data(const Transfer_t *transfer)
             // WRITE THE MESSAGE DIRECTLY TO THE TEENSY_DUINO MIDI DEVICE
             //===========================================================
 
+            #if SPOOF_FTP_BATTERY       // spoof the battery
+                if ((msg & 0x00ffffff) == FTP_COMMAND_MASK)
+                {
+                    ftp_command = (msg >> 24) & 0xff;
+                    // display(0,"cmd=%02x",ftp_command);
+                }
+                else if ( ((msg & 0x00ffffff) == FTP_VALUE_MASK) &&
+                      ftp_command == 0x07)
+                {
+                    display(0,"spoof battery %02x",battery_level);
+                    msg &= 0x00FFFFFF;
+                    msg |= battery_level << 24;
+                    
+                    battery_level += direction;
+                    if (battery_level == 0x3d || battery_level == 0x70)
+                    {
+                        direction = -direction;
+                    }
+                }
+            #endif
+            
             any = 1;
             usb_midi_write_packed(msg);	
             

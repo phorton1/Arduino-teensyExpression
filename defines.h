@@ -198,4 +198,35 @@
 #define EEPROM_SPOOF_FTP        4
 
 
+// common buttons
+
+#define BUTTON_MOVE_UP          12
+#define BUTTON_MOVE_LEFT        16
+#define BUTTON_MOVE_RIGHT       18
+#define BUTTON_MOVE_DOWN        22
+#define BUTTON_SELECT           17
+
+
+// ansi colors
+
+
+#define ansi_color_black 	        30
+#define ansi_color_red 	     	    31
+#define ansi_color_green 	        32
+#define ansi_color_brown 	 	    33
+#define ansi_color_blue 	        34
+#define ansi_color_magenta 	 	    35
+#define ansi_color_cyan 	        36
+#define ansi_color_grey 	        37
+#define ansi_color_light_gray  	    90
+#define ansi_color_light_red 	    91
+#define ansi_color_light_green 	    92
+#define ansi_color_yellow 		    93
+#define ansi_color_light_blue  	    94
+#define ansi_color_light_magenta    95
+#define ansi_color_light_cyan 	    96
+#define ansi_color_white  		    97
+
+
+
 #endif  // !__defines_h__

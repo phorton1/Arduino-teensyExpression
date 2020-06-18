@@ -19,6 +19,8 @@ const int  string_base_notes[6] = {0x40, 0x3b, 0x37, 0x32, 0x2d, 0x28};
 
 extern void sendFTPCommandAndValue(uint8_t command, uint8_t value)
 {
+    display(0,"sendFTPCommandAndValue(%02x,%02x)",command,value);
+    
     msgUnion msg(
         0x0B,
         0xB7,
@@ -37,6 +39,7 @@ extern void sendFTPCommandAndValue(uint8_t command, uint8_t value)
 
 extern void sendGetFTPSensitivityCommand(uint8_t string)
 {
+    display(0,"sendGetFTPSensitivityCommand()",0);
     ftp_get_sensitivy_command_string_number = string;
     sendFTPCommandAndValue(FTP_GET_SENSITIVITY, string);
 }
@@ -53,7 +56,16 @@ const char *getFTPCommandName(uint8_t p2)
     return "unknownFTPCommand";
 }
 
+
+
+const char *note_names[] = {"C","C#","D","D#","E","F","F#","G","G#","A","A#","B"};
     
+
+const char *noteName(uint8_t note)
+{
+    return note_names[note % 12];
+}
+
 
 note_t *addNote(uint8_t val, uint8_t vel, uint8_t string)
 {
@@ -130,7 +142,7 @@ void initFTPifNeeded(bool force)
     if (it_failed)
         return;
     
-    if (force || ftp_battery_level == -11)
+    if (force || ftp_battery_level == -1)
         sendFTPCommandAndValue(FTP_BATTERY_LEVEL, 0);
 
     for (int i=0; i<NUM_STRINGS; i++)
@@ -138,18 +150,21 @@ void initFTPifNeeded(bool force)
         if (force || ftp_sensitivity[i] == -1)
         {
             sendGetFTPSensitivityCommand(i);
-            elapsedMillis timeout = 0;
-            while (ftp_sensitivity[i] == -1 && timeout < 1200)
-            {
-                delay(100);
-            }
-            if (ftp_sensitivity[i] == -1)
-            {
-                my_error("timeout trying to get sensitivity for string %d",i);
-                it_failed = 1;
-                return;
-            }
-        }            
+        }
+            #if 0
+                elapsedMillis timeout = 0;
+                while (ftp_sensitivity[i] == -1 && timeout < 5000)
+                {
+                    display(0," ... waiting for sensitivity(%d) time=%d",i,timeout);
+                    delay(1000);
+                }
+                if (ftp_sensitivity[i] == -1)
+                {
+                    my_error("timeout trying to get sensitivity for string %d",i);
+                    // it_failed = 1;
+                    return;
+                }
+            #endif
     }
 }
 

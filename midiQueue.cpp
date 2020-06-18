@@ -2,6 +2,8 @@
 #include "midiQueue.h"
 #include "FTP.h"
 #include "ftp_defs.h"
+#include "defines.h"
+
 
 // This file contains routines that process and display midi messages,
 // and sets the state of the FTP controller in FTP.cpp ...
@@ -88,25 +90,6 @@ uint8_t most_recent_note_vel = 0;
     // these values are cached from the most recent NoteOn/NoteOff
     // messages and used t create (or delete) my note_t's upon 1E
     // NoteInfo messages.
-
-
-
-#define ansi_color_black 	        30
-#define ansi_color_red 	     	    31
-#define ansi_color_green 	        32
-#define ansi_color_brown 	 	    33
-#define ansi_color_blue 	        34
-#define ansi_color_magenta 	 	    35
-#define ansi_color_cyan 	        36
-#define ansi_color_grey 	        37
-#define ansi_color_light_gray  	    90
-#define ansi_color_light_red 	    91
-#define ansi_color_light_green 	    92
-#define ansi_color_yellow 		    93
-#define ansi_color_light_blue  	    94
-#define ansi_color_light_magenta    95
-#define ansi_color_light_cyan 	    96
-#define ansi_color_white  		    97
 
 
 
@@ -411,7 +394,7 @@ void processMsg(uint32_t i)
         if (show_it)
         {
             char buf[200];
-            sprintf(buf,"\033[%dm  %s(%2d)  %02X  %-16s  %02x  %02x  %s",
+            sprintf(buf,"\033[%dm %s(%2d)  %02X  %-16s  %02x  %02x  %s",
                 color,
                 who,
                 msg.getChannel(),

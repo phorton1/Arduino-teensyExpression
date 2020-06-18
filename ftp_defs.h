@@ -29,7 +29,7 @@
 //  +------+------+----------------------------+------------------+------------------------------------------------------------------------
 //  |  B7  |  1D  |  nn=0x40 biased tuning     | SetTuning        | SetTuning is sent to notify that a note has been selected for tuning,
 //  |      |  3D  |  from -0x40 to 0x40        | Tuning           |    whih is the most recent NoteOn or NoteOff message.
-//  |      |      |                            |                  | Tuning then updates that value until the note is turned off 
+//  |      |      |  (-64 to 64)               |                  | Tuning then updates that value until the note is turned off 
 //  |      |      |  from controller only      |                  | We maintain a list of active note_t's and my UI can check the
 //  |      |      |                            |                  |    "tuning_note" global pointer to see if there is one, and if so,
 //  |      |      |                            |                  |    the tuning values (note and +/-) to display.
@@ -58,10 +58,10 @@
 //  |  B7  |  1F  |  0z07 = FTP_BATTERY_LEVEL  | GetBatteryLevel  | command:  B7 1F 07, B7 3F 00
 //  |  B7  |  3F  |  00 | nn = battery level   | BatteryLevel     | reply:    B7 1F 07, B7 3F nn
 //  |      |      |                            |                  | 
-//  |      |      |                            |                  | The battery level return value nn is believed to be from 0x00 to 0x6A or
-//  |      |      |                            |                  | something like that.  I am wathing it go down, saw 0x6B with the charger
-//  |      |      |                            |                  | plugged in, and am trying to determine if the range and if there is a a
-//  |      |      |                            |                  | 'charger' plugged in bit.
+//  |      |      |                            |                  | The battery level return value nn is believed to be from 0x40 to 0x6f.
+//  |      |      |                            |                  | It changes to red at 0x4b and is green at or above 0x4c.
+//  |      |      |                            |                  | It shows full at 0x63 and there is one red line (min) at 0x43 or below.
+//  |      |      |                            |                  | The FTP editor did something strange at 0x3F, like an internal reset.
 //  |      |      |                            |                  | 
 //  |      |      |                            |                  | might be usable as "keep alive" monitor for the FTP editor
 //  |      |      |                            |                  | 

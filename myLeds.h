@@ -21,6 +21,8 @@
     #define LED_WHITE  0x101010
 #endif
 
+#define LED_RGB(r,g,b)  (((r)<<16) | ((g)<<8) | (b))
+
 extern void initLEDs();
 extern void clearLEDs();
 

@@ -3,12 +3,6 @@
 
 #include "expSystem.h"
 
-#define BUTTON_MOVE_UP          12
-#define BUTTON_MOVE_LEFT        16
-#define BUTTON_MOVE_RIGHT       18
-#define BUTTON_MOVE_DOWN        22
-#define BUTTON_SELECT           17
-
 
 class systemConfig : public expConfig
 {
