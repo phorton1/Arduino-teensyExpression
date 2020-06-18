@@ -8,6 +8,7 @@
 #include "buttons.h"
 #include "systemConfig.h"
 #include "oldRigConfig.h"
+#include "dlgFtpTuner.h"
 #include "testConfig.h"
 #include "midiHostConfig.h"
 #include <EEPROM.h>
@@ -305,6 +306,7 @@ void setup()
 
     theSystem.addConfig(new systemConfig());
     theSystem.addConfig(new oldRigConfig());
+    theSystem.addConfig(new dlgFtpTuner());
     theSystem.addConfig(new testConfig());
     theSystem.addConfig(new midiHostConfig());
     theSystem.begin();
