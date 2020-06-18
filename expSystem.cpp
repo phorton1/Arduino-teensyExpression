@@ -352,12 +352,13 @@ void expSystem::timer_handler()
     // for display.  Later, when we have figured it out,
     // we will generate an event to the current configuration.
     
-    uint32_t msg = dequeueProcess();
-    if (msg)
-    {
-        // showRawMessage(msg);
-        enqueueDisplay(msg);
-    }
+    // dequeueProcess is doing all the work, and UI at this time
+    
+    dequeueProcess();
+        
+    // and we are not using the display queue
+    // if (msg)
+     //   enqueueDisplay(msg);
     
     theSystem.getCurConfig()->timer_handler();
 }
@@ -367,7 +368,8 @@ void expSystem::timer_handler()
 void expSystem::updateUI()
 {
     getCurConfig()->updateUI();
-    showDisplayQueue();
+    // we are not using the display queue at this time
+    // showDisplayQueue();
 }
 
 

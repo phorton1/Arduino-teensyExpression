@@ -1,6 +1,7 @@
 #include "myDebug.h"
 #include "midiQueue.h"
 #include "FTP.h"
+#include "ftp_defs.h"
 
 // This file contains routines that process and display midi messages,
 // and sets the state of the FTP controller in FTP.cpp ...
@@ -58,18 +59,25 @@
 
 
 
-int  showSysex = 1; 
+int  showSysex = 2; 
 bool showActiveSense = 0;
 bool showTuningMessages = 1;
 bool showNoteInfoMessages = 1;
+    // Has a hard time running from the timer_handler()
+    // with all of the serial output, FTP barfs often.
+    // Especially with showSysex == 2
 
 int display_head = 0;
 int display_tail = 0;
 int process_head = 0;
 int process_tail = 0;
 
-int sysex_buflen[2] = {0,0};
+int sysex_buflen[2]     = {0,0};
 bool sysex_buf_ready[2] = {0,0};
+uint8_t ftp_command[2]  = {0,0};
+    // the most recent B7 1F "command or reply" value (i.e. 07==FTP_BATTERY_LEVEL)
+    // it will be reset on the next 1F or following 3F message ...
+                                 
 
 uint32_t display_queue[MAX_DISPLAY_QUEUE];
 uint32_t process_queue[MAX_PROCESS_QUEUE];
@@ -139,12 +147,6 @@ void processMsg(uint32_t i)
     uint8_t p0 = msg.b[1];
     uint8_t p1 = msg.b[2];
     uint8_t p2 = msg.b[3];
-    
-    #if WITH_1E_VELOCITY_MAPPING
-        // cestigal to debug 0x1E messages
-        showVelmap();
-    #endif
-
     
     //--------------------------------
     // buffer SYSEX
@@ -243,17 +245,25 @@ void processMsg(uint32_t i)
             s = "ActiveSense";
             color = ansi_color_light_gray;  // understood
         }
+        
+        
+        
         else if (type == 0x0b)
         {
             s = "ControlChange";
             
+            //===================================================
+            // Messages from Controller ONLY
+            //===================================================
+            // These messages are never sent by the FTP editor.
+            // They are sent by the controller and necessary to effect my UI.
             
             //-----------------------------------------
             // NoteInfo - create/delete my note_t
             //-----------------------------------------
             // based on most_recent_note_vel from previous NoteOn NoteOff message
             
-            if (p1 == 0x1e)     
+            if (p1 == FTP_NOTE_INFO)    // 0x1e
             {
                 s = "NoteInfo";
                 show_it = showNoteInfoMessages;
@@ -274,9 +284,6 @@ void processMsg(uint32_t i)
                 {
                     color = ansi_color_light_blue;
                     note = addNote(most_recent_note_val,most_recent_note_vel,string);
-                    #if WITH_1E_VELOCITY_MAPPING
-                        addVel(most_recent_note_vel, vel);
-                    #endif
                 }
                 else
                 {
@@ -284,7 +291,8 @@ void processMsg(uint32_t i)
                 }
                 sprintf(buf2,"%02x  %02x  string=%d vel=%d   fret=%d",p1,p2,string,vel,note?note->fret:0);
             }
-            else if (p1 == 0x1D || p1 == 0x3D)    // tuning message
+
+            else if (p1 == FTP_SET_TUNING || p1 == FTP_TUNING)  // 0x1d || 0x3d
             {
                 s = "Tuning";
                 
@@ -292,7 +300,7 @@ void processMsg(uint32_t i)
                     
                 show_it = showTuningMessages;
                 
-                if (p1 == 0x1D)
+                if (p1 == FTP_SET_TUNING)   // 0x1D
                 {
                     s = "SetTuning";
                     tuning_note = most_recent_note;
@@ -313,6 +321,54 @@ void processMsg(uint32_t i)
                 if (tuning_note)
                     tuning_note->tuning = tuning;
             }
+            
+            //================================================================
+            // General FTP command and reply messages
+            //================================================================
+            // These messags are of the format
+            //
+            //            B7 1F command/reply
+            //            B7 3F value
+            //
+            // And are typically sent as "commands" from the Editor to the Controller
+            // who then replies with a value.   Or some are sent from the controller
+            // as you diddle it's buttons and knobs.  My main goal is to figure out how
+            // the whole thing works outside of the context of the Editor software, but
+            // to do that, I also typcially want to parse and look at the messages from
+            // the Editor.
+            //
+            // So it is important to differentiate a command from a reply.  We are very
+            // interested in the replies that model the state of the controller, like
+            // the battery level, string sensitivity levels, and so on.
+            //
+            // There is a large desire to separate the parsing of messages, the state
+            // machine(s), the serial "midi event monitor" and the UI of my app.  The
+            // general notion was to be that the UI all happened from loop(), and any
+            // "important" processing took place in the timer_handler() or
+            // critical_timer_handler() methods,
+            //
+            // It means that I *should* be building a (fast) representation of what
+            // I want to show in the serial monitor here, but not calling Serial.print,
+            // defering that to the updateUI() method (along with tft screen drawing),
+            // but that the state machine should be very quick to update the model of
+            // the controller.
+            //
+            // #define FTP_COMMAND_OR_REPLY    0x1F
+            // #define FTP_COMMAND_VALUE       0x3F
+            // 
+            // // specific commands
+            // 
+            // #define FTP_SLIDER_POSITION     0x05
+            // #define FTP_BATTERY_LEVEL       0x07
+            // #define FTP_VOLUME_LEVEL        0x08
+            // #define FTP_GET_SENSITIVITY     0x3C
+            // #define FTP_SET_SENSITIVITY     0x42
+        
+        
+            
+            
+            
+            
         }
         
 
@@ -395,6 +451,8 @@ uint32_t dequeueProcess()
         if (process_tail == MAX_DISPLAY_QUEUE)
             process_tail = 0;
     }
+    if (msg)
+        processMsg(msg);
     return msg;
 }
 

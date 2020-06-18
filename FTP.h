@@ -5,6 +5,7 @@
 
 #define NO_TUNING_YET    -1000
 
+
 typedef struct noteStruct
 {
     uint8_t val;
@@ -29,10 +30,5 @@ extern note_t *tuning_note;
 extern note_t *addNote(uint8_t val, uint8_t vel, uint8_t string);
 extern note_t * findNote(uint8_t val, uint8_t string);
 extern void deleteNote(uint8_t val, uint8_t string);
-
-#define WITH_1E_VELOCITY_MAPPING   0
-    // vestigial debugging define
-
-
 
 #endif  // !__FTP_h__

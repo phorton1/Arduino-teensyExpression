@@ -1,5 +1,5 @@
-#ifndef _midiQueue_h_
-#define _midiQueue_h_
+#ifndef _ftp_defs_h_
+#define _ftp_defs_h_
 
 
 // "CC" vslues (psram1)
@@ -100,60 +100,59 @@
 //  |      |      |                            |                  | 
 //  |      |      |                            |                  | 
 //  |      |      |                            |                  | 
-                                               
 
 
 
-
-
-
-class msgUnion
-{
-    public:
-        
-        msgUnion(uint32_t msg)  { i = msg; }
-        
-        bool isHost()           { return (i & 0x80); }
-        int  hostIndex()        { return isHost() ? 1 : 0; }
-        uint8_t getMsgType()    { return i & 0x0f; }
-        uint8_t getCable()      { return (i>>4) & 0x7; }
-        uint8_t getChannel()    { return (b[1] & 0xf) + 1; }
-        
-        uint8_t type()       { return b[1]; }
-        uint8_t param1()     { return b[2]; }
-        uint8_t param2()     { return b[3]; }
-        
-        bool isActiveSense()    { return (i & 0xff0f) == 0xfe0f; }
-        
-    union {
-        uint32_t i;
-        uint8_t b[4];
-    };
-};
-
-
-// debugging visibility fileter
-
-extern int showSysex;   // 0,1, or 2 for detail
-extern bool showActiveSense;
-extern bool showTuningMessages;
-extern bool showNoteInfoMessages;
-
-// message queue processing functions
-
-extern void enqueueDisplay(uint32_t msg);
-extern void enqueueProcess(uint32_t msg);
-extern uint32_t dequeueProcess();
-    // this method is currently doing all the work
-    // and the return value is ignored, there are
-    // no messages eneuqued for display
-// extern void processMsg(uint32_t i);
-    // called by dequeueProcess
-extern void showDisplayQueue();
-    // does nothing at this time, even if it was called, which it is not
-extern void showRawMessage(uint32_t i);
-    // not currently used either
-
+//-----------------------------------------------------------------------------
+// POLY (MONO) MODE
+//-----------------------------------------------------------------------------
+//
+//  poly = all strings on channel 1
+//  mono = each string on channel 1..6
+//  
+//  DOES NOT REQUIRE BOOTING CONTROLLER WITH UP BUTTON PRESSED
+//  which puts you in "hardware" mode.   The FTP accepts patch
+//  and bank changes when booted normally.
+//  
+//  When booted normally it comes up in hardware patch #1, which
+//  is PolyProgram1, which has it's poly/mono bit set to "poly".
+//  
+//  At this time the full first bank has that setting.
+//  And the full second bank are called "MonoProgram1..n" and
+//  have the bit set to "mono".
+//  
+//  So, to effect a change to mono (each note on a channel) mode,
+//  you just have to select the second bank, or for poly, the 1st.
+//  Which are 0 based, so you send out a "bank change" midi miessage
+//  
+//  
+//  BANK CHANGE, sent in two messages
+//  
+//      Bx 00 yy ... x is channel, yy is bank MSB
+//      Bx 20 zz ... x is channel, zz is bank LSB
+//  
+//  PATCH CHANGE
+//  
+//      Cx yy  ... x is channel yy is patch number
+//      
+//  FTP
+//  
+//      The FTP receives it's patch/bank messages on channel 1.
+//      It requies that you also send a patch change
+//      after you set the bank LSB.  It will respond with
+//      a 25 byte "patch" name sysex.  So, skipping the MSB:
+//      
+//      poly mode:
+//          
+//          B0 20 00
+//          C0 00 00
+//  
+//      mono mode:
+//      
+//          B0 20 01
+//          C0 00 00
+//  
+//
 
 //-----------------------------------------------------------------------------
 // COMMAND/REPLY   rough notes
@@ -246,7 +245,91 @@ extern void showRawMessage(uint32_t i);
 //  I have not even really conclusively determined if any of these things have any effect in Basic Mode
 //  or hardware mode, or if the Controller is just a complicated memory device ... though the "poly mode"
 //  setting in the selected patch (bank) DOES have an effect on the output.
+        
+        
     
+//==============================================================================
+//==============================================================================
+// PATCHES
+//==============================================================================
+//==============================================================================
+
+typedef struct 
+    // Each data patch has an array of five of these substructures in it.
+    // Unlike the UI, which puts the "pedal" split at the end, the "pedal"
+    // is the 0th element in the array, and the splits 1-4 follow in slots
+    // 1-4 in the array.
+{
+	uint8_t pgm_change;     // 0..127
+	uint8_t bank_lsb;       // 0..127
+	uint8_t bank_msb;       // 0..127
+	uint8_t pitch_bend;     // 0=auto, 1=smooth, 2=stepped, 3=trigger
+	uint8_t transpose;      // 24=none, plus or minus 24 1/2 steps (up or down 2 octaves)
+	uint8_t midi_volume;    // 0=unchecked, 1..126, weirdness at 127
+                            // goes to zero and sets split bit in main patch max_volume
+	uint8_t dyn_sens;       // Dynamics Sensitivity 0x0A..0x14 (10..20) weird
+	uint8_t dyn_offs;       // Dynamic Offset 0..20
+	uint8_t midi_reverb;    // 0=unchecked, 1..126, weirdness at 127
+                            // goes to zero and sets split bit in main patch max_reverbe
+} split_section_t;
+
+
+typedef struct  // 142 byte "data" packet (subpatch)
+    // This structure is stored in banks 0 and 1.  The "hardware poly" and
+    // "hardware mono" patches match this structure.  For each of these, there is
+    // another structure patch_buffer1, which I call the "name" patch, which is
+    // just the header, the name length byte, the name, then  the checksum in a
+    // similarly sized (142 byte) packet stored in banks 2 and 3.
+    //
+    // So the "data" for "Poly Program n" is in bank(0) patch(n-1) whereas it's "name"
+    // is bank(2) patch(n-1) ... "Mono Program n" is in (1,n-1) and (3,n-1)
+{
+	uint8_t header1[6];	// F0 00 01 6E 01 21
+	uint8_t bank_num;                   // 0=hardware poly, 1=hardware mono
+	uint8_t patch_num;                  // patch number within bank (0..127 .. only to 112 for mono bank?!?)
+	uint8_t pedal_mode; 	            // HoldUp(2), HoldDown(3), Alternate(4), Loop(6), DontBlockNewNotes(1), BlockNewNotes(0)
+	uint8_t fret_range_low_up_12;       // the range of frets, from the lowest fret (open position) for hardware patches 1 & 2
+	uint8_t fret_range_high_down_34;    // the range of frets from 1f down to this number, for hardware patches 3 and 4.
+	uint8_t string_range_12; 		    // the strings covered by the red hardware patch1 (as opposed to yellow hardware patch 2)
+	uint8_t string_range_34;   		    // the strings covered by the blue hardware patch3 (as opposed to green hardware patch 4)
+	uint8_t azero0;                     // arpeggio mode which is "SEQUENTIAL" in all csv file examples
+	uint8_t arp_speed;                  // arpeggio speed gleened from csv file
+	uint8_t arp_length;	                // arp. length gleened from csv file (arpegio length?)
+	uint8_t touch_sens;                 // 0..4 Default(4)
+	uint8_t poly_mode;                  // 0=mono, 1=poly  (Default 1 for bank0, 0 for bank1)
+   
+	split_section_t split[5];
+
+	uint8_t azero1;         // a zero .. I have never seen this byte change
+	uint8_t seqbytes[64];   // 64 bytes from 0..0x3f .. I have never seen these bytes change
+	uint8_t program[8];	    // the word "Program " with trailing space ... I have never seen these bytes change
+	uint8_t azero2;         // a zero .. I have never seen this byte change
+	uint8_t max_volume;     // bitwise bits set if split midi_volume *would be* 127
+                            // split1=0x08, split2=0x04, split3=0x02, split1=0x01, pedal=0x10
+	uint8_t max_reverb;     // bitwise bits set if split midi_reverbe *would be* 127
+                            // split1=0x08, split2=0x04, split3=0x02, split1=0x01, pedal=0x10
+	uint8_t checksum[2];    // two byte checksum
+	uint8_t endmidi;        // 0xf7
     
-    
-#endif // !_midiQueue_h_
+}   patch_buffer0_t;
+
+
+const uint8_t FTP_CODE_READ_PATCH = 0x01;	// get patch from controller (short message)
+const uint8_t FTP_CODE_ACK = 0x11;			// ack from the controller
+const uint8_t FTP_CODE_WRITE_PATCH = 0x41;	// write patch to controller
+const uint8_t FTP_CODE_PATCH_REPLY = 0x21;	// patch request reply from controller
+
+// const uint8_t FTP_CODE_UNKNOWN = 0x02;		// ? clear the patch ?
+// const uint8_t FTP_CODE_ERROR1 = 0x12;		// ? error ?
+// const uint8_t FTP_CODE_ERROR2 = 0x22;		// ? Error from controller ?
+
+
+
+
+uint8_t  ftpRequestPatch[]	= { 0xF0, 0x00, 0x01, 0x6E, 0x01, FTP_CODE_READ_PATCH, 0x00, 0x00, 0xf7 };
+         // bytes 6 and 7 (0 based) are the bank, and patch, respectively
+         
+         
+
+#endif // !_ftp_defs_h_
+
