@@ -2,116 +2,13 @@
 #define _midiQueue_h_
 
 
-// "CC" vslues (psram1)
-
-#define FTP_NOTE_INFO           0x1E
-#define FTP_SET_TUNING          0x1D
-#define FTP_TUNING              0x3D
-#define FTP_COMMAND_OR_REPLY    0x1F
-#define FTP_COMMAND_VALUE       0x3F
-
-// specific commands
-
-#define FTP_SLIDER_POSITION     0x05
-#define FTP_BATTERY_LEVEL       0x07
-#define FTP_VOLUME_LEVEL        0x08
-#define FTP_GET_SENSITIVITY     0x3C
-#define FTP_SET_SENSITIVITY     0x42
-
-
-//
-//  +======+======+============================+==================+========================================================================
-//  |  P0  |  P1  |  P2                        | Name             | Description                       
-//  +======+======+============================+==================+========================================================================
-//  |  B7  |  1E  |  xy = string, vel          | NoteInfo         | sent in context of most recent NoteOn or NoteOff message, provides
-//  |      |      |                            |                  | the UI with the string number and compressed velocity of that event
-//  |      |      |  from controller only      |                  | for use by the VU meter, tuner, and fretboard display.
-//  +------+------+----------------------------+------------------+------------------------------------------------------------------------
-//  |  B7  |  1D  |  nn=0x40 biased tuning     | SetTuning        | SetTuning is sent to notify that a note has been selected for tuning,
-//  |      |  3D  |  from -0x40 to 0x40        | Tuning           |    whih is the most recent NoteOn or NoteOff message.
-//  |      |      |                            |                  | Tuning then updates that value until the note is turned off 
-//  |      |      |  from controller only      |                  | We maintain a list of active note_t's and my UI can check the
-//  |      |      |                            |                  |    "tuning_note" global pointer to see if there is one, and if so,
-//  |      |      |                            |                  |    the tuning values (note and +/-) to display.
-//  +======+======+============================+==================+========================================================================
-//  |  Bn  |  1F  |  command   |    reply      | "FTP Command"    | FTP_COMMAND_OR_REPLY
-//  |      |  3F  |   param    } return_value  | "FTP Reply"      | FTP_COMMAND_VALUE
-//  |      |      |                            |                  | 
-//  |      |      |                            |                  | Most of the midi activity happens via these "FTP Command and Reply" messages
-//  |      |      |                            |                  | which are generally always sent as a pair, and replied to as a pair.
-//  |      |      |                            |                  | They are generally sent as commands, with a possible param, by the editor
-//  |      |      |                            |                  | app, and replied to by the controller with an echo or distinct retrun value.
-//  |      |      |                            |                  | 
-//  +======+======+============================+==================+========================================================================
-//  |  B7  |  1F  |  0z05=FTP_SLIDER_POSITION  | SliderPosition   | reply:    B7 1F 05, B7 3F nn    where nn=1, 3, or 2 (not in order)
-//  |  B7  |  3F  |  1,3,2                     |                  | 
-//  |      |      |                            |                  | I don't know if you can query this (with param zero)
-//  |      |      |  possibly sent only        |                  | I do think the controller will report slider changes
-//  |      |      |  by controller             |                  | outside of the context of the FTP editor ... which may mung
-//  |      |      |                            |                  | their behavior.
-//  |      |      |                            |                  |
-//  |      |      |                            |                  | Note that it also has the nasty behavior of sending out 
-//  |      |      |                            |                  | a midi volume change message (Bn 07 xx) on (t least) channels 1 
-//  |      |      |                            |                  | and 2 each time it is changed!
-//  |      |      |                            |                  |
-//  +------+------+----------------------------+------------------+------------------------------------------------------------------------
-//  |  B7  |  1F  |  0z07 = FTP_BATTERY_LEVEL  | GetBatteryLevel  | command:  B7 1F 07, B7 3F 00
-//  |  B7  |  3F  |  00 | nn = battery level   | BatteryLevel     | reply:    B7 1F 07, B7 3F nn
-//  |      |      |                            |                  | 
-//  |      |      |                            |                  | The battery level return value nn is believed to be from 0x00 to 0x6A or
-//  |      |      |                            |                  | something like that.  I am wathing it go down, saw 0x6B with the charger
-//  |      |      |                            |                  | plugged in, and am trying to determine if the range and if there is a a
-//  |      |      |                            |                  | 'charger' plugged in bit.
-//  |      |      |                            |                  | 
-//  |      |      |                            |                  | might be usable as "keep alive" monitor for the FTP editor
-//  |      |      |                            |                  | 
-//  +------+------+----------------------------+------------------+------------------------------------------------------------------------
-//  |  B7  |  1F  |  0z08 = FTP_VOLUME         | GetVolume        | command:  B7 1F 08, B7 3F 00
-//  |  B7  |  3F  |  00 | nn = volume levell   | Volume           | reply:    B7 1F 09, B7 3F nn
-//  |      |      |                            |                  | 
-//  |      |      |                            |                  | where nn is the value of the rotary volume control on the controller,
-//  |      |      |                            |                  | from 0..127.   Dont ask me why its needed apart from *maybe* startup,
-//  |      |      |                            |                  | since barely touching it sends out a slew of CC's on channel 1, but
-//  |      |      |                            |                  | I guess the controller has it's own back channels to everything.
-//  +------+------+----------------------------+------------------+------------------------------------------------------------------------
-//  |  B7  |  1F  | 0x3C = GET_SENSITIVITY     | GetSensitivity   | command:  B7 1F 3C, B7 3F xx  = string 0..5
-//  |  B7  |  3F  | xx = string | yy = level   |                  | reply:    B7 1F 3C, B7 3F yy  = level, 0..14
-//  |      |      |                            |                  | 
-//  |      |      |                            |                  | this is sent to the controller to ask it for the sensitivy level
-//  |      |      |                            |                  | for a given string.
-//  |      |      |                            |                  | 
-//  |      |      |                            |                  | my state machine looks for this and 0x42 from the host to maintain 
-//  |      |      |                            |                  | the array of sensetivities in memory for UI purposes
-//  +------+------+----------------------------+------------------+------------------------------------------------------------------------
-//  |  B7  |  1F  | 0x42 = SET_SENSITIVITY     | SetSensitivity   | command:  B7 1F 42, B7 3F xy    where x is the string and y is the level
-//  |  B7  |  3F  | xy = string/level | echo   |                  | reply:    B7 1F 42, B7 3F xy    and the controller echos the command
-//  |      |      |                            |                  | 
-//  |      |      |                            |                  | this is sent to the controller to set the sensitivy level
-//  |      |      |                            |                  | for a given string. It replies with an echo.
-//  |      |      |                            |                  | 
-//  |      |      |                            |                  | my state machine looks for this and 0x3C from the host to maintain 
-//  |      |      |                            |                  | the array of sensetivities in memory for UI purposes
-//  |      |      |                            |                  | 
-//  |      |      |                            |                  | 
-//  |      |      |                            |                  | 
-//  |      |      |                            |                  | 
-//  |      |      |                            |                  | 
-//  |      |      |                            |                  | 
-//  |      |      |                            |                  | 
-//  |      |      |                            |                  | 
-//  |      |      |                            |                  | 
-                                               
-
-
-
-
-
-
 class msgUnion
 {
     public:
         
+        msgUnion()  { i = 0; }
         msgUnion(uint32_t msg)  { i = msg; }
+        msgUnion(uint8_t b0, uint8_t b1, uint8_t b2, uint8_t b3) { b[0]=b0; b[1]=b1; b[2]=b2; b[3]=b3; }
         
         bool isHost()           { return (i & 0x80); }
         int  hostIndex()        { return isHost() ? 1 : 0; }

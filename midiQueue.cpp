@@ -59,7 +59,7 @@
 
 
 
-int  showSysex = 2; 
+int  showSysex = 1; 
 bool showActiveSense = 0;
 bool showTuningMessages = 1;
 bool showNoteInfoMessages = 1;
@@ -74,7 +74,7 @@ int process_tail = 0;
 
 int sysex_buflen[2]     = {0,0};
 bool sysex_buf_ready[2] = {0,0};
-uint8_t ftp_command[2]  = {0,0};
+uint8_t pending_command[2]  = {0,0};
     // the most recent B7 1F "command or reply" value (i.e. 07==FTP_BATTERY_LEVEL)
     // it will be reset on the next 1F or following 3F message ...
                                  
@@ -237,7 +237,7 @@ void processMsg(uint32_t i)
             s = "Pitch Bend";
             int value = p1 + (p2 << 7);
             value -= 8192;
-            sprintf(buf2,"        %d",value);
+            sprintf(buf2,"value=%d",value);
             color = ansi_color_light_gray;  // understood
         }
         else if (msg.isActiveSense())
@@ -289,7 +289,7 @@ void processMsg(uint32_t i)
                 {
                     deleteNote(most_recent_note_val,string);
                 }
-                sprintf(buf2,"%02x  %02x  string=%d vel=%d   fret=%d",p1,p2,string,vel,note?note->fret:0);
+                sprintf(buf2,"string=%d fret=%d vel=%d",string,note?note->fret:0,vel);
             }
 
             else if (p1 == FTP_SET_TUNING || p1 == FTP_TUNING)  // 0x1d || 0x3d
@@ -317,7 +317,7 @@ void processMsg(uint32_t i)
                 
                 // 0x00 = -40,  0x40 == 0, 0x80 == +40
                 int tuning = ((int) p2) - 0x40;      // 40 == 0,  0==-
-                sprintf(buf2,"%02x  %02x  tuning=%d",p1,p2,tuning);
+                sprintf(buf2,"tuning=%d",tuning);
                 if (tuning_note)
                     tuning_note->tuning = tuning;
             }
@@ -364,38 +364,62 @@ void processMsg(uint32_t i)
             // #define FTP_GET_SENSITIVITY     0x3C
             // #define FTP_SET_SENSITIVITY     0x42
         
-        
-            
-            
-            
-            
+            else if (p1 == FTP_COMMAND_OR_REPLY)
+            {
+                s = "ftpCmdOrReply";
+                pending_command[hindex] = p2;
+                sprintf(buf2,"%s %s",hindex?"reply":"command",getFTPCommandName(p2));
+            }
+            else if (p1 == FTP_COMMAND_VALUE)
+            {
+                s = "ftpCommandParam";
+                uint8_t pending = pending_command[hindex];
+                pending_command[hindex] = 0;
+                const char *pending_name = getFTPCommandName(pending);
+                const char *what_name = hindex ? "reply" : "command";
+                if (pending == FTP_BATTERY_LEVEL)
+                {
+                    if (hindex)
+                    {
+                        sprintf(buf2,"%s %s level=%02x",what_name,pending_name,p2);
+                        ftp_battery_level = p2;
+                    }
+                    else
+                        sprintf(buf2,"%s %s",what_name,pending_name);
+                    
+                }
+                else if (pending == FTP_GET_SENSITIVITY)
+                {
+                    sprintf(buf2,"%s %s %s=%02x",what_name,pending_name,hindex?"level":"string",p2);
+                    if (hindex)
+                        ftp_sensitivity[ftp_get_sensitivy_command_string_number] = p2;
+                    else
+                        ftp_get_sensitivy_command_string_number = p2;
+                }
+                else if (pending == FTP_SET_SENSITIVITY)
+                {
+                    int string = p2 >> 4;
+                    int level  = p2 & 0xf;
+                    sprintf(buf2,"%s %s string=%d level=%d",what_name,pending_name,string,level);
+                    if (hindex)
+                        ftp_sensitivity[string] = level;
+                }
+            }
         }
         
 
         if (show_it)
         {
-            char buf[100];
-            if (buf2[0])
-            {
-                sprintf(buf,"\033[%dm  %s(%2d)  %02X  %-16s  %s",
-                    color,
-                    who,
-                    msg.getChannel(),
-                    p0,
-                    s,
-                    buf2);
-            }
-            else
-            {
-                sprintf(buf,"\033[%dm  %s(%2d)  %02X  %-16s  %02x  %02x",
-                    color,
-                    who,
-                    msg.getChannel(),
-                    p0,
-                    s,
-                    p1,
-                    p2);
-            }
+            char buf[200];
+            sprintf(buf,"\033[%dm  %s(%2d)  %02X  %-16s  %02x  %02x  %s",
+                color,
+                who,
+                msg.getChannel(),
+                p0,
+                s,
+                p1,
+                p2,
+                buf2);
             Serial.println(buf);
             
         }   // show_it

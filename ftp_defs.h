@@ -15,8 +15,8 @@
 #define FTP_SLIDER_POSITION     0x05
 #define FTP_BATTERY_LEVEL       0x07
 #define FTP_VOLUME_LEVEL        0x08
-#define FTP_GET_SENSITIVITY     0x3C
-#define FTP_SET_SENSITIVITY     0x42
+#define FTP_SET_SENSITIVITY     0x3C
+#define FTP_GET_SENSITIVITY     0x42
 
 
 //
@@ -74,22 +74,22 @@
 //  |      |      |                            |                  | since barely touching it sends out a slew of CC's on channel 1, but
 //  |      |      |                            |                  | I guess the controller has it's own back channels to everything.
 //  +------+------+----------------------------+------------------+------------------------------------------------------------------------
-//  |  B7  |  1F  | 0x3C = GET_SENSITIVITY     | GetSensitivity   | command:  B7 1F 3C, B7 3F xx  = string 0..5
-//  |  B7  |  3F  | xx = string | yy = level   |                  | reply:    B7 1F 3C, B7 3F yy  = level, 0..14
-//  |      |      |                            |                  | 
-//  |      |      |                            |                  | this is sent to the controller to ask it for the sensitivy level
-//  |      |      |                            |                  | for a given string.
-//  |      |      |                            |                  | 
-//  |      |      |                            |                  | my state machine looks for this and 0x42 from the host to maintain 
-//  |      |      |                            |                  | the array of sensetivities in memory for UI purposes
-//  +------+------+----------------------------+------------------+------------------------------------------------------------------------
-//  |  B7  |  1F  | 0x42 = SET_SENSITIVITY     | SetSensitivity   | command:  B7 1F 42, B7 3F xy    where x is the string and y is the level
-//  |  B7  |  3F  | xy = string/level | echo   |                  | reply:    B7 1F 42, B7 3F xy    and the controller echos the command
+//  |  B7  |  1F  | 0x3c = SET_SENSITIVITY     | SetSensitivity   | command:  B7 1F 3c, B7 3F xy    where x is the string and y is the level
+//  |  B7  |  3F  | xy = string/level | echo   |                  | reply:    B7 1F 3c, B7 3F xy    and the controller echos the command
 //  |      |      |                            |                  | 
 //  |      |      |                            |                  | this is sent to the controller to set the sensitivy level
 //  |      |      |                            |                  | for a given string. It replies with an echo.
 //  |      |      |                            |                  | 
 //  |      |      |                            |                  | my state machine looks for this and 0x3C from the host to maintain 
+//  |      |      |                            |                  | the array of sensetivities in memory for UI purposes
+//  +------+------+----------------------------+------------------+------------------------------------------------------------------------
+//  |  B7  |  1F  | 0x42 = GET_SENSITIVITY     | GetSensitivity   | command:  B7 1F 42, B7 3F xx  = string 0..5
+//  |  B7  |  3F  | xx = string | yy = level   |                  | reply:    B7 1F 42, B7 3F yy  = level, 0..14
+//  |      |      |                            |                  | 
+//  |      |      |                            |                  | this is sent to the controller to ask it for the sensitivy level
+//  |      |      |                            |                  | for a given string.
+//  |      |      |                            |                  | 
+//  |      |      |                            |                  | my state machine looks for this and 0x42 from the host to maintain 
 //  |      |      |                            |                  | the array of sensetivities in memory for UI purposes
 //  |      |      |                            |                  | 
 //  |      |      |                            |                  | 
@@ -326,7 +326,7 @@ const uint8_t FTP_CODE_PATCH_REPLY = 0x21;	// patch request reply from controlle
 
 
 
-uint8_t  ftpRequestPatch[]	= { 0xF0, 0x00, 0x01, 0x6E, 0x01, FTP_CODE_READ_PATCH, 0x00, 0x00, 0xf7 };
+// uint8_t  ftpRequestPatch[]	= { 0xF0, 0x00, 0x01, 0x6E, 0x01, FTP_CODE_READ_PATCH, 0x00, 0x00, 0xf7 };
          // bytes 6 and 7 (0 based) are the bank, and patch, respectively
          
          
