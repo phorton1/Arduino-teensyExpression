@@ -61,7 +61,7 @@
 
 
 
-int  showSysex = 1; 
+int  showSysex = 2; 
 bool showActiveSense = 0;
 bool showTuningMessages = 1;
 bool showNoteInfoMessages = 1;
@@ -266,7 +266,7 @@ void processMsg(uint32_t i)
                 if (most_recent_note_vel)
                 {
                     color = ansi_color_light_blue;
-                    note = addNote(most_recent_note_val,most_recent_note_vel,string);
+                    note = addNote(most_recent_note_val,most_recent_note_vel,string,vel);
                 }
                 else
                 {
@@ -394,9 +394,10 @@ void processMsg(uint32_t i)
         if (show_it)
         {
             char buf[200];
-            sprintf(buf,"\033[%dm %s(%2d)  %02X  %-16s  %02x  %02x  %s",
+            sprintf(buf,"\033[%dm %s(%d,%2d)  %02X  %-16s  %02x  %02x  %s",
                 color,
                 who,
+                msg.getCable(),
                 msg.getChannel(),
                 p0,
                 s,

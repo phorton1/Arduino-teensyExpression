@@ -10,9 +10,10 @@
 typedef struct noteStruct
 {
     uint8_t val;
-    uint8_t vel;
+    uint8_t vel;                // full velocity from NoteOn event
     uint8_t string;
-
+    uint8_t vel2;               // compressed velocity from NoteInfo event
+    
     int fret;                   // note that this concievably could be less than zero with alternate tunings at this time
     int tuning;                 // starts as NO_TUNING_YET
 
@@ -29,7 +30,7 @@ extern note_t *last_note;
 extern note_t *most_recent_note;
 extern note_t *tuning_note;
 
-extern note_t *addNote(uint8_t val, uint8_t vel, uint8_t string);
+extern note_t *addNote(uint8_t val, uint8_t vel, uint8_t string, uint8_t vel2);
 extern note_t * findNote(uint8_t val, uint8_t string);
 extern void deleteNote(uint8_t val, uint8_t string);
 
@@ -53,6 +54,11 @@ extern void sendGetFTPSensitivityCommand(uint8_t string);
     // will send the command and set the following value for you
 
 extern const char *noteName(uint8_t note);
+
+
+#if 0   // not used
+    extern uint32_t  dequeueOutgoing();
+#endif
 
 
 

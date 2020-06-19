@@ -31,24 +31,28 @@ class msgUnion
 
 // debugging visibility fileter
 
-extern int showSysex;   // 0,1, or 2 for detail
-extern bool showActiveSense;
-extern bool showTuningMessages;
-extern bool showNoteInfoMessages;
+#if 0
+    extern int showSysex;   // 0,1, or 2 for detail
+    extern bool showActiveSense;
+    extern bool showTuningMessages;
+    extern bool showNoteInfoMessages;
+#endif
 
 // message queue processing functions
 
-extern void enqueueDisplay(uint32_t msg);
+// extern void enqueueDisplay(uint32_t msg);
+
 extern void enqueueProcess(uint32_t msg);
 extern uint32_t dequeueProcess();
     // this method is currently doing all the work
     // and the return value is ignored, there are
     // no messages eneuqued for display
+
 // extern void processMsg(uint32_t i);
     // called by dequeueProcess
-extern void showDisplayQueue();
+// extern void showDisplayQueue();
     // does nothing at this time, even if it was called, which it is not
-extern void showRawMessage(uint32_t i);
+// extern void showRawMessage(uint32_t i);
     // not currently used either
 
 

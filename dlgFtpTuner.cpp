@@ -59,6 +59,29 @@ void dlgFtpTuner::begin()
 
 
 
+void dlgFtpTuner::fretsToInts(int *ints)
+{
+	for (int i=0; i<NUM_STRINGS; i++)
+	{
+		ints[i] = -1;
+	}
+
+	__disable_irq();
+	note_t *note = first_note;
+	while (note)
+	{
+		if (note->string != -1 && note->fret != -1)
+		{
+			ints[note->string] = note->fret;
+		}
+		note = note->next;
+	}
+	__enable_irq();
+}
+
+
+
+
 
 //------------------------------------------------------------
 // events
@@ -154,28 +177,6 @@ void dlgFtpTuner::drawCircle(int string, int fret, bool pressed)
 			STRING_COLOR);
 	}
 }
-
-
-void dlgFtpTuner::notesToInts(int *ints)
-{
-	for (int i=0; i<NUM_STRINGS; i++)
-	{
-		ints[i] = -1;
-	}
-
-	__disable_irq();
-	note_t *note = first_note;
-	while (note)
-	{
-		if (note->string != -1 && note->fret != -1)
-		{
-			ints[note->string] = note->fret;
-		}
-		note = note->next;
-	}
-	__enable_irq();
-}
-
 
 
 void dlgFtpTuner::drawTunerPointer(int tuner_x, int color)
@@ -382,7 +383,7 @@ void dlgFtpTuner::updateUI()	// draw
 	//------------------------------
 	
 	int pressed[6];
-	notesToInts(pressed);
+	fretsToInts(pressed);
 	for (int i=0; i<NUM_STRINGS; i++)
 	{
 		if (full_draw || pressed[i] != last_string_pressed[i])

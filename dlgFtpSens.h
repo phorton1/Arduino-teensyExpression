@@ -1,39 +1,37 @@
-#ifndef _dlgFtpTuner_h_
-#define _dlgFtpTuner_h_
+#ifndef _dlgFtpSens_h_
+#define _dlgFtpSens_h_
 
 #include "expSystem.h"
 
 
 
-class dlgFtpTuner : public expConfig
+class dlgFtpSens : public expConfig
 {
     public:
         
-        dlgFtpTuner();
+        dlgFtpSens();
 
     private:
         
-        virtual const char *name()          { return "FTP Tuner"; }
-        virtual const char *short_name()    { return "FTP Tuner"; }
+        virtual const char *name()          { return "FTP String Sensitivity"; }
+        virtual const char *short_name()    { return "FTP Sens"; }
         virtual void begin();
         virtual void updateUI();
         
         virtual void onButtonEvent(int row, int col, int event);
-            // unused
 
         // implementation
         
         bool draw_needed;
         int last_battery_level;
-        int last_string_pressed[6];
-        int last_tuner_note;
-        int last_tuner_value;        
+        int last_string_val[6];
+        int last_string_sens[6];
         
         void init();
         void drawCircle(int string, int fret, bool pressed);
-        void fretsToInts(int *ints);
+        void vel2ToInts(int *ints);
         void drawTunerPointer(int tuner_x, int color);
 };
 
 
-#endif      // !_dlgFtpTuner_h_
+#endif      // !_dlgFtpSens_h_

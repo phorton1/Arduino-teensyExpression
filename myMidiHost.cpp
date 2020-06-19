@@ -65,12 +65,12 @@ void myMidiHostDevice::rx_data(const Transfer_t *transfer)
             // as it is the one that has the active sense messages and the
             // are completely duplicated on cable 0
 
-            if (msg & 0x10)
+            // if (msg & 0x10)
             {
                 // prh - set the high order bit of the "cable" to indicate
                 // this came from the host ...
                 
-                msg |= 0x80;
+                msg |= HOST_CABLE_BIT;
                 enqueueProcess(msg);
             }
             
@@ -82,3 +82,177 @@ void myMidiHostDevice::rx_data(const Transfer_t *transfer)
     queue_Data_Transfer(rxpipe, rx_buffer, rx_size, this);
 }
 
+
+
+#if 0   // disabled
+
+    int cur_buffer = 0;
+    
+    void myMidiHostDevice::flush()
+    {
+        uint32_t tx_max = tx_size / 4;
+        if (cur_buffer == 0 && tx1_count)
+        {
+            display(0,"flushing buffer1 tx1_count=%d",tx1_count);
+            display_bytes(0,"bf1",(uint8_t *)tx_buffer1,tx_max*4);
+    
+            tx1_count = tx_max;
+            queue_Data_Transfer(txpipe, tx_buffer1, tx_max*4, this);
+            cur_buffer = 1;
+        }
+        else if (cur_buffer == 1 && tx2_count)
+        {
+            display(0,"flushing buffer2 tx2_count=%d",tx2_count);
+            display_bytes(0,"bf2",(uint8_t *)tx_buffer2,tx_max*4);
+    
+            tx2_count = tx_max;
+            queue_Data_Transfer(txpipe, tx_buffer2, tx_max*4, this);
+            cur_buffer = 0;
+        }
+    }
+    
+    
+    
+    void myMidiHostDevice::write_packed(uint32_t data)
+    {
+        if (!txpipe) return;
+        uint32_t tx_max = tx_size / 4;
+        
+        uint32_t tx_count = cur_buffer ? tx2_count : tx1_count;
+        uint32_t *tx_buffer = cur_buffer ? tx_buffer2 : tx_buffer1;
+        
+        display(0,"my_write_packed(%08x) cur_buffer=%d tx_max=%d  tx_count=%d",data,cur_buffer,tx_max,tx_count);
+        
+        if (tx_count >= tx_max)
+        {
+            display(0,"my_write_packed() calling flush()",0);
+            flush();
+            tx_count = cur_buffer ? tx2_count : tx1_count;
+            tx_buffer = cur_buffer ? tx_buffer2 : tx_buffer1;
+            display(0,"after flush my_write_packed(%08x) cur_buffer=%d tx_max=%d  tx_count=%d",data,cur_buffer,tx_max,tx_count);
+    
+            if (tx_count >= tx_max)
+            {
+                my_error("could not write midi cur_buffer=%d!!!",cur_buffer);
+                return;
+            }
+        }
+    
+        tx_buffer[tx_count++] = data;
+        if (cur_buffer)
+            tx2_count = tx_count;
+        else
+            tx1_count = tx_count;
+        return;
+    
+        
+        while (1)
+        {
+            uint32_t tx1 = tx1_count;
+            uint32_t tx2 = tx2_count;
+            
+            display(0,"my_write_packed tx1=%d  tx2=%d",tx1,tx2);
+            display_bytes(0,"bf1",(uint8_t *)tx_buffer1,tx_max*4);
+            display_bytes(0,"bf2",(uint8_t *)tx_buffer2,tx_max*4);
+            
+            
+            if (tx1 < tx_max && (tx2 == 0 || tx2 >= tx_max))
+            {
+                // use tx_buffer1
+                tx_buffer1[tx1++] = data;
+                tx1_count = tx1;
+                if (tx1 >= tx_max)
+                {
+                    queue_Data_Transfer(txpipe, tx_buffer1, tx_max*4, this);
+                }
+                else
+                {
+                    // TODO: start a timer, rather than sending the buffer
+                    // before it's full, to make best use of bandwidth
+                    tx1_count = tx_max;
+                    queue_Data_Transfer(txpipe, tx_buffer1, tx_max*4, this);
+                }
+                return;
+            }
+            
+            if (tx2 < tx_max)
+            {
+                // use tx_buffer2
+                tx_buffer2[tx2++] = data;
+                tx2_count = tx2;
+                if (tx2 >= tx_max)
+                {
+                    queue_Data_Transfer(txpipe, tx_buffer2, tx_max*4, this);
+                }
+                else
+                {
+                    // TODO: start a timer, rather than sending the buffer
+                    // before it's full, to make best use of bandwidth
+                    tx2_count = tx_max;
+                    queue_Data_Transfer(txpipe, tx_buffer2, tx_max*4, this);
+                }
+                return;
+            }
+        }
+    }
+#endif  // disabled
+
+
+#if 0
+    // original
+
+    void myMidiHostDevice::my_write_packed(uint32_t data)
+    {
+        if (!txpipe) return;
+        uint32_t tx_max = tx_size / 4;
+        while (1)
+        {
+            uint32_t tx1 = tx1_count;
+            uint32_t tx2 = tx2_count;
+            
+            display(0,"my_write_packed tx1=%d  tx2=%d",tx1,tx2);
+            display_bytes(0,"bf1",(uint8_t *)tx_buffer1,tx_max*4);
+            display_bytes(0,"bf2",(uint8_t *)tx_buffer2,tx_max*4);
+            
+            
+            if (tx1 < tx_max && (tx2 == 0 || tx2 >= tx_max))
+            {
+                // use tx_buffer1
+                tx_buffer1[tx1++] = data;
+                tx1_count = tx1;
+                if (tx1 >= tx_max)
+                {
+                    queue_Data_Transfer(txpipe, tx_buffer1, tx_max*4, this);
+                }
+                else
+                {
+                    // TODO: start a timer, rather than sending the buffer
+                    // before it's full, to make best use of bandwidth
+                    tx1_count = tx_max;
+                    queue_Data_Transfer(txpipe, tx_buffer1, tx_max*4, this);
+                }
+                return;
+            }
+            
+            if (tx2 < tx_max)
+            {
+                // use tx_buffer2
+                tx_buffer2[tx2++] = data;
+                tx2_count = tx2;
+                if (tx2 >= tx_max)
+                {
+                    queue_Data_Transfer(txpipe, tx_buffer2, tx_max*4, this);
+                }
+                else
+                {
+                    // TODO: start a timer, rather than sending the buffer
+                    // before it's full, to make best use of bandwidth
+                    tx2_count = tx_max;
+                    queue_Data_Transfer(txpipe, tx_buffer2, tx_max*4, this);
+                }
+                return;
+            }
+        }
+    }
+    
+#endif  // original

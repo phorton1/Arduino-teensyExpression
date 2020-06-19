@@ -9,6 +9,8 @@
 #include "rotary.h"
 #include "myMidiHost.h"
 #include "midiQueue.h"
+#include "FTP.h"
+
 
 // Fishman TriplePlay MIDI HOST Spoof Notes
 //
@@ -355,7 +357,8 @@ void expSystem::timer_handler()
     // dequeueProcess is doing all the work, and UI at this time
     
     dequeueProcess();
-        
+	
+	
     // and we are not using the display queue
     // if (msg)
      //   enqueueDisplay(msg);
@@ -367,6 +370,22 @@ void expSystem::timer_handler()
 
 void expSystem::updateUI()
 {
+	// current "process" function called from timer_handler()
+	// dequeueProcess();
+	
+	// send a pending message to the host
+
+	#if 0	// not sued
+		uint32_t msg = dequeueOutgoing();
+		while (msg)
+		{
+			display(0,"sending outgoing %08x",msg);
+			midi1.write_packed(msg);
+			msg = dequeueOutgoing();
+		}
+		delay(100);	
+	#endif
+	
     getCurConfig()->updateUI();
     // we are not using the display queue at this time
     // showDisplayQueue();
