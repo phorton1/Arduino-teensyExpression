@@ -348,7 +348,7 @@ void dlgFtpTuner::updateUI()	// draw
 	if (full_draw ||
 		last_battery_level != ftp_battery_level)
 	{
-		float pct = ftp_battery_level == -1 ? 1.0 : (((float)ftp_battery_level)-0x40) / 0x3f;
+		float pct = ftp_battery_level == -1 ? 1.0 : (((float)ftp_battery_level)-0x40) / 0x24;
 		int color = ftp_battery_level == -1 ? TFT_LIGHTGREY : (pct <= .15 ? TFT_RED : TFT_DARKGREEN);
 		if (pct > 1) pct = 1.0;
 		

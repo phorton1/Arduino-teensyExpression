@@ -52,7 +52,7 @@ uint8_t most_recent_note_vel = 0;
 
 uint8_t incoming_command[2]  = {0,0};
     // as we are processing incoming messages, we keep track of the
-    // most recent B7 1F "command or reply" (i.e. 07==FTP_BATTERY_LEVEL),
+    // most recent B7 1F "command or reply" (i.e. 07==FTP_CMD_BATTERY_LEVEL),
     // to be able to hook it up to th following "command_or_reply" value
     // message (B7 1F "value") for processing and display purposes.
     //
@@ -406,14 +406,6 @@ void _processMessage(uint32_t i)
             //
             // #define FTP_COMMAND_OR_REPLY    0x1F
             // #define FTP_COMMAND_VALUE       0x3F
-            // 
-            // // specific commands
-            // 
-            // #define FTP_SLIDER_POSITION     0x05
-            // #define FTP_BATTERY_LEVEL       0x07
-            // #define FTP_VOLUME_LEVEL        0x08
-            // #define FTP_GET_SENSITIVITY     0x3C
-            // #define FTP_SET_SENSITIVITY     0x42
         
             else if (p1 == FTP_COMMAND_OR_REPLY)
             {
@@ -441,7 +433,7 @@ void _processMessage(uint32_t i)
                 // (i.e. getSensitivity message) if we have explicitly asked,
                 // and are waiting for them.
                 
-                if (command == FTP_BATTERY_LEVEL) // we can parse this one because it doesn't require extra knowledge
+                if (command == FTP_CMD_BATTERY_LEVEL) // we can parse this one because it doesn't require extra knowledge
                 {
                     if (hindex)     
                     {
@@ -452,12 +444,12 @@ void _processMessage(uint32_t i)
                         sprintf(buf2,"%s %s ",what_name,command_name);
                     
                 }
-                else if (command == FTP_GET_SENSITIVITY)  
+                else if (command == FTP_CMD_GET_SENSITIVITY)  
                 {
                     // we only stuff the vaue if it matches what we're waiting for ...
                     // note that pending_command is a full 32 bits, but "command" is only 8
                     
-                    if (hindex && pending_command_byte == FTP_GET_SENSITIVITY)
+                    if (hindex && pending_command_byte == FTP_CMD_GET_SENSITIVITY)
                     {
                         sprintf(buf2,"%s %s setting string_sensitivity[%d]=%02x",what_name,command_name,pending_command_value_byte,p2);
                         ftp_sensitivity[pending_command_value_byte] = p2;
@@ -469,7 +461,7 @@ void _processMessage(uint32_t i)
                     }
                 }
                 
-                else if (command == FTP_SET_SENSITIVITY)  // we can parse this one because it doesn't require extra knowledge
+                else if (command == FTP_CMD_SET_SENSITIVITY)  // we can parse this one because it doesn't require extra knowledge
                 {
                     int string = p2 >> 4;
                     int level  = p2 & 0xf;

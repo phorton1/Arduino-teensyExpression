@@ -12,14 +12,53 @@
 
 // specific commands
 
-#define FTP_SLIDER_POSITION     0x05
-#define FTP_BATTERY_LEVEL       0x07
-#define FTP_VOLUME_LEVEL        0x08
-#define FTP_SET_SENSITIVITY     0x3C
-#define FTP_GET_SENSITIVITY     0x42
+    // 0x04 editor sends at startup
+#define FTP_CMD_EDITOR_MODE             0x04    // documented but not understood
+#define FTP_CMD_SLIDER_POSITION         0x05    // documented
+#define FTP_CMD_BATTERY_LEVEL           0x07    // documented
+#define FTP_CMD_VOLUME_LEVEL            0x08    // documented
+    // 0x0c host sends when controller turns on
+    // 0x1e host sends when controller turns on
+#define FTP_CMD_DYNAMICS_SENSITIVITY    0x2F
+#define FTP_CMD_SET_PGM_NUMBER          0x28
+#define FTP_CMD_SET_BANK_LSB            0x29
+#define FTP_CMD_SET_BANK_MSB            0x2A
+#define FTP_CMD_PITCHBEND_MODE          0x2B
+#define FTP_CMD_TRANSPOSE               0x2C
+#define FTP_CMD_MIDI_VOLUME             0x2D
+#define FTP_CMD_DYNAMICS_OFFSET         0x30
+#define FTP_CMD_MIDI_REVERB             0x31
+#define FTP_CMD_SET_SENSITIVITY         0x3C    // documented
+    // 0x3d editor sends at startup
+#define FTP_CMD_POLYMODE                0x3f    // 0=poly, 1=mono
+    // 0x40 editor sends at startup
+    // 0x41 editor sends at startup
+#define FTP_CMD_GET_SENSITIVITY         0x42    // documented
+#define FTP_CMD_BLOCK_MIDI_NOTES        0x46    // 1=block new midi notes 'off', 0=block new midi notes "on"
+    // 0x47 releated to splits?
+    // 0x48 related to splits?
+#define FTP_CMD_TOUCH_SENSITIVITY       0x4f    // 0..4 for pick and finger_style 5..9  (default 4)
+#define FTP_CMD_SPLIT_NUMBER            0x52    // 1 based split number, pedal is zero
+    // 0x55 host sends when controller turns on .. ack?
+    // 0x5b editor sends at startup  could be related to string 0
+    // 0x5c editor sends at startup  could be related to string 1
+    // 0x5d editor sends at startup  could be related to string 2
+    // 0x5e editor sends at startup  could be related to string 3
+    // 0x5f editor sends at startup  could be related to string 4
+    // 0x60 editor sends at startup  could be related to string 5
+    // 0x61 editor sends at startup
+    // 0x62 editor sends at startup
+    // 0x63 editor sends at startup
+    // 0x60 editor sends at startup
+    // 0x6b editor sends at startup
 
 
-//
+
+
+
+
+//  +======================================================================================================================================
+//  | CONTINUOUS CONTROLLERS (CC's not 1F/3F)
 //  +======+======+============================+==================+========================================================================
 //  |  P0  |  P1  |  P2                        | Name             | Description                       
 //  +======+======+============================+==================+========================================================================
@@ -33,6 +72,11 @@
 //  |      |      |  from controller only      |                  | We maintain a list of active note_t's and my UI can check the
 //  |      |      |                            |                  |    "tuning_note" global pointer to see if there is one, and if so,
 //  |      |      |                            |                  |    the tuning values (note and +/-) to display.
+//  +======================================================================================================================================
+
+
+//  +======================================================================================================================================
+//  | FTP COMMANDS
 //  +======+======+============================+==================+========================================================================
 //  |  Bn  |  1F  |  command   |    reply      | "FTP Command"    | FTP_COMMAND_OR_REPLY
 //  |      |  3F  |   param    } return_value  | "FTP Reply"      | FTP_COMMAND_VALUE
@@ -43,7 +87,34 @@
 //  |      |      |                            |                  | app, and replied to by the controller with an echo or distinct retrun value.
 //  |      |      |                            |                  | 
 //  +======+======+============================+==================+========================================================================
-//  |  B7  |  1F  |  0z05=FTP_SLIDER_POSITION  | SliderPosition   | reply:    B7 1F 05, B7 3F nn    where nn=1, 3, or 2 (not in order)
+//  |      |  1F  |  0x04                      | Editor Mode      | For lack of a better term, I call this "editor" mode
+//  |      |  3F  |  0x02                      |                  | The only parameter I know is "0x02"
+//  |      |      |                            |                  |
+//  |      |      |                            |                  | This appears to put the device into the mode used by the FTP Editor.
+//  |      |      |                            |                  | Without this you don't get the Tuning messages needed for the Tuner UI.
+//  |      |      |                            |                  |
+//  |      |      |                            |                  | When this message is sent, the controller returns a slew of stuff
+//  |      |      |                            |                  | on channels 1-7 and 11-16 which are probably "performance state"
+//  |      |      |                            |                  |
+//  |      |      |                            |                  |      host(1, 1)  B0  ControlChange     65  00
+//  |      |      |                            |                  |      host(1, 1)  B0  ControlChange     64  00 
+//  |      |      |                            |                  |      host(1, 1)  B0  ControlChange     06  0c 
+//  |      |      |                            |                  |      host(1, 1)  B0  ControlChange     26  00 
+//  |      |      |                            |                  |
+//  |      |      |                            |                  | These four messages are sent to those 13 channels
+//  |      |      |                            |                  |
+//  |      |      |                            |                  | param values
+//  |      |      |                            |                  | 0x00 - also sends out some message on channel 8, including the sysex for a patch
+//  |      |      |                            |                  |        turns off tuning and pitch bends
+//  |      |      |                            |                  | 0x01 - does not send out patches
+//  |      |      |                            |                  | 0x02 - only sends performance controller stuff first time?
+//  |      |      |                            |                  | 0x03 - does nothing? (but IS echoed)
+//  |      |      |                            |                  | 0x04 - checked bitwise,looks like 0 -
+//  |      |      |                            |                  |
+//  |      |      |                            |                  | 0x02 - definitely turns the tuner on ...
+//  |      |      |                            |                  |
+//  +======+======+============================+==================+========================================================================
+//  |  B7  |  1F  |  0z05                      | SliderPosition   | reply:    B7 1F 05, B7 3F nn    where nn=1, 3, or 2 (not in order)
 //  |  B7  |  3F  |  1,3,2                     |                  | 
 //  |      |      |                            |                  | I don't know if you can query this (with param zero)
 //  |      |      |  possibly sent only        |                  | I do think the controller will report slider changes
@@ -55,7 +126,7 @@
 //  |      |      |                            |                  | and 2 each time it is changed!
 //  |      |      |                            |                  |
 //  +------+------+----------------------------+------------------+------------------------------------------------------------------------
-//  |  B7  |  1F  |  0z07 = FTP_BATTERY_LEVEL  | GetBatteryLevel  | command:  B7 1F 07, B7 3F 00
+//  |  B7  |  1F  |  0z07                      | GetBatteryLevel  | command:  B7 1F 07, B7 3F 00
 //  |  B7  |  3F  |  00 | nn = battery level   | BatteryLevel     | reply:    B7 1F 07, B7 3F nn
 //  |      |      |                            |                  | 
 //  |      |      |                            |                  | The battery level return value nn is believed to be from 0x40 to 0x6f.
@@ -74,7 +145,7 @@
 //  |      |      |                            |                  | since barely touching it sends out a slew of CC's on channel 1, but
 //  |      |      |                            |                  | I guess the controller has it's own back channels to everything.
 //  +------+------+----------------------------+------------------+------------------------------------------------------------------------
-//  |  B7  |  1F  | 0x3c = SET_SENSITIVITY     | SetSensitivity   | command:  B7 1F 3c, B7 3F xy    where x is the string and y is the level
+//  |  B7  |  1F  | 0x3c                       | SetSensitivity   | command:  B7 1F 3c, B7 3F xy    where x is the string and y is the level
 //  |  B7  |  3F  | xy = string/level | echo   |                  | reply:    B7 1F 3c, B7 3F xy    and the controller echos the command
 //  |      |      |                            |                  | 
 //  |      |      |                            |                  | this is sent to the controller to set the sensitivy level
@@ -83,7 +154,10 @@
 //  |      |      |                            |                  | my state machine looks for this and 0x3C from the host to maintain 
 //  |      |      |                            |                  | the array of sensetivities in memory for UI purposes
 //  +------+------+----------------------------+------------------+------------------------------------------------------------------------
-//  |  B7  |  1F  | 0x42 = GET_SENSITIVITY     | GetSensitivity   | command:  B7 1F 42, B7 3F xx  = string 0..5
+//  |      |  1F  |  0x3f = POLY/MONO MODE
+//  |      |  3F  |  xx == 0=poly, 1=mono
+//  +------+------+----------------------------+------------------+------------------------------------------------------------------------
+//  |  B7  |  1F  | 0x42                       | GetSensitivity   | command:  B7 1F 42, B7 3F xx  = string 0..5
 //  |  B7  |  3F  | xx = string | yy = level   |                  | reply:    B7 1F 42, B7 3F yy  = level, 0..14
 //  |      |      |                            |                  | 
 //  |      |      |                            |                  | this is sent to the controller to ask it for the sensitivy level
@@ -92,14 +166,11 @@
 //  |      |      |                            |                  | my state machine looks for this and 0x42 from the host to maintain 
 //  |      |      |                            |                  | the array of sensetivities in memory for UI purposes
 //  |      |      |                            |                  | 
-//  |      |      |                            |                  | 
-//  |      |      |                            |                  | 
-//  |      |      |                            |                  | 
-//  |      |      |                            |                  | 
-//  |      |      |                            |                  | 
-//  |      |      |                            |                  | 
-//  |      |      |                            |                  | 
-//  |      |      |                            |                  | 
+//  +------+------+----------------------------+------------------+------------------------------------------------------------------------
+//  |      |  1F  |  0x4f = TOUCH_SENSITIVITY  
+//  |      |  3F  |  xx == 0..4 for pick and finger_style 5..9  (default 4)
+//  +------+------+----------------------------+------------------+------------------------------------------------------------------------
+
 
 
 // NOTE INFO MESSAGES
