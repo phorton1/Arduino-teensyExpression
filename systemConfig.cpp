@@ -1,15 +1,15 @@
 
+#include <EEPROM.h>
 #include <myDebug.h>
-#include "defines.h"
-#include "expSystem.h"
 #include "systemConfig.h"
-#include "configOptions.h"
+#include "defines.h"
 #include "myTFT.h"
 #include "myLeds.h"
 #include "buttons.h"
 #include "pedals.h"
 #include "rotary.h"
-#include <EEPROM.h>
+#include "expSystem.h"
+#include "configOptions.h"
 
 
 #define BUTTON_BRIGHTNESS_DOWN  0

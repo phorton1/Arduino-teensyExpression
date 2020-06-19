@@ -1,17 +1,17 @@
 
-#include "defines.h"
-#include <myDebug.h>
 #include <EEPROM.h>
+#include <myDebug.h>
+#include "defines.h"
 #include "myTFT.h"
 #include "myLeds.h"
-#include "expSystem.h"
 #include "buttons.h"
+#include "expSystem.h"
 #include "systemConfig.h"
 #include "oldRigConfig.h"
 #include "dlgFtpTuner.h"
 #include "dlgFtpSens.h"
-#include "testConfig.h"
 #include "midiHostConfig.h"
+#include "testConfig.h"
 #include <EEPROM.h>
 
 
@@ -309,8 +309,8 @@ void setup()
     theSystem.addConfig(new oldRigConfig());
     theSystem.addConfig(new dlgFtpTuner());
     theSystem.addConfig(new dlgFtpSens());
-    theSystem.addConfig(new testConfig());
     theSystem.addConfig(new midiHostConfig());
+    theSystem.addConfig(new testConfig());
     theSystem.begin();
         
     display(0,"system running ...",0);

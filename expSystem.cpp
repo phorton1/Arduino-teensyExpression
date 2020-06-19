@@ -7,9 +7,9 @@
 #include "buttons.h"
 #include "pedals.h"
 #include "rotary.h"
+#include "ftp.h"
 #include "myMidiHost.h"
 #include "midiQueue.h"
-#include "FTP.h"
 
 
 // Fishman TriplePlay MIDI HOST Spoof Notes

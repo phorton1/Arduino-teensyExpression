@@ -4,11 +4,10 @@
 #include "myTFT.h"
 #include "myLeds.h"
 #include "buttons.h"
-
+#include "ftp.h"
+#include "ftp_defs.h"
 #include "myMidiHost.h"
 #include "midiQueue.h"
-#include "FTP.h"
-#include "ftp_defs.h"
 
 	
 

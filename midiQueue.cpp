@@ -1,8 +1,8 @@
 #include "myDebug.h"
 #include "midiQueue.h"
-#include "FTP.h"
-#include "ftp_defs.h"
 #include "defines.h"
+#include "ftp.h"
+#include "ftp_defs.h"
 #include "myMidiHost.h"
 
 

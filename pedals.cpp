@@ -2,8 +2,8 @@
 
 #if WITH_PEDALS     // empty compile if not
 
-#include "pedals.h"
 #include <myDebug.h>
+#include "pedals.h"
 #include "expSystem.h"
 
 

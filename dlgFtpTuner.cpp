@@ -4,7 +4,7 @@
 #include "myTFT.h"
 #include "myLeds.h"
 #include "buttons.h"
-#include "FTP.h"
+#include "ftp.h"
 
 	
 
