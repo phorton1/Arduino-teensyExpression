@@ -1,5 +1,5 @@
-#ifndef __FTP_h__
-#define __FTP_h__
+#ifndef __ftp_h__
+#define __ftp_h__
 
 // This module keeps track of the FTP state (as determined by the stuff in midiQueue.cpp
 // The tuner, fretboard display, and sensitivy VU are driven off these values.
@@ -57,4 +57,4 @@ extern const char *noteName(uint8_t note);
 
 
 
-#endif  // !__FTP_h__
+#endif  // !__ftp_h__
