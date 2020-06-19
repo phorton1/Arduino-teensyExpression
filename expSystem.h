@@ -35,10 +35,6 @@ class expConfig
         virtual void onRotaryEvent(int num, int val)  {}
         virtual void onPedalEvent(int num, int val)   {}
         virtual void onButtonEvent(int row, int col, int event) {}
-        virtual void onMidiEvent(uint32_t msg) {}
-        #if WITH_MIDI_HOST
-            virtual void onMidiHostEvent(uint32_t msg) {}
-        #endif
         
         virtual void updateUI() {}
         virtual void timer_handler()  {}
@@ -84,10 +80,6 @@ class expSystem
         static void timer_handler();
         static void critical_timer_handler();
         
-        void midiEvent(uint32_t msg);
-        #if WITH_MIDI_HOST
-            void midiHostEvent(uint32_t msg);
-        #endif
 };
 
 

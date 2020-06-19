@@ -102,6 +102,44 @@
 //  |      |      |                            |                  | 
 
 
+// NOTE INFO MESSAGES
+//
+//      Following most NoteOn and NoteOff messages is a B7 1E xy
+//      "NoteInfo" message, where x is the string number and y is a
+//      compressed 0..15 velocity value (for the VU meter).
+//
+//      Although these appear to be primarly used to drive the FTP editor
+//      sensitivity VU meter, they also appear to be neded to drive the FTP
+//      'fretboard' display, as there is no other apparent way for the editor
+//      to know which string was meant in a NOTE_ON message.
+//
+//      In my system, the lifetime of the "Note" (note_t object) is
+//      bracketed by the 1E messages, and NOT by the note on and note off messages.
+//      I cache the NOTE_ON and NOTE_OFF values, as a pair of uint8_s.
+//
+//      Thus I assume that these 1E messages refer to the most recent
+//      NoteOn or NoteOff message.   There is a notion of the "most_recent"
+//      note object, which is the most recently created one, which
+//      comes into play in the Tuning messages.
+//
+// TUNING MESSAGES:
+//
+//      Following the NoteOn/1E message is usually a single B7 1D yy
+//      and a series of B7 3D yy messages.  These are generally tuning
+//      messages, where yy is the 0x40 biased signed number (from -0x40
+//      to 0x40).
+//      
+//      I call the 1D message a "SetTuning" message as it appears to
+//      set the tunning relative to the most recent NoteOn/Off message,
+//      whereas the 3D messages appear to be continuations, which I just
+//      call "Tuning" messages.   It is not invariant that a NoteOn or
+//      NoteOff is followed by a 1D ... the tuner will keep working on
+//      a given string if multiple strings are picked.
+//
+//      Therefore I grab the "most recent" note upon a 1D and asusme that
+//      is the note we are tuning.  If it goes away, the tuner is turned
+//      off until the next 1D in the context of a new NoteOn/1E message
+
 
 //-----------------------------------------------------------------------------
 // POLY (MONO) MODE

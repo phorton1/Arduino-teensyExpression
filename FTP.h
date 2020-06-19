@@ -49,16 +49,11 @@ extern void initFTPifNeeded(bool force=0);
     // will get sensitivities for any strings that don't have them
 
 extern const char *getFTPCommandName(uint8_t p2);
-extern void sendFTPCommandAndValue(uint8_t command, uint8_t value);
 extern void sendGetFTPSensitivityCommand(uint8_t string);
     // will send the command and set the following value for you
 
 extern const char *noteName(uint8_t note);
 
-
-#if 0   // not used
-    extern uint32_t  dequeueOutgoing();
-#endif
 
 
 

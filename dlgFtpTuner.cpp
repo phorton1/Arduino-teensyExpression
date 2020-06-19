@@ -34,7 +34,7 @@ void dlgFtpTuner::init()
 void dlgFtpTuner::begin()
 {
 	init();
-	// initFTPifNeeded();
+	initFTPifNeeded();		// for battery level
 	expConfig::begin();	
 	
 	//for (int i=0; i<5; i++)

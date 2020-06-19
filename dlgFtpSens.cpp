@@ -4,7 +4,9 @@
 #include "myTFT.h"
 #include "myLeds.h"
 #include "buttons.h"
+
 #include "myMidiHost.h"
+#include "midiQueue.h"
 #include "FTP.h"
 #include "ftp_defs.h"
 
@@ -21,6 +23,7 @@ dlgFtpSens::dlgFtpSens()
 	init();
 }
 
+
 void dlgFtpSens::init()
 {
 	draw_needed = 1;
@@ -36,6 +39,7 @@ void dlgFtpSens::init()
 void dlgFtpSens::begin()
 {
 	init();
+	initFTPifNeeded();
 	expConfig::begin();	
 	
 	//for (int i=0; i<5; i++)

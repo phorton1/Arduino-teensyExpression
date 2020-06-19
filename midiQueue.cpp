@@ -3,63 +3,14 @@
 #include "FTP.h"
 #include "ftp_defs.h"
 #include "defines.h"
+#include "myMidiHost.h"
 
 
-// This file contains routines that process and display midi messages,
-// and sets the state of the FTP controller in FTP.cpp ...
-//
-// This is NOT a general purpose MIDI parser, though it is close.
-// It contains many assumptiosn about messages that are specific
-// to the FTP system.
-//
-// There should be a separate doc about the various messages the
-// FTP controller puts out, and how it works with the FTP editor.
-// At this time the information is sporadically included in this
-// and a few other files.
+#define MAX_PROCESS_QUEUE   8192
+#define MAX_SYSEX_BUFFER    1024
+#define MAX_OUTGOING_QUEUE  1024
 
-#define MAX_DISPLAY_QUEUE  8192
-#define MAX_PROCESS_QUEUE  8192
-#define MAX_SYSEX_BUFFER   1024
-
-// NOTE INFO MESSAGES
-//
-//      Following most NoteOn and NoteOff messages is a B7 1E xy
-//      "NoteInfo" message, where x is the string number and y is a
-//      compressed 0..15 velocity value (for the VU meter).
-//
-//      Although these appear to be primarly used to drive the FTP editor
-//      sensitivity VU meter, they also appear to be neded to drive the FTP
-//      'fretboard' display, as there is no other apparent way for the editor
-//      to know which string was meant in a NOTE_ON message.
-//
-//      In fact, in my system, the lifetime of the "Note" (note_t object) is
-//      bracketed by the 1E messages, and NOT by the note on and note off messages.
-//      I cache the NOTE_ON and NOTE_OFF values, as a pair of uint8_s.
-//
-//      Thus I assume that these 1E messages refer to the most recent
-//      NoteOn or NoteOff message.   There is a notion of the "most_recent"
-//      note object, which is the most recently created one, which
-//      comes into play in the Tuning messages.
-//
-// TUNING MESSAGES:
-//
-//      Following the NoteOn/1E message is usually a single B7 1D yy
-//      and a series of B7 3D yy messages.  These are generally tuning
-//      messages, where yy is the 0x40 biased signed number (from -0x40
-//      to 0x40).
-//      
-//      I call the 1D message a "SetTuning" message as it appears to
-//      set the tunning relative to the most recent NoteOn/Off message,
-//      whereas the 3D messages appear to be continuations, which I just
-//      call "Tuning" messages.   It is not invariant that a NoteOn or
-//      NoteOff is followed by a 1D ... the tuner will keep working on
-//      a given string if multiple strings are picked.
-//
-//      Therefore I grab the "most recent" note upon a 1D and asusme that
-//      is the note we are tuning.  If it goes away, the tuner is turned
-//      off until the next 1D in the context of a new NoteOn/1E message
-
-
+// display filters
 
 int  showSysex = 2; 
 bool showActiveSense = 0;
@@ -69,21 +20,26 @@ bool showNoteInfoMessages = 1;
     // with all of the serial output, FTP barfs often.
     // Especially with showSysex == 2
 
-int display_head = 0;
-int display_tail = 0;
+
+// basic queues
+
 int process_head = 0;
 int process_tail = 0;
+int outgoing_head = 0;
+int outgoing_tail = 0;
+
+uint32_t outgoing_queue[MAX_OUTGOING_QUEUE];
+uint32_t process_queue[MAX_PROCESS_QUEUE];
+
+
+// sysex buffer
 
 int sysex_buflen[2]     = {0,0};
 bool sysex_buf_ready[2] = {0,0};
-uint8_t pending_command[2]  = {0,0};
-    // the most recent B7 1F "command or reply" value (i.e. 07==FTP_BATTERY_LEVEL)
-    // it will be reset on the next 1F or following 3F message ...
-                                 
-
-uint32_t display_queue[MAX_DISPLAY_QUEUE];
-uint32_t process_queue[MAX_PROCESS_QUEUE];
 uint8_t sysex_buffer[2][MAX_SYSEX_BUFFER];
+
+
+// note processing
 
 uint8_t most_recent_note_val = 0;
 uint8_t most_recent_note_vel = 0;
@@ -92,25 +48,135 @@ uint8_t most_recent_note_vel = 0;
     // NoteInfo messages.
 
 
+// basic ftp processing
 
-void showRawMessage(uint32_t i)
-{
-    msgUnion msg(i);
+uint8_t incoming_command[2]  = {0,0};
+    // as we are processing incoming messages, we keep track of the
+    // most recent B7 1F "command or reply" (i.e. 07==FTP_BATTERY_LEVEL),
+    // to be able to hook it up to th following "command_or_reply" value
+    // message (B7 1F "value") for processing and display purposes.
+    //
+    // If coming from the host, this is used to set the state of certain
+    // FTP variables (battery level, sensitivy etc) as well as to clear
+    // any pending outGoing commands to the host.
     
-    if (showActiveSense || !msg.isActiveSense())
-    {
-        char buf[100];
-        sprintf(buf,"\033[%dm %s  %02x %02x %02x\n",
-            msg.isHost() ? ansi_color_light_cyan : ansi_color_light_magenta,
-            msg.isHost() ? "host  " : "device",
-            msg.type(),msg.param1(),msg.param2());
-        Serial.print(buf);
-    }
+    
+// outgoing command processing
+
+uint32_t pending_command        = 0;        // note that these are the full messages
+uint32_t pending_command_value  = 0;
+int command_retry_count         = 0;
+elapsedMillis command_time      = 0;
+    // These four variables are used to implement an asynychronous
+    // command and reply conversation with the host.  When we send
+    // a command (and value), we save them here, and in processing
+    // (if and) when the host replies with the correct values, we
+    // clear them, which allows for the next command to be sent.
+    
+#define GET_COMMAND_VALUE(w)    ((w)>>24)
+    // outgoing pending commands are full 32bit midi messages
+    // so we use this to compare them to the incomming_command,
+    // which is just a uint8_t
+
+
+
+//-------------------------------------
+// outGoingMessage Processing
+//-------------------------------------
+
+
+void _enqueueOutgoing(uint32_t msg)
+{
+    // __disable_irq();
+    outgoing_queue[outgoing_head++] = msg;
+    if (outgoing_head == MAX_OUTGOING_QUEUE)
+        outgoing_head = 0;
+    if (outgoing_head == outgoing_tail)
+        my_error("FTP.cpp outGoingQueue overflow at %d",outgoing_head);
+    // __enable_irq();
 }
 
 
+uint32_t _dequeueOutgoing()
+{
+    int msg = 0;
+    if (outgoing_tail != outgoing_head)
+    {
+        msg = outgoing_queue[outgoing_tail++];
+        if (outgoing_tail == MAX_OUTGOING_QUEUE)
+            outgoing_tail = 0;
+    }
+    return msg;
+}
 
-void processMsg(uint32_t i)
+
+    
+void sendFTPCommandAndValue(uint8_t command, uint8_t value)
+{
+    display(0,"sendFTPCommandAndValue(%02x,%02x)",command,value);
+    
+    msgUnion msg(
+        0x1B,
+        0xB7,
+        FTP_COMMAND_OR_REPLY,    // 0x1f
+        command);
+    
+    _enqueueOutgoing(msg.i);
+    // midi1.write_packed(msg.i);
+
+    msg.b[2] = FTP_COMMAND_VALUE;       // 0x3f
+    msg.b[3] = value;
+    
+    _enqueueOutgoing(msg.i);
+    // midi1.write_packed(msg.i);
+    // midi1.flush();
+}
+
+
+void _processOutgoing()
+{
+    // see if there's a command to dequue and send
+    
+    if (!pending_command)
+    {
+        pending_command = _dequeueOutgoing();
+        if (pending_command)
+        {
+            pending_command_value = _dequeueOutgoing();
+            command_retry_count = 0;
+            
+            display(0,"--> sending(%d) command(%08x) value(%08x)",command_retry_count,pending_command,pending_command_value);
+            midi1.write_packed(pending_command);
+            midi1.write_packed(pending_command_value);
+            command_time = 0;
+        }
+    }
+    else if (command_retry_count > 50)
+    {
+        my_error("timed out sending command %08x %08x",pending_command,pending_command_value);
+        command_retry_count = 0;
+        pending_command_value = 0;
+    }
+    else if (command_time > 50)    // resend with timer
+    {
+        command_retry_count++;
+        display(0,"--> sending(%d) command(%08x) value(%08x)",command_retry_count,pending_command,pending_command_value);
+        midi1.write_packed(pending_command);
+        midi1.write_packed(pending_command_value);
+        command_time = 0;
+    }
+}
+
+    
+
+
+
+
+//-------------------------------------
+// _processMessage
+//-------------------------------------
+
+void _processMessage(uint32_t i)
 {
     msgUnion msg(i);
     
@@ -174,13 +240,15 @@ void processMsg(uint32_t i)
         
         if (is_done && showSysex)
         {
+            sprintf(buf2,"\033[%dm %s(%d,--)      sysex len=%d",
+                color,
+                who,
+                msg.getCable(),
+                sysex_buflen[hindex]);
+            Serial.println(buf2);
             if (showSysex == 2)
-                display_bytes(0,who,sysex_buffer[hindex],sysex_buflen[hindex]);
-            else
-            {
-                sprintf(buf2,"\033[%dm  %s          sysex len=%d",color,who,sysex_buflen[hindex]);
-                Serial.println(buf2);
-            }
+                display_bytes_long(0,0,sysex_buffer[hindex],sysex_buflen[hindex]);
+            
         }
     }
     
@@ -350,42 +418,80 @@ void processMsg(uint32_t i)
             else if (p1 == FTP_COMMAND_OR_REPLY)
             {
                 s = "ftpCmdOrReply";
-                pending_command[hindex] = p2;
+                incoming_command[hindex] = p2;
                 sprintf(buf2,"%s %s",hindex?"reply":"command",getFTPCommandName(p2));
             }
             else if (p1 == FTP_COMMAND_VALUE)
             {
                 s = "ftpCommandParam";
-                uint8_t pending = pending_command[hindex];
-                pending_command[hindex] = 0;
-                const char *pending_name = getFTPCommandName(pending);
+                uint8_t command = incoming_command[hindex]; 
+                incoming_command[hindex] = 0;
+                const char *command_name = getFTPCommandName(command);
                 const char *what_name = hindex ? "reply" : "command";
-                if (pending == FTP_BATTERY_LEVEL)
+                uint8_t pending_command_byte = GET_COMMAND_VALUE(pending_command);
+                uint8_t pending_command_value_byte = GET_COMMAND_VALUE(pending_command_value);
+                
+                    // get the 8bit "command" from the 32bit midi message
+                
+                // we used to sniff out the commands from the FTP Editor
+                // and make sense of certain replies from the host based
+                // on the commands the Editor was sending.
+                
+                // Now we ONLY take responses from the for certain things
+                // (i.e. getSensitivity message) if we have explicitly asked,
+                // and are waiting for them.
+                
+                if (command == FTP_BATTERY_LEVEL) // we can parse this one because it doesn't require extra knowledge
                 {
-                    if (hindex)
+                    if (hindex)     
                     {
-                        sprintf(buf2,"%s %s level=%02x",what_name,pending_name,p2);
+                        sprintf(buf2,"%s %s setting battery_level=%02x",what_name,command_name,p2);
                         ftp_battery_level = p2;
                     }
                     else
-                        sprintf(buf2,"%s %s",what_name,pending_name);
+                        sprintf(buf2,"%s %s ",what_name,command_name);
                     
                 }
-                else if (pending == FTP_GET_SENSITIVITY)
+                else if (command == FTP_GET_SENSITIVITY)  
                 {
-                    sprintf(buf2,"%s %s %s=%02x",what_name,pending_name,hindex?"level":"string",p2);
-                    if (hindex)
-                        ftp_sensitivity[ftp_get_sensitivy_command_string_number] = p2;
+                    // we only stuff the vaue if it matches what we're waiting for ...
+                    // note that pending_command is a full 32 bits, but "command" is only 8
+                    
+                    if (hindex && pending_command_byte == FTP_GET_SENSITIVITY)
+                    {
+                        sprintf(buf2,"%s %s setting string_sensitivity[%d]=%02x",what_name,command_name,pending_command_value_byte,p2);
+                        ftp_sensitivity[pending_command_value_byte] = p2;
+                    }
                     else
-                        ftp_get_sensitivy_command_string_number = p2;
+                    {
+                        // we can't parse this one because it requires extra knowledge
+                        sprintf(buf2,"%s %s %s=%02x",what_name,command_name,hindex?"level":"string",p2);
+                    }
                 }
-                else if (pending == FTP_SET_SENSITIVITY)
+                
+                else if (command == FTP_SET_SENSITIVITY)  // we can parse this one because it doesn't require extra knowledge
                 {
                     int string = p2 >> 4;
                     int level  = p2 & 0xf;
-                    sprintf(buf2,"%s %s string=%d level=%d",what_name,pending_name,string,level);
+                    sprintf(buf2,"%s %s setting string_sensitivity[%d]=%d",what_name,command_name,string,level);
                     if (hindex)
+                    {
+                        sprintf(buf2,"%s %s setting string_sensitivity[%d]=%d",what_name,command_name,string,level);
                         ftp_sensitivity[string] = level;
+                    }
+                    else
+                    {
+                        sprintf(buf2,"%s %s string[%d]=%d",what_name,command_name,string,level);
+                    }
+                }
+                
+                // now that we have the 2nd 3F message, if we matched the 1F message,
+                // clear the pending outgoing command
+                
+                if (hindex && command == pending_command_byte)
+                {
+                    display(0,"Clearing pending command(%02x)",pending_command_byte);
+                    pending_command = 0;
                 }
             }
         }
@@ -408,34 +514,11 @@ void processMsg(uint32_t i)
             
         }   // show_it
     }   // Not Sysext
+    
 }   // processMsg()
 
     
 
-void showDisplayQueue()
-{
-    if (display_tail != display_head)
-    {
-        uint32_t msg = display_queue[display_tail++];
-        if (display_tail == MAX_DISPLAY_QUEUE) 
-            display_tail = 0;
-        processMsg(msg);
-    }
-}
-
-
-void enqueueDisplay(uint32_t msg)
-{
-    // display(0,"enqueueDisplay(%d,%08x)",display_head,msg);
-
-    __disable_irq();
-    display_queue[display_head++] = msg;
-    if (display_head == MAX_DISPLAY_QUEUE)
-        display_head = 0;
-    if (display_head == display_tail)
-        my_error("expSystem displayQueue overflow at %d",display_head);
-    __enable_irq();
-}
 
 void enqueueProcess(uint32_t msg)
 {
@@ -450,18 +533,19 @@ void enqueueProcess(uint32_t msg)
     __enable_irq();
 }
 
-uint32_t dequeueProcess()
+void dequeueProcess()
 {
     int msg = 0;
     if (process_tail != process_head)
     {
         msg = process_queue[process_tail++];
-        if (process_tail == MAX_DISPLAY_QUEUE)
+        if (process_tail == MAX_PROCESS_QUEUE)
             process_tail = 0;
     }
     if (msg)
-        processMsg(msg);
-    return msg;
+        _processMessage(msg);
+
+    _processOutgoing();
 }
 
 

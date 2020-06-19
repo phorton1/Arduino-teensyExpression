@@ -19,10 +19,6 @@ class midiHostConfig : public expConfig
         virtual void updateUI();
         
         virtual void onButtonEvent(int row, int col, int event);
-        virtual void onMidiEvent(uint32_t msg);
-        #if WITH_MIDI_HOST
-            virtual void onMidiHostEvent(uint32_t msg);
-        #endif
         
         bool draw_needed;
         bool redraw_needed;

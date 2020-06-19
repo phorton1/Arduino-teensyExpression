@@ -272,20 +272,6 @@ void expSystem::rotaryEvent(int num, int value)
 }
 
 
-void expSystem::midiEvent(uint32_t msg)
-{
-    // display(0,"expSystem::midiEvent(%08x)",msg);
-    getCurConfig()->onMidiEvent(msg);
-}
-
-#if WITH_MIDI_HOST
-    void expSystem::midiHostEvent(uint32_t msg)
-    {
-        // display(0,"expSystem::midiHostEvent(%08x) to m_cur_config_num=%d",msg,m_cur_config_num);
-        getCurConfig()->onMidiHostEvent(msg);
-    }
-#endif
-
 
 void expSystem::buttonEvent(int row, int col, int event)
 {
@@ -322,12 +308,11 @@ void expSystem::critical_timer_handler()
     
     if (msg)
     {
-        #if WITH_MIDI_HOST  
-            midi1.write_packed(msg);
-        #endif
+		// write it to the midi host
+
+        midi1.write_packed(msg);
         
-        // initially gonna just handle the mssages from the
-        // FTP controller cable #1
+        // enqueue it for processing (display from device)
         
         enqueueProcess(msg);
     }
@@ -350,18 +335,8 @@ void expSystem::timer_handler()
     #endif
 
     // process incoming and outgoing midi events
-    // for now, all we do is add them to yet another queue
-    // for display.  Later, when we have figured it out,
-    // we will generate an event to the current configuration.
-    
-    // dequeueProcess is doing all the work, and UI at this time
     
     dequeueProcess();
-	
-	
-    // and we are not using the display queue
-    // if (msg)
-     //   enqueueDisplay(msg);
     
     theSystem.getCurConfig()->timer_handler();
 }
@@ -373,22 +348,7 @@ void expSystem::updateUI()
 	// current "process" function called from timer_handler()
 	// dequeueProcess();
 	
-	// send a pending message to the host
-
-	#if 0	// not sued
-		uint32_t msg = dequeueOutgoing();
-		while (msg)
-		{
-			display(0,"sending outgoing %08x",msg);
-			midi1.write_packed(msg);
-			msg = dequeueOutgoing();
-		}
-		delay(100);	
-	#endif
-	
     getCurConfig()->updateUI();
-    // we are not using the display queue at this time
-    // showDisplayQueue();
 }
 
 

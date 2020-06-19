@@ -17,71 +17,11 @@ uint8_t ftp_get_sensitivy_command_string_number = 0;
 const int  string_base_notes[6] = {0x40, 0x3b, 0x37, 0x32, 0x2d, 0x28};
 
 
-#if 0   // not used
-
-    
-    #define MAX_OUTGOING_QUEUE   1024
-    uint32_t outgoing_queue[MAX_OUTGOING_QUEUE];
-    int outgoing_head = 0;
-    int outgoing_tail = 0;
-    
-    
-    void enqueueOutgoing(uint32_t msg)
-    {
-        // __disable_irq();
-        outgoing_queue[outgoing_head++] = msg;
-        if (outgoing_head == MAX_OUTGOING_QUEUE)
-            outgoing_head = 0;
-        if (outgoing_head == outgoing_tail)
-            my_error("FTP.cpp outGoingQueue overflow at %d",outgoing_head);
-        // __enable_irq();
-    }
-    
-    
-    uint32_t dequeueOutgoing()
-    {
-        int msg = 0;
-        if (outgoing_tail != outgoing_head)
-        {
-            msg = outgoing_queue[outgoing_tail++];
-            if (outgoing_tail == MAX_OUTGOING_QUEUE)
-                outgoing_tail = 0;
-        }
-        return msg;
-    }
-    
-#endif  // not used
-    
-    
-    
-    
-    
-void sendFTPCommandAndValue(uint8_t command, uint8_t value)
-{
-    display(0,"sendFTPCommandAndValue(%02x,%02x)",command,value);
-    
-    msgUnion msg(
-        0x1B,
-        0xB7,
-        FTP_COMMAND_OR_REPLY,    // 0x1f
-        command);
-    
-    // enqueueOutgoing(msg.i);
-    midi1.write_packed(msg.i);
-
-    msg.b[2] = FTP_COMMAND_VALUE;       // 0x3f
-    msg.b[3] = value;
-    
-    // enqueueOutgoing(msg.i);
-    midi1.write_packed(msg.i);
-    // midi1.flush();
-}
 
 
 void sendGetFTPSensitivityCommand(uint8_t string)
 {
     display(0,"sendGetFTPSensitivityCommand(%d)",string);
-    ftp_get_sensitivy_command_string_number = string;
     sendFTPCommandAndValue(FTP_GET_SENSITIVITY, string);
 }
 
@@ -177,13 +117,9 @@ void deleteNote(uint8_t val, uint8_t string)
 
 
 
-bool it_failed = 0;
 
 void initFTPifNeeded(bool force)
 {
-    if (it_failed)
-        return;
-    
     if (force || ftp_battery_level == -1)
     {
         sendFTPCommandAndValue(FTP_BATTERY_LEVEL, 0);
@@ -195,20 +131,6 @@ void initFTPifNeeded(bool force)
         {
             sendGetFTPSensitivityCommand(i);
         }
-            #if 0
-                elapsedMillis timeout = 0;
-                while (ftp_sensitivity[i] == -1 && timeout < 5000)
-                {
-                    display(0," ... waiting for sensitivity(%d) time=%d",i,timeout);
-                    delay(1000);
-                }
-                if (ftp_sensitivity[i] == -1)
-                {
-                    my_error("timeout trying to get sensitivity for string %d",i);
-                    // it_failed = 1;
-                    return;
-                }
-            #endif
     }
 }
 

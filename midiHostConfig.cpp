@@ -172,24 +172,5 @@ void midiHostConfig::updateUI()	// draw
 }
 
 
-//---------------------------------------------------
-// Events
-//---------------------------------------------------
-
-// virtual
-void midiHostConfig::onMidiEvent(uint32_t msg)
-{
-	display(0,"onMidiEvent(%08x)",msg);
-}
-
-
-#if WITH_MIDI_HOST
-	// virtual
-	void midiHostConfig::onMidiHostEvent(uint32_t msg)
-	{
-		display(0,"onMidiHostEvent(%08x)",msg);
-	}
-#endif
-
 
 

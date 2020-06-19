@@ -1,5 +1,8 @@
 #include <myDebug.h>
 #include "myMidiHost.h"
+#include "midiQueue.h"
+
+#define HOST_CABLE_BIT  0x80
 
 
 USBHost myusb;
@@ -7,21 +10,18 @@ USBHost myusb;
 myMidiHostDevice midi1(myusb);
     
 
-extern void enqueueProcess(uint32_t msg);
-    // in expSystem.cpp
-
 #define SPOOF_FTP_BATTERY  0
+
 #if SPOOF_FTP_BATTERY
+    #define FTP_COMMAND_MASK 0x001Fb71b
+    #define FTP_VALUE_MASK   0x003Fb71b
     uint8_t ftp_command = 0;
     uint8_t battery_level = 0x4c;
     int direction = -1;
 #endif
 
 
-//  071fb79b
 
-#define FTP_COMMAND_MASK 0x001Fb71b
-#define FTP_VALUE_MASK   0x003Fb71b
 
 // made virtual in USBHost_t36.h
 void myMidiHostDevice::rx_data(const Transfer_t *transfer)
@@ -65,7 +65,7 @@ void myMidiHostDevice::rx_data(const Transfer_t *transfer)
             // as it is the one that has the active sense messages and the
             // are completely duplicated on cable 0
 
-            // if (msg & 0x10)
+            if (msg & 0x10)
             {
                 // prh - set the high order bit of the "cable" to indicate
                 // this came from the host ...
@@ -84,7 +84,7 @@ void myMidiHostDevice::rx_data(const Transfer_t *transfer)
 
 
 
-#if 0   // disabled
+#if 0   // possible code
 
     int cur_buffer = 0;
     
@@ -110,7 +110,6 @@ void myMidiHostDevice::rx_data(const Transfer_t *transfer)
             cur_buffer = 0;
         }
     }
-    
     
     
     void myMidiHostDevice::write_packed(uint32_t data)
@@ -197,62 +196,3 @@ void myMidiHostDevice::rx_data(const Transfer_t *transfer)
     }
 #endif  // disabled
 
-
-#if 0
-    // original
-
-    void myMidiHostDevice::my_write_packed(uint32_t data)
-    {
-        if (!txpipe) return;
-        uint32_t tx_max = tx_size / 4;
-        while (1)
-        {
-            uint32_t tx1 = tx1_count;
-            uint32_t tx2 = tx2_count;
-            
-            display(0,"my_write_packed tx1=%d  tx2=%d",tx1,tx2);
-            display_bytes(0,"bf1",(uint8_t *)tx_buffer1,tx_max*4);
-            display_bytes(0,"bf2",(uint8_t *)tx_buffer2,tx_max*4);
-            
-            
-            if (tx1 < tx_max && (tx2 == 0 || tx2 >= tx_max))
-            {
-                // use tx_buffer1
-                tx_buffer1[tx1++] = data;
-                tx1_count = tx1;
-                if (tx1 >= tx_max)
-                {
-                    queue_Data_Transfer(txpipe, tx_buffer1, tx_max*4, this);
-                }
-                else
-                {
-                    // TODO: start a timer, rather than sending the buffer
-                    // before it's full, to make best use of bandwidth
-                    tx1_count = tx_max;
-                    queue_Data_Transfer(txpipe, tx_buffer1, tx_max*4, this);
-                }
-                return;
-            }
-            
-            if (tx2 < tx_max)
-            {
-                // use tx_buffer2
-                tx_buffer2[tx2++] = data;
-                tx2_count = tx2;
-                if (tx2 >= tx_max)
-                {
-                    queue_Data_Transfer(txpipe, tx_buffer2, tx_max*4, this);
-                }
-                else
-                {
-                    // TODO: start a timer, rather than sending the buffer
-                    // before it's full, to make best use of bandwidth
-                    tx2_count = tx_max;
-                    queue_Data_Transfer(txpipe, tx_buffer2, tx_max*4, this);
-                }
-                return;
-            }
-        }
-    }
-    
-#endif  // original
