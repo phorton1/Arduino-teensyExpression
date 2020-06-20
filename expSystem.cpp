@@ -133,12 +133,7 @@ void expConfig::begin()
     // derived classes should call base class method FIRST
     // base class clears all button registrations.
 {
-    for (int row=0; row<NUM_BUTTON_ROWS; row++)
-        for (int col=0; col<NUM_BUTTON_COLS; col++)
-        {
-            theButtons.setButtonEventMask(row,col,0);
-            setLED(row,col,0);
-        }
+    theButtons.clear();
 }
 
 
@@ -250,8 +245,7 @@ void expSystem::activateConfig(int i)
     
     // add the system long click handler
     
-    int mask = theButtons.getButtonEventMask(0,4);
-    theButtons.setButtonEventMask(0,4, mask | BUTTON_EVENT_LONG_CLICK );
+    theButtons.getButton(0,4)->m_event_mask |= BUTTON_EVENT_LONG_CLICK;
 }    
 
 

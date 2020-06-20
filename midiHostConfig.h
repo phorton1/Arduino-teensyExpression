@@ -18,9 +18,7 @@ class midiHostConfig : public expConfig
         virtual void end();
         virtual void begin();
         virtual void updateUI();
-        virtual void timer_handler();
         virtual void onButtonEvent(int row, int col, int event);
-        void navPad(int num);
 
         // implementation
         
@@ -38,15 +36,7 @@ class midiHostConfig : public expConfig
         uint8_t dbg_command;	
         uint8_t dbg_param;
             
-        int sens_button_repeat;
-        unsigned sens_button_repeat_time;
-        
-        int my_led_color[25];
-        void mySetLED(int i, int color);
-        void myRestoreLED(int i);
         void myIncDec(int inc, uint8_t *val);
-
-        
 };
 
 

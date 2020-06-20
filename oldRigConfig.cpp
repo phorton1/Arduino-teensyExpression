@@ -7,7 +7,7 @@
 #include "buttons.h"
 
 
-#define SHOW_SENT_MIDI  0
+#define SHOW_SENT_MIDI  1
 
 
 
@@ -235,14 +235,12 @@ bool full_redraw = -0;
 
 oldRigConfig::oldRigConfig()
 {
-    for (int col=0; col<NUM_BUTTON_COLS; col++)
-    {
-        m_effect_toggle[col] = 0;
-        m_loop_touched[col] = 0;
-    }
     m_cur_patch_num = -1;    // 0..14
-    m_loop_last_touched = -1;
 }
+    
+    
+#define BUTTON_TYPE_LOOPER      (BUTTON_EVENT_PRESS | BUTTON_MASK_TOUCH | BUTTON_MASK_RADIO | BUTTON_GROUP(7) )
+#define BUTTON_TYPE_LOOP_CLEAR  (BUTTON_EVENT_CLICK | BUTTON_EVENT_LONG_CLICK | BUTTON_MASK_TOUCH | BUTTON_MASK_RADIO | BUTTON_GROUP(7) )
     
 
 // virtual
@@ -251,32 +249,19 @@ void oldRigConfig::begin()
     expConfig::begin();
     full_redraw = 1;
     last_displayed_patch_num = -1;
-
-    for (int col=0; col<NUM_BUTTON_COLS; col++)
-    {
-        theButtons.setButtonEventMask(0,col,BUTTON_EVENT_CLICK);
-        theButtons.setButtonEventMask(1,col,BUTTON_EVENT_CLICK);
-        theButtons.setButtonEventMask(2,col,BUTTON_EVENT_CLICK);
-        theButtons.setButtonEventMask(3,col,
-            col == 4 ?
-             (BUTTON_EVENT_CLICK | BUTTON_EVENT_LONG_CLICK) :
-             BUTTON_EVENT_CLICK);
-        
-        theButtons.setButtonEventMask(4,col,  
-            col == 4 ?
-             (BUTTON_EVENT_CLICK | BUTTON_EVENT_LONG_CLICK) : 
-             (BUTTON_EVENT_PRESS | BUTTON_EVENT_RELEASE) );
-        
-        setLED(3,col,m_effect_toggle[col] ? LED_GREEN : 0);
-        setLED(4,col,m_loop_touched[col] ? m_loop_last_touched==col ? LED_RED : LED_YELLOW : 0);
-    }
-
+    
+    for (int i=0; i<15; i++)
+    	theButtons.setButtonType(i,	BUTTON_TYPE_RADIO(1), 0);
+    for (int i=15; i<19; i++)
+        theButtons.setButtonType(i,	BUTTON_TYPE_TOGGLE | BUTTON_GROUP(2), 0, LED_GREEN);
+    theButtons.setButtonType(19,    BUTTON_TYPE_TOGGLE | BUTTON_GROUP(2) | BUTTON_EVENT_LONG_CLICK, 0, LED_GREEN);
+    
+    for (int i=20; i<24; i++)
+        theButtons.setButtonType(i,BUTTON_TYPE_LOOPER, 0, LED_RED, LED_YELLOW);
+    theButtons.setButtonType(24,BUTTON_TYPE_LOOP_CLEAR, 0, LED_RED, LED_YELLOW);
+    
     if (m_cur_patch_num >= 0)
-    {
-        int row = m_cur_patch_num / NUM_BUTTON_COLS;
-        int col = m_cur_patch_num % NUM_BUTTON_COLS;
-        setLED(row,col,LED_BLUE);
-    }
+        theButtons.select(m_cur_patch_num,1);
 
     showLEDs();
 }
@@ -289,30 +274,23 @@ void oldRigConfig::onButtonEvent(int row, int col, int event)
 {
     if (row < 3)
     {
-        int new_patch_num = row * NUM_BUTTON_COLS + col;
-        
-        usbMIDI.sendProgramChange(synth_patch[new_patch_num].prog_num, SYNTH_PROGRAM_CHANNEL);
+        m_cur_patch_num = row * NUM_BUTTON_COLS + col;
+        usbMIDI.sendProgramChange(synth_patch[m_cur_patch_num].prog_num, SYNTH_PROGRAM_CHANNEL);
         
         #if SHOW_SENT_MIDI
             display(0,"sent MIDI PC(%d,%d)",
                 SYNTH_PROGRAM_CHANNEL,
-                synth_patch[new_patch_num].prog_num);
+                synth_patch[m_cur_patch_num].prog_num);
         #endif
-        
-        int r = m_cur_patch_num / NUM_BUTTON_COLS;
-        int c = m_cur_patch_num % NUM_BUTTON_COLS;
-        setLED(r,c,0);
-        setLED(row,col,LED_BLUE);
-        m_cur_patch_num = new_patch_num;
+
     }
     else if (row == 3)
     {
         if (event == BUTTON_EVENT_LONG_CLICK)           // turn off all effects on long click
         {
+            theButtons.clearRadioGroup(2);
             for (int c=0; c<NUM_BUTTON_COLS; c++)
             {
-                m_effect_toggle[c] = 0;
-                
                 usbMIDI.sendControlChange(
                     guitar_effect_ccs[c],
                     0x00,
@@ -323,32 +301,30 @@ void oldRigConfig::onButtonEvent(int row, int col, int event)
                         guitar_effect_ccs[c],
                         0x00);
                 #endif
-        
-                setLED(row,c,0);
             }
         }
         else
         {
-            m_effect_toggle[col] = !m_effect_toggle[col];
+            int value = theButtons.getButton(row,col)->isSelected() ? 0x7f : 0;
             
             usbMIDI.sendControlChange(
                 guitar_effect_ccs[col],
-                m_effect_toggle[col] ? 0x7f : 0x00,
+                value,
                 GUITAR_EFFECTS_CHANNEL);
             #if SHOW_SENT_MIDI
                 display(0,"sent MIDI CC(%d,%d,%d)",
                     GUITAR_EFFECTS_CHANNEL,
                     guitar_effect_ccs[col],
-                    m_effect_toggle[col] ? 0x7f : 0x00);
+                    value);
             #endif
-    
-            setLED(row,col,m_effect_toggle[col] ? LED_GREEN : 0);
         }
     }
-    else if (row == 4)
+    else // (row == 4)
     {
         if (event == BUTTON_EVENT_LONG_CLICK)
         {
+            theButtons.clearRadioGroup(7);
+            
             usbMIDI.sendControlChange(
                 LOOP_CONTROL_CLEAR_ALL,
                 0x7f,
@@ -370,13 +346,6 @@ void oldRigConfig::onButtonEvent(int row, int col, int event)
                     LOOP_CONTROL_CLEAR_ALL,
                     0x00);
             #endif
-            
-            for (int c=0; c<NUM_BUTTON_COLS; c++)
-            {
-                setLED(4,c,0);
-                m_loop_touched[c] = 0;
-                m_loop_last_touched = -1;
-            }
         }
         else if (event == BUTTON_EVENT_PRESS)
         {
@@ -393,9 +362,6 @@ void oldRigConfig::onButtonEvent(int row, int col, int event)
         }
         else // RELEASE or CLICK
         {
-            // special handling for the right button
-            // "CLICK" event to send the press ...
-            
             if (event == BUTTON_EVENT_CLICK)
             {
                 usbMIDI.sendControlChange(
@@ -420,15 +386,8 @@ void oldRigConfig::onButtonEvent(int row, int col, int event)
                     loop_ccs[col],
                     0);
             #endif
-
-            if (m_loop_last_touched != -1)
-                setLED(row,m_loop_last_touched,LED_YELLOW);
-            setLED(row,col,LED_RED);
-            m_loop_touched[col] = 1;
-            m_loop_last_touched = col;
         }
     }
-    showLEDs();
 }
 
 

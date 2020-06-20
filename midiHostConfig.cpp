@@ -36,10 +36,6 @@ midiHostConfig::midiHostConfig()
 	dbg_patch_num = 0;
 	dbg_command = 0x04;		// FTP_COMMAND_EDITOR_MODE
 	dbg_param = 0x00;
-	sens_button_repeat = -1;
-	sens_button_repeat_time = 0;
-	memset(my_led_color,0,sizeof(my_led_color));
-
 	init();
 }
 
@@ -56,18 +52,6 @@ void midiHostConfig::init()
 }
 
 
-void midiHostConfig::mySetLED(int i, int color)
-{
-	my_led_color[i] = color;
-	setLED(i,color);
-}
-void midiHostConfig::myRestoreLED(int i)
-{
-	setLED(i,my_led_color[i]);
-}
-
-
-
 
 // virtual
 void midiHostConfig::begin()
@@ -75,36 +59,21 @@ void midiHostConfig::begin()
 	init();
 	// initFTPifNeeded();
 	expConfig::begin();	
-	
-	for (int i=0; i<25; i++)
-		theButtons.setButtonEventMask(i, BUTTON_EVENT_CLICK);
-	
-	theButtons.setButtonEventMask(PAD1_UP,   	BUTTON_EVENT_PRESS | BUTTON_EVENT_RELEASE);
-	theButtons.setButtonEventMask(PAD1_DOWN,   	BUTTON_EVENT_PRESS | BUTTON_EVENT_RELEASE);
-	theButtons.setButtonEventMask(PAD1_LEFT,   	BUTTON_EVENT_PRESS | BUTTON_EVENT_RELEASE);
-	theButtons.setButtonEventMask(PAD1_RIGHT,   BUTTON_EVENT_PRESS | BUTTON_EVENT_RELEASE);
-	theButtons.setButtonEventMask(PAD1_SELECT,  BUTTON_EVENT_CLICK);
 
-	mySetLED(PAD1_UP,      LED_BLUE);
-	mySetLED(PAD1_DOWN,    LED_BLUE);
-	mySetLED(PAD1_LEFT,    LED_BLUE);
-	mySetLED(PAD1_RIGHT,   LED_BLUE);
-	mySetLED(PAD1_SELECT,  LED_GREEN);
+	theButtons.setButtonType(PAD1_UP,   	BUTTON_EVENT_PRESS | BUTTON_MASK_REPEAT );
+	theButtons.setButtonType(PAD1_DOWN,		BUTTON_EVENT_PRESS | BUTTON_MASK_REPEAT );
+	theButtons.setButtonType(PAD1_LEFT,		BUTTON_EVENT_PRESS | BUTTON_MASK_REPEAT );
+	theButtons.setButtonType(PAD1_RIGHT,	BUTTON_EVENT_PRESS | BUTTON_MASK_REPEAT );
+	theButtons.setButtonType(PAD1_SELECT,	BUTTON_EVENT_CLICK,  LED_GREEN);
 
-	theButtons.setButtonEventMask(PAD2_UP,   	BUTTON_EVENT_PRESS | BUTTON_EVENT_RELEASE);
-	theButtons.setButtonEventMask(PAD2_DOWN,   	BUTTON_EVENT_PRESS | BUTTON_EVENT_RELEASE);
-	theButtons.setButtonEventMask(PAD2_LEFT,   	BUTTON_EVENT_PRESS | BUTTON_EVENT_RELEASE);
-	theButtons.setButtonEventMask(PAD2_RIGHT,   BUTTON_EVENT_PRESS | BUTTON_EVENT_RELEASE);
-	theButtons.setButtonEventMask(PAD2_SELECT,  BUTTON_EVENT_CLICK);
+	theButtons.setButtonType(PAD2_UP,   	BUTTON_EVENT_PRESS | BUTTON_MASK_REPEAT );
+	theButtons.setButtonType(PAD2_DOWN,		BUTTON_EVENT_PRESS | BUTTON_MASK_REPEAT );
+	theButtons.setButtonType(PAD2_LEFT,		BUTTON_EVENT_PRESS | BUTTON_MASK_REPEAT );
+	theButtons.setButtonType(PAD2_RIGHT,	BUTTON_EVENT_PRESS | BUTTON_MASK_REPEAT );
+	theButtons.setButtonType(PAD2_SELECT,	BUTTON_EVENT_CLICK,  LED_GREEN);
 	
-	mySetLED(PAD2_UP,      LED_BLUE);
-	mySetLED(PAD2_DOWN,    LED_BLUE);
-	mySetLED(PAD2_LEFT,    LED_BLUE);
-	mySetLED(PAD2_RIGHT,   LED_BLUE);
-	mySetLED(PAD2_SELECT,  LED_GREEN);
-	
-	mySetLED(24,LED_PURPLE);
-	mySetLED(20,LED_GREEN);
+	theButtons.setButtonType(20,			BUTTON_TYPE_CLICK, 	LED_GREEN);
+	theButtons.setButtonType(24,			BUTTON_TYPE_CLICK,	LED_PURPLE);
 
 	showLEDs();
 }
@@ -144,67 +113,6 @@ void midiHostConfig::myIncDec(int inc, uint8_t *val)
 void midiHostConfig::onButtonEvent(int row, int col, int event)
 {
 	int num = row * NUM_BUTTON_COLS + col;
-	if (event == BUTTON_EVENT_PRESS)
-	{
-		sens_button_repeat = num;
-		sens_button_repeat_time = millis();
-		navPad(num);
-	}
-	else if (event == BUTTON_EVENT_RELEASE)
-	{
-		sens_button_repeat_time = 0;
-		myRestoreLED(num);
-	}
-	else
-	{
-		if (num == PAD1_SELECT)
-		{
-			display(0,"getting patch(%d,%d)",dbg_bank_num,dbg_patch_num);
-			uint8_t  ftpRequestPatch[]	= { 0xF0, 0x00, 0x01, 0x6E, 0x01, FTP_CODE_READ_PATCH, dbg_bank_num, dbg_patch_num, 0xf7 };
-			midi1.sendSysEx(sizeof(ftpRequestPatch),ftpRequestPatch,true); 	
-			myRestoreLED(num);
-		}
-		else if (num == PAD2_SELECT)
-		{
-			display(0,"sending command(0x%02x=%s)  param(%02x)",dbg_command,getFTPCommandName(dbg_command),dbg_param);
-			sendFTPCommandAndValue(dbg_command,dbg_param);
-			myRestoreLED(num);
-		}
-		else if (num == 24)
-		{
-			display(0,"trying to cold set dynamics sensitivity",0);
-			sendFTPCommandAndValue(FTP_CMD_SPLIT_NUMBER,0x01);
-			sendFTPCommandAndValue(FTP_CMD_DYNAMICS_SENSITIVITY,0x0A);
-			myRestoreLED(num);
-		}
-		else if (num == 20)
-		{
-			if (showTuningMessages)
-			{
-				setLED(num,LED_RED);
-				showTuningMessages = 0;
-				showNoteInfoMessages = 0;
-				showVolumeLevel = 0;
-				showBatteryLevel = 0;
-				showPerformanceCCs = 0;
-			}
-			else
-			{
-				setLED(num,LED_GREEN);
-				showTuningMessages = 1;
-				showNoteInfoMessages = 1;
-				showVolumeLevel = 1;
-				showBatteryLevel = 1;
-				showPerformanceCCs = 1;
-			}
-		}
-	}
-	showLEDs();
-}
-	
-	
-void midiHostConfig::navPad(int num)
-{
 	if (num == PAD1_UP || num == PAD1_DOWN)
 	{
 		myIncDec(num==PAD1_UP ? 1 : -1, &dbg_patch_num);
@@ -218,7 +126,7 @@ void midiHostConfig::navPad(int num)
 	else if (num == PAD2_UP || num == PAD2_DOWN)
 	{
 		myIncDec(num==PAD2_UP ? 1 : -1, &dbg_command);
-		display(0,"sending dbg command to 0x%02x=%s",dbg_command,getFTPCommandName(dbg_command));
+		display(0,"setting dbg command to 0x%02x=%s",dbg_command,getFTPCommandName(dbg_command));
 		
 	}
 	else if (num == PAD2_LEFT || num == PAD2_RIGHT)
@@ -226,36 +134,45 @@ void midiHostConfig::navPad(int num)
 		myIncDec(num==PAD2_RIGHT ? 1 : -1, &dbg_param);
 		display(0,"setting dbg_param to %02x",dbg_param);
 	}
+	else if (num == PAD1_SELECT)
+	{
+		display(0,"getting patch(%d,%d)",dbg_bank_num,dbg_patch_num);
+		uint8_t  ftpRequestPatch[]	= { 0xF0, 0x00, 0x01, 0x6E, 0x01, FTP_CODE_READ_PATCH, dbg_bank_num, dbg_patch_num, 0xf7 };
+		midi1.sendSysEx(sizeof(ftpRequestPatch),ftpRequestPatch,true); 	
+	}
+	else if (num == PAD2_SELECT)
+	{
+		display(0,"sending command(0x%02x=%s)  param(%02x)",dbg_command,getFTPCommandName(dbg_command),dbg_param);
+		sendFTPCommandAndValue(dbg_command,dbg_param);
+	}
+	else if (num == 24)
+	{
+		display(0,"trying to cold set dynamics sensitivity",0);
+		sendFTPCommandAndValue(FTP_CMD_SPLIT_NUMBER,0x01);
+		sendFTPCommandAndValue(FTP_CMD_DYNAMICS_SENSITIVITY,0x0A);
+	}
+	else if (num == 20)
+	{
+		if (showTuningMessages)
+		{
+			showTuningMessages = 0;
+			showNoteInfoMessages = 0;
+			showVolumeLevel = 0;
+			showBatteryLevel = 0;
+			showPerformanceCCs = 0;
+		}
+		else
+		{
+			showTuningMessages = 1;
+			showNoteInfoMessages = 1;
+			showVolumeLevel = 1;
+			showBatteryLevel = 1;
+			showPerformanceCCs = 1;
+		}
+	}
 }
-
-
-// virtual
-void midiHostConfig::timer_handler()
-{
-    static elapsedMillis timer2 = 0;
-    
-    if (sens_button_repeat_time)
-    {
-        int dif = millis() - sens_button_repeat_time;
-        if (dif > 350)
-        {
-            // starts repeating after 350ms
-            // starts at 10 per second and accelerates to 200 per second over one seconds
-
-            dif -= 350;
-            if (dif > 1500) dif = 1500;
-            unsigned interval = 1500 - dif;
-            interval = 5 + (interval / 8);
-        
-            if (timer2 > interval)
-            {
-				navPad(sens_button_repeat);
-                timer2 = 0;
-            }
-        }
-    }    
-}	
-
+	
+	
 	
 //------------------------------------------------------------
 // updateUI (draw)

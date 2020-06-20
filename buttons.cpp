@@ -10,10 +10,6 @@
 #define LONG_PRESS_TIME    800
 #define DOUBLE_CLICK_TIME  360
 
-#define DISTINCT_DOUBLE_CLICK 1
-    // if defined, we delay the SINGLE CLICK until we are sure
-    // we are out of the zone
-
 #define DO_DEBOUNCE        1
     // does not seem to be necessary.
     // in timer version, a period of time is implicit, so this should be turned off
@@ -24,15 +20,45 @@
     #define DEBOUNCE_MILLIS    50
 #endif
 
-#define BUTTON_STATE_PRESSED  0x0001
-#define BUTTON_STATE_REPORTED 0x0002
-
 
 
 buttonArray theButtons;
 int row_pins[NUM_BUTTON_COLS] = {PIN_BUTTON_OUT0,PIN_BUTTON_OUT1,PIN_BUTTON_OUT2,PIN_BUTTON_OUT3,PIN_BUTTON_OUT4};
 int col_pins[NUM_BUTTON_ROWS] = {PIN_BUTTON_IN0,PIN_BUTTON_IN1,PIN_BUTTON_IN2,PIN_BUTTON_IN3,PIN_BUTTON_IN4};
 
+
+//--------------------------------------
+// arrayedButton
+//--------------------------------------
+
+
+arrayedButton::arrayedButton()
+{
+    // see notes below why event state is not
+    // cleared during initDefaults()
+    
+    m_event_state = 0;
+    initDefaults();
+}
+
+
+void arrayedButton::initDefaults()
+{
+    m_event_mask = 0;
+    m_press_time = 0;
+    m_debounce_time = 0;
+    m_repeat_time = 0;
+    m_default_color = LED_BLUE;
+    m_selected_color = LED_CYAN;
+    m_touch_color = LED_YELLOW;
+}
+
+
+
+
+//--------------------------------------
+// buttonArray
+//--------------------------------------
 
 
 buttonArray::buttonArray()
@@ -57,6 +83,26 @@ void buttonArray::init()
 }
     
 
+void buttonArray::clear()
+    // we have to be careful about folks calling back into
+    // us to do things from button events.  Like starting
+    // a new window and resetting all the masks, in the middle
+    // of an event.
+{
+    for (int row=0; row<NUM_BUTTON_ROWS; row++)
+    {
+        for (int col=0; col<NUM_BUTTON_COLS; col++)
+        {
+            m_buttons[row][col].initDefaults();
+            m_buttons[row][col].m_event_state |= BUTTON_STATE_HANDLED;
+                // so we set the "handled" bit to prevent task()
+                // from redisplaying the button that might be prssed
+                // at this time.
+            setLED(row,col,0);
+        }
+    }
+}    
+
 
 
 // static
@@ -65,10 +111,91 @@ const char *buttonArray::buttonEventName(int event)
     if (event == BUTTON_EVENT_PRESS          ) return "PRESS";
     if (event == BUTTON_EVENT_RELEASE        ) return "RELEASE";
     if (event == BUTTON_EVENT_CLICK          ) return "CLICK";
-    if (event == BUTTON_EVENT_DOUBLE_CLICK   ) return "DOUBLE_CLICK";
     if (event == BUTTON_EVENT_LONG_CLICK     ) return "LONG_CLICK";
     return "UNKNOWN BUTTON EVENT";
 }
+
+
+
+void buttonArray::select(int num, int value)
+    // -1 == pressed    (this method is NOT called if already handled)
+    //  0 == deselect
+    //  1 == select
+{
+    arrayedButton *button = &m_buttons[num / NUM_BUTTON_COLS][num % NUM_BUTTON_COLS];
+    int mask = button->m_event_mask;
+    int state = button->m_event_state;
+
+    display(dbg_btn,"select(%d,%d) mask=%04x state=%04x",num,value,mask,state);
+    
+    // fake the previous selected bit if from a press
+    // and it's a toggle button
+    
+    bool selected = value;
+    if (value==-1 && (mask & BUTTON_MASK_TOGGLE))
+        selected = !(state & BUTTON_STATE_SELECTED);
+    
+    // determine the default, unselected, color
+    
+    int color = button->m_default_color;
+    if (mask & BUTTON_MASK_TOUCH && state & BUTTON_STATE_TOUCHED)
+        color = button->m_touch_color;
+
+    if ((state & BUTTON_STATE_SELECTED) != selected)
+    {
+        if (selected)
+        {
+            if (mask & BUTTON_MASK_TOGGLE)
+            {
+                button->m_event_state |= BUTTON_STATE_SELECTED | BUTTON_STATE_TOUCHED;
+                color = button->m_selected_color;
+            }
+            else if (mask & BUTTON_MASK_RADIO)
+            {
+                int group = BUTTON_GROUP_OF(button->m_event_mask);
+                
+                // clear any other selected button in the group
+                
+                for (int r=0; r<NUM_BUTTON_ROWS; r++)
+                {
+                    for (int c=0; c<NUM_BUTTON_COLS; c++)
+                    {
+                        arrayedButton *b = &m_buttons[r][c];
+                        if (b != button &&
+                            BUTTON_GROUP_OF(b->m_event_mask) == group &&                    
+                            b->isSelected())
+                        {
+                            b->m_event_state &= ~BUTTON_STATE_SELECTED;
+                            int c2 = b->m_default_color;
+                            if (b->m_event_mask & BUTTON_MASK_TOUCH &&
+                                b->m_event_state & BUTTON_STATE_TOUCHED)
+                                c2 = b->m_touch_color;
+                            setLED(r,c,c2);
+                        }
+                    }
+                }
+                
+                button->m_event_state |= BUTTON_STATE_SELECTED | BUTTON_STATE_TOUCHED;
+                color = button->m_selected_color;
+            }
+        }
+        else
+        {
+            button->m_event_state &= ~BUTTON_STATE_SELECTED;
+        }
+    }
+
+    // this may be called by the client from a button event handler.
+    // if so, and it effects the current button, then we don't want
+    // the rest of the task() code for that button to run ...
+    
+    if (value != -1)
+        button->m_event_state |= BUTTON_STATE_HANDLED;
+    
+    setLED(num,color);
+}
+
+
 
 
 
@@ -81,96 +208,161 @@ void buttonArray::task()
         
         for (int col=0; col<NUM_BUTTON_COLS; col++)
         {
+            // only poll registered buttons
+        
             arrayedButton *pButton = &m_buttons[row][col];
-            
-            #if DO_DEBOUNCE
-                if (time > pButton->m_debounce_time)
-            #endif
-            {
-                bool is_pressed = digitalRead(col_pins[col]);
-                
-                // if state changed, save new bit to data
-                // and process the button
-                
-                if ((pButton->m_event_state & BUTTON_STATE_PRESSED) != is_pressed)
-                {
-                    display(dbg_btn,"BUTTON(%d,%d) %s",row,col,is_pressed?"DOWN":"UP");
-                    
-                    // set or clear the state bit
-                    
-                    if (is_pressed)
-                        pButton->m_event_state |= BUTTON_STATE_PRESSED;
-                    else
-                        pButton->m_event_state &= ~BUTTON_STATE_PRESSED;
-                    
-                    #if DO_DEBOUNCE
-                        pButton->m_debounce_time = time + DEBOUNCE_MILLIS;
-                    #endif
+            int mask = pButton->m_event_mask;
+            if (!mask) continue;
 
-                    if (is_pressed)     // button pressed
+            #if DO_DEBOUNCE
+                if (time <= pButton->m_debounce_time)
+                    continue;
+            #endif
+
+            // if state changed, process the button
+
+            int num = row * NUM_BUTTON_COLS + col;
+            bool is_pressed = digitalRead(col_pins[col]);
+            bool was_pressed = pButton->m_event_state & BUTTON_STATE_PRESSED;
+            if (is_pressed != was_pressed)
+            {
+                display(dbg_btn,"BUTTON(%d,%d) %-6s   mask=%04x  state=%04x",
+                    row,col,is_pressed?"DOWN":"UP",mask,pButton->m_event_state);
+                
+                #if DO_DEBOUNCE
+                    pButton->m_debounce_time = time + DEBOUNCE_MILLIS;
+                #endif
+
+                //---------------------------
+                // pressed
+                //---------------------------
+                
+                if (is_pressed)     // button pressed
+                {
+                    // we always clear the handled bit to start
+                    // things off on any button press ...
+                    
+                    pButton->m_event_state &= ~BUTTON_STATE_HANDLED;
+                    pButton->m_event_state |= BUTTON_STATE_PRESSED | BUTTON_STATE_TOUCHED;
+
+                    if (mask & BUTTON_EVENT_PRESS)
                     {
-                        if (pButton->m_event_mask)
+                        select(num,-1);    
+                        showLEDs();
+                        display(dbg_btn,"BUTTON_EVENT_PRESS(%d,%d)",row,col);
+                        theSystem.buttonEvent(row, col, BUTTON_EVENT_PRESS);
+                    }
+                    else
+                    {
+                        setLED(row,col,LED_WHITE);
+                        showLEDs();
+                    }
+                    
+                    pButton->m_press_time = time;
+                }
+                
+                //---------------------------
+                // released
+                //---------------------------
+                // only do something if not handled
+                
+                else    // button released
+                {
+                    pButton->m_event_state &= ~BUTTON_STATE_PRESSED;
+                    if (!(mask & BUTTON_EVENT_PRESS) &&
+                        !(pButton->m_event_state & BUTTON_STATE_HANDLED))
+                    {
+                        select(num,-1);
+                        showLEDs();
+                        if (mask & BUTTON_EVENT_RELEASE)
                         {
-                            setLED(row,col,LED_WHITE);
-                            showLEDs();
+                            display(dbg_btn,"BUTTON_EVENT_RELEASE(%d,%d)",row,col);
+                            theSystem.buttonEvent(row, col, BUTTON_EVENT_RELEASE);
                         }
-                        
-                        if (pButton->m_event_mask & BUTTON_EVENT_PRESS)
-                           theSystem.buttonEvent(row, col, BUTTON_EVENT_PRESS);
-                        if ((pButton->m_event_mask & BUTTON_EVENT_DOUBLE_CLICK) &&
-                            pButton->m_press_time &&
-                            (time < pButton->m_press_time + DOUBLE_CLICK_TIME))
+                        if (mask & BUTTON_EVENT_CLICK)
                         {
-                            pButton->m_press_time = 0;
-                            theSystem.buttonEvent(row, col, BUTTON_EVENT_DOUBLE_CLICK);
-                        }
-                        else
-                        {
-                            pButton->m_press_time = time;
+                            display(dbg_btn,"BUTTON_EVENT_CLICK(%d,%d)",row,col);
+                            theSystem.buttonEvent(row, col, BUTTON_EVENT_CLICK);
                         }
                     }
-                    else    // button released
-                    {
-                        if (pButton->m_event_mask & BUTTON_EVENT_RELEASE)
-                            theSystem.buttonEvent(row, col, BUTTON_EVENT_RELEASE);
-                            
-                        #if DISTINCT_DOUBLE_CLICK
-                            if (!(pButton->m_event_mask & BUTTON_EVENT_DOUBLE_CLICK))
-                                // don't do below code for button that have registered
-                                // double click ... 
-                        #endif
-                        if ((pButton->m_event_mask & BUTTON_EVENT_CLICK) &&
-                            pButton->m_press_time)
-                            theSystem.buttonEvent(row, col, BUTTON_EVENT_CLICK);
-                    }   
-                }
-                else if (is_pressed &&
-                         (pButton->m_event_mask & BUTTON_EVENT_LONG_CLICK) &&
-                         pButton->m_press_time &&
-                        (time > pButton->m_press_time + LONG_PRESS_TIME))
+                }   
+            }
+            
+            //--------------------------------
+            // state did not change
+            //--------------------------------
+            // 
+            else if (is_pressed &&
+                   !(pButton->m_event_state & BUTTON_STATE_HANDLED))
+            {
+                // repeat generates PRESS events
+                
+                int dif = millis() - pButton->m_press_time;
+                if ((mask & BUTTON_MASK_REPEAT) && dif > 350)
                 {
-                    pButton->m_press_time = 0;
+                    // starts repeating after 350ms
+                    // starts at 10 per second and accelerates to 200 per second over one seconds
+        
+                    dif -= 350;
+                    if (dif > 1500) dif = 1500;
+                    unsigned interval = 1500 - dif;
+                    interval = 5 + (interval / 8);
+                
+                    if (pButton->m_repeat_time > interval)
+                    {
+                        display(dbg_btn,"repeat BUTTON_EVENT_PRESS(%d,%d)",row,col);
+                        theSystem.buttonEvent(row, col, BUTTON_EVENT_PRESS);
+                        pButton->m_repeat_time = 0;
+                    }
+                }
+                    
+                // which is generally exclusive of long clicks
+    
+                else if ((mask & BUTTON_EVENT_LONG_CLICK) && dif > LONG_PRESS_TIME)
+                {
+                    display(dbg_btn,"BUTTON_EVENT_LONG_CLICK(%d,%d)",row,col);
+                    pButton->m_event_state |= BUTTON_STATE_HANDLED;
                     theSystem.buttonEvent(row, col, BUTTON_EVENT_LONG_CLICK);
                 }
-            #if DISTINCT_DOUBLE_CLICK
-                else if (
-                    (pButton->m_event_mask & BUTTON_EVENT_DOUBLE_CLICK) &&
-                    (pButton->m_event_mask & BUTTON_EVENT_CLICK) &&
-                    !is_pressed &&
-                    pButton->m_press_time &&
-                    (time > pButton->m_press_time + DOUBLE_CLICK_TIME))
-                {
-                    pButton->m_press_time = 0;
-                    theSystem.buttonEvent(row, col, BUTTON_EVENT_CLICK);
-                }
-            #endif
-            }
+                
+            }   // pressed and not handled yet
         }   // for each col
         
-        //delay(200);
         digitalWrite(row_pins[row],0);
         
     }   // for each row
+}
+
+
+
+void  buttonArray::setButtonType(int num, int mask, int default_color, int selected_color, int touch_color)
+{
+    arrayedButton *pb = &m_buttons[num / NUM_BUTTON_COLS][num % NUM_BUTTON_COLS];
+    pb->m_event_mask = mask;
+    pb->m_default_color = default_color == -1 ? LED_BLUE : default_color;
+    pb->m_selected_color = selected_color == -1 ? LED_CYAN : selected_color;
+    pb->m_touch_color = touch_color == -1 ? LED_YELLOW : touch_color;
+   	setLED(num,pb->m_default_color);
+}
+
+
+void buttonArray::clearRadioGroup(int group)
+{
+    display(0,"clearRadioGroup(%d)",group);
+    for (int row=0; row<NUM_BUTTON_ROWS; row++)
+    {
+        for (int col=0; col<NUM_BUTTON_COLS; col++)
+        {
+            arrayedButton *button = &m_buttons[row][col];
+            if (group == BUTTON_GROUP_OF(button->m_event_mask))
+            {
+                button->m_event_state &= ~BUTTON_STATE_TOUCHED;
+                    // really clear em ...
+                select(row*NUM_BUTTON_COLS+col,0);
+            }
+        }
+    }
+    showLEDs();
 }
 
 

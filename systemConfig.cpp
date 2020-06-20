@@ -18,6 +18,7 @@
 #define BUTTON_EXIT_DONE        4
 
 #define ROW_CONFIGS             1
+#define FIRST_CONFIG_BUTTON     (ROW_CONFIGS * NUM_BUTTON_COLS)
 #define MAX_CONFIGS             NUM_BUTTON_COLS    // upto 5 configs
 
 
@@ -54,12 +55,8 @@ configOption *cur_menu = 0;
 configOption *cur_option = 0;
 configOption *display_menu = 0;
 configOption *display_option = 0;
-
-bool cancel_enabled = false;
 bool in_terminal_mode = false;
 
-int button_repeat = -1;
-unsigned button_repeat_time = 0;
 
 
 void reboot(int num)
@@ -101,12 +98,16 @@ void systemConfig::notifyTerminalModeEnd()
     in_terminal_mode = 0;
     display_menu = 0;
     display_option = 0;
+    // reset up and down keys so they don't repeat
+	theButtons.setButtonType(BUTTON_MOVE_UP,   	BUTTON_EVENT_PRESS);
+	theButtons.setButtonType(BUTTON_MOVE_DOWN,	BUTTON_EVENT_PRESS);
 }
 
 
 // virtual
 void systemConfig::begin()
 {
+    display(0,"systemConfig::begin()",0);
     expConfig::begin();
 
     // setup option terminal nodes
@@ -121,74 +122,39 @@ void systemConfig::begin()
     cur_option->selected = 1;
     display_menu = 0;
     display_option = 0;
-    
-    cancel_enabled = false;
     in_terminal_mode = false;
-    button_repeat = -1;
-    button_repeat_time = 0;
 
     // setup buttons and leds
     
-    theButtons.setButtonEventMask(BUTTON_BRIGHTNESS_DOWN, BUTTON_EVENT_PRESS | BUTTON_EVENT_CLICK);
-    theButtons.setButtonEventMask(BUTTON_BRIGHTNESS_UP,   BUTTON_EVENT_PRESS | BUTTON_EVENT_CLICK);
-    theButtons.setButtonEventMask(BUTTON_EXIT_DONE,       BUTTON_EVENT_CLICK | BUTTON_EVENT_LONG_CLICK);
-    theButtons.setButtonEventMask(BUTTON_EXIT_CANCEL,     BUTTON_EVENT_CLICK | BUTTON_EVENT_LONG_CLICK);
-    
-    setLED(BUTTON_BRIGHTNESS_DOWN, LED_RED);        
-    setLED(BUTTON_BRIGHTNESS_UP,   LED_GREEN);      
-    setLED(BUTTON_EXIT_DONE,       LED_PURPLE);     
-    setLED(BUTTON_EXIT_CANCEL,     LED_ORANGE);     
+    theButtons.setButtonType(BUTTON_BRIGHTNESS_DOWN, BUTTON_EVENT_PRESS | BUTTON_MASK_REPEAT, LED_RED);
+    theButtons.setButtonType(BUTTON_BRIGHTNESS_UP,   BUTTON_EVENT_PRESS | BUTTON_MASK_REPEAT, LED_GREEN);
+    theButtons.setButtonType(BUTTON_EXIT_DONE,       BUTTON_EVENT_CLICK | BUTTON_EVENT_LONG_CLICK, LED_PURPLE);
+    theButtons.setButtonType(BUTTON_EXIT_CANCEL,     BUTTON_EVENT_CLICK | BUTTON_EVENT_LONG_CLICK, LED_ORANGE);
 
-    theButtons.setButtonEventMask(BUTTON_MOVE_UP,      BUTTON_EVENT_PRESS | BUTTON_EVENT_RELEASE);
-    theButtons.setButtonEventMask(BUTTON_MOVE_DOWN,    BUTTON_EVENT_PRESS | BUTTON_EVENT_RELEASE);
-    theButtons.setButtonEventMask(BUTTON_MOVE_LEFT,    BUTTON_EVENT_PRESS | BUTTON_EVENT_RELEASE);
-    theButtons.setButtonEventMask(BUTTON_MOVE_RIGHT,   BUTTON_EVENT_PRESS | BUTTON_EVENT_RELEASE);
-    theButtons.setButtonEventMask(BUTTON_SELECT,       BUTTON_EVENT_PRESS | BUTTON_EVENT_RELEASE);
-    
-    setLED(BUTTON_MOVE_UP,      LED_BLUE);
-    setLED(BUTTON_MOVE_DOWN,    LED_BLUE);
-    setLED(BUTTON_MOVE_LEFT,    LED_BLUE);
-    setLED(BUTTON_MOVE_RIGHT,   LED_BLUE);
-    setLED(BUTTON_SELECT,       LED_GREEN);
+	theButtons.setButtonType(BUTTON_MOVE_UP,   	BUTTON_EVENT_PRESS);
+	theButtons.setButtonType(BUTTON_MOVE_DOWN,	BUTTON_EVENT_PRESS);
+	theButtons.setButtonType(BUTTON_MOVE_LEFT,	BUTTON_EVENT_PRESS);
+	theButtons.setButtonType(BUTTON_MOVE_RIGHT,	BUTTON_EVENT_PRESS);
+	theButtons.setButtonType(BUTTON_SELECT,	    BUTTON_EVENT_CLICK, 	LED_GREEN);
     
     // setup the config_num button row
     
     int num_show = theSystem.getNumConfigs()-1;
     if (num_show >= MAX_CONFIGS) num_show = MAX_CONFIGS;
     for (int i=0; i<num_show; i++)
-    {
-        theButtons.setButtonEventMask(ROW_CONFIGS,i,BUTTON_EVENT_CLICK);
-        setLED(1,i, i == optConfigNum.value-1 ? LED_CYAN : LED_BLUE);
-    }
-    
+        theButtons.setButtonType(FIRST_CONFIG_BUTTON+i,BUTTON_TYPE_RADIO(1));
+        
+    if (optConfigNum.value && optConfigNum.value<=MAX_CONFIGS)
+        theButtons.select(FIRST_CONFIG_BUTTON+optConfigNum.value-1,1);
+        
     // finished
     // do not call draw() here!
     // only draw on the main thread ..
     
-    enableCancel();
     showLEDs();
     
 }   // systemConfig::begin
 
-
-void systemConfig::enableCancel()
-{
-    bool is_changed = config_changed();
-
-    if (is_changed != cancel_enabled)
-    {
-        cancel_enabled = is_changed;
-        int event_mask = 0;
-        int color = LED_ORANGE;
-        if (is_changed)
-        {
-            event_mask = BUTTON_EVENT_CLICK | BUTTON_EVENT_LONG_CLICK;
-            color = LED_YELLOW;
-        }
-        theButtons.setButtonEventMask(BUTTON_EXIT_CANCEL,event_mask);
-        setLED(BUTTON_EXIT_CANCEL,color);
-    }
-}
 
 
 // virtual
@@ -196,126 +162,7 @@ void systemConfig::onButtonEvent(int row, int col, int event)
 {
     // display(0,"systemConfig(%d,%d) event(%s)",row,col,buttonArray::buttonEventName(event));
     int num = row * NUM_BUTTON_COLS + col;
-
-    if (num == BUTTON_MOVE_UP ||
-        num == BUTTON_MOVE_DOWN ||
-        num == BUTTON_MOVE_LEFT ||
-        num == BUTTON_MOVE_RIGHT ||
-        num == BUTTON_SELECT)
-    {
-        if (event == BUTTON_EVENT_PRESS)
-        {
-            if (!button_repeat_time &&
-                in_terminal_mode &&
-                num != BUTTON_SELECT)
-            {
-                button_repeat = num;
-                button_repeat_time = millis();
-            }
-            
-            onNavPad(num);
-        }
-        else // if (event == BUTTON_EVENT_RELEASE)
-        {
-            setLED(num,num == BUTTON_SELECT ? LED_GREEN : LED_BLUE);
-            button_repeat = -1;
-            button_repeat_time = 0;
-        }
-
-        enableCancel();
-        showLEDs();
-    }
-    else if (num == BUTTON_BRIGHTNESS_UP ||
-        num == BUTTON_BRIGHTNESS_DOWN)
-    {
-        if (event == BUTTON_EVENT_PRESS)
-        {
-            if (!button_repeat_time)
-            {
-                button_repeat = num;
-                button_repeat_time = millis();
-            }
-            
-            int inc = num == BUTTON_BRIGHTNESS_UP ? 5 : -5;
-            optBrightness.setValue(optBrightness.value + inc);
-        }
-        else
-        {
-            button_repeat = -1;
-            button_repeat_time = 0;
-            setLED(num, num == BUTTON_BRIGHTNESS_UP ? LED_GREEN : LED_RED);
-            enableCancel();
-            showLEDs();
-        }
-    }
-    else if (row == ROW_CONFIGS)
-    {
-        if (optConfigNum.value)
-            setLED(ROW_CONFIGS,optConfigNum.value-1,LED_BLUE);
-        optConfigNum.setValue(col + 1);
-        setLED(ROW_CONFIGS,col,LED_CYAN);
-        enableCancel();
-        showLEDs();
-    }
-
-    // exit / cancel
     
-    else if (num == BUTTON_EXIT_CANCEL)  // abort - don't bother with colors
-    {
-        if (event == BUTTON_EVENT_LONG_CLICK)
-        {
-            reboot(num);
-        }
-        else 
-        {
-            setLED(num,cancel_enabled ? LED_YELLOW : LED_ORANGE);
-            showLEDs();
-            
-            if (cancel_enabled)
-            {
-                setLEDBrightness(optBrightness.orig_value);
-                theSystem.activateConfig(optConfigNum.orig_value);
-            }
-        }
-    }
-    else if (num == BUTTON_EXIT_DONE)
-    {
-        if (event == BUTTON_EVENT_LONG_CLICK)
-        {
-            display(0,"write bright=%d and config=%d to EEPROM",
-                optBrightness.value,
-                optConfigNum.value);
-            EEPROM.write(EEPROM_BRIGHTNESS,optBrightness.value);
-            EEPROM.write(EEPROM_CONFIG_NUM,optConfigNum.value);
-            EEPROM.write(EEPROM_MIDI_HOST,optMidiHost.value);
-            EEPROM.write(EEPROM_SERIAL_PORT,optSerialPort.value);
-            EEPROM.write(EEPROM_SPOOF_FTP,optSpoofFTP.value);
-            
-            if ((optMidiHost.value != optMidiHost.orig_value) ||
-                (optSerialPort.value != optSerialPort.orig_value) ||
-                (optSpoofFTP.value != optSpoofFTP.orig_value))
-            {
-                reboot(num);                
-            }
-        }
-
-        // you cannot change these at run time!!!
-        //
-        // midi_host_on = optMidiHost.value;
-        // serial_port_on = optSerialPort.value;
-        
-        theSystem.activateConfig(optConfigNum.value);
-    }
-    
-}
-
-
-
-
-
-
-void systemConfig::onNavPad(int num)
-{
     if (in_terminal_mode)
     {
         cur_option->terminalNav(num);
@@ -364,32 +211,85 @@ void systemConfig::onNavPad(int num)
         }
         else if (cur_option->type & OPTION_TYPE_IMMEDIATE)
         {
-            if ((cur_option->type & OPTION_TYPE_CONFIG_NUM) && optConfigNum.value)
-                setLED(ROW_CONFIGS,cur_option->value-1,LED_BLUE);
             cur_option->incValue(1);
-            if (cur_option->type & OPTION_TYPE_CONFIG_NUM)
-                setLED(ROW_CONFIGS,cur_option->value-1,LED_CYAN);
+            
+            if ((cur_option->type & OPTION_TYPE_CONFIG_NUM) &&
+                optConfigNum.value &&
+                optConfigNum.value <= 5)
+            {
+                theButtons.select(FIRST_CONFIG_BUTTON+optConfigNum.value-1,1);
+                showLEDs();
+            }
         }
         else if (cur_option->type & OPTION_TYPE_TERMINAL)
         {
+            // have the up and down keys start repeating for default terminal mode editors
+            theButtons.setButtonType(BUTTON_MOVE_UP,   	BUTTON_EVENT_PRESS | BUTTON_MASK_REPEAT );
+            theButtons.setButtonType(BUTTON_MOVE_DOWN,	BUTTON_EVENT_PRESS | BUTTON_MASK_REPEAT );
             in_terminal_mode = cur_option->beginTerminalMode();
         }
     }
+
+    else if (num == BUTTON_BRIGHTNESS_UP ||
+             num == BUTTON_BRIGHTNESS_DOWN)
+    {
+        int inc = num == BUTTON_BRIGHTNESS_UP ? 5 : -5;
+        optBrightness.setValue(optBrightness.value + inc);
+}
+    else if (row == ROW_CONFIGS)
+    {
+        optConfigNum.setValue(col + 1);
+    }
+
+    // exit / cancel
+    
+    else if (num == BUTTON_EXIT_CANCEL)  // abort - don't bother with colors
+    {
+        if (event == BUTTON_EVENT_LONG_CLICK)
+        {
+            reboot(num);
+        }
+        else 
+        {
+            setLEDBrightness(optBrightness.orig_value);
+            theSystem.activateConfig(optConfigNum.orig_value);
+        }
+    }
+    else if (num == BUTTON_EXIT_DONE)
+    {
+        if (event == BUTTON_EVENT_LONG_CLICK)
+        {
+            display(0,"write bright=%d and config=%d to EEPROM",
+                optBrightness.value,
+                optConfigNum.value);
+  
+            EEPROM.write(EEPROM_BRIGHTNESS,optBrightness.value);
+            EEPROM.write(EEPROM_CONFIG_NUM,optConfigNum.value);
+            EEPROM.write(EEPROM_MIDI_HOST,optMidiHost.value);
+            EEPROM.write(EEPROM_SERIAL_PORT,optSerialPort.value);
+            EEPROM.write(EEPROM_SPOOF_FTP,optSpoofFTP.value);
+            
+            if ((optMidiHost.value != optMidiHost.orig_value) ||
+                (optSerialPort.value != optSerialPort.orig_value) ||
+                (optSpoofFTP.value != optSpoofFTP.orig_value))
+            {
+                reboot(num);                
+            }
+        }
+
+        // you cannot change these at run time!!!
+        //
+        // midi_host_on = optMidiHost.value;
+        // serial_port_on = optSerialPort.value;
+        
+        theSystem.activateConfig(optConfigNum.value);
+    }
+    
 }
 
 
-// virtual
-void systemConfig::onRotaryEvent(int num, int val)
-{
-    display(0,"systemConfig::onRotaryEvent(%d) val=%d",num,val);
-}
 
 
-// virtual
-void systemConfig::updateUI()
-{
-    draw();
-}
 
 
 
@@ -405,7 +305,8 @@ void systemConfig::updateUI()
 #define MID_OFFSET      (TFT_WIDTH/2)
 
 
-void systemConfig::draw()
+void systemConfig::updateUI()
+
 {
     if (in_terminal_mode)
     {
@@ -438,8 +339,6 @@ void systemConfig::draw()
 
 	    mylcd.Draw_Line(0,36,TFT_WIDTH-1,36);
     }
-
-    
 
     mylcd.setFont(Arial_20);
 
@@ -492,38 +391,6 @@ void systemConfig::draw()
         opt = opt->pNextOption;
         y += LINE_HEIGHT;
     }
-}
-
-
-
-// virtual
-void systemConfig::timer_handler()
-{
-    static elapsedMillis timer2 = 0;
-    
-    if (button_repeat_time)
-    {
-        int dif = millis() - button_repeat_time;
-        if (dif > 350)
-        {
-            // starts repeating after 350ms
-            // starts at 10 per second and accelerates to 200 per second over one seconds
-
-            dif -= 350;
-            if (dif > 1500) dif = 1500;
-            unsigned interval = 1500 - dif;
-            interval = 5 + (interval / 8);
-        
-            if (timer2 > interval)
-            {
-                int row = button_repeat / NUM_BUTTON_COLS;
-                int col = button_repeat % NUM_BUTTON_COLS;
-                
-                onButtonEvent(row,col,BUTTON_EVENT_PRESS);
-                timer2 = 0;
-            }
-        }
-    }    
 }
 
 

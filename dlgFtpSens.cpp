@@ -70,27 +70,13 @@ void dlgFtpSens::begin()
 	init();
 	expConfig::begin();	
 
-	// to make it easy to add debug buttons
-	
-	for (int i=0; i<25; i++)
-		theButtons.setButtonEventMask(i, BUTTON_EVENT_CLICK);
-	
-	// theButtons.setButtonEventMask(KEYPAD_UP,   	BUTTON_EVENT_CLICK);
-	// theButtons.setButtonEventMask(KEYPAD_DOWN,  BUTTON_EVENT_CLICK);
-	// theButtons.setButtonEventMask(KEYPAD_LEFT,  BUTTON_EVENT_CLICK);
-	// theButtons.setButtonEventMask(KEYPAD_RIGHT, BUTTON_EVENT_CLICK);
-	// theButtons.setButtonEventMask(KEYPAD_SELECT,BUTTON_EVENT_CLICK);
-
-	setLED(KEYPAD_UP,      LED_BLUE);
-	setLED(KEYPAD_DOWN,    LED_BLUE);
-	setLED(KEYPAD_LEFT,    LED_BLUE);
-	setLED(KEYPAD_RIGHT,   LED_BLUE);
-	setLED(KEYPAD_SELECT,  LED_GREEN);
-	
-	// debug buttons
-	
-	setLED(20,LED_GREEN);
-	setLED(24,LED_PURPLE);
+	theButtons.setButtonType(KEYPAD_UP,   	BUTTON_TYPE_CLICK);
+	theButtons.setButtonType(KEYPAD_DOWN,	BUTTON_TYPE_CLICK);
+	theButtons.setButtonType(KEYPAD_LEFT,	BUTTON_TYPE_CLICK);
+	theButtons.setButtonType(KEYPAD_RIGHT,	BUTTON_TYPE_CLICK);
+	theButtons.setButtonType(KEYPAD_SELECT,	BUTTON_TYPE_CLICK, 	LED_GREEN);
+	theButtons.setButtonType(20,			BUTTON_TYPE_CLICK, 	LED_GREEN);
+	theButtons.setButtonType(24,			BUTTON_TYPE_CLICK,	LED_PURPLE);
 
 	showLEDs();
 }
@@ -108,15 +94,12 @@ void dlgFtpSens::onButtonEvent(int row, int col, int event)
 
 	if (num == KEYPAD_UP || num == KEYPAD_DOWN)
 	{
-		setLED(num,LED_BLUE);
 		selected_item += (num == KEYPAD_DOWN)? 1 : -1;
 		if (selected_item < 0) selected_item = NUM_ITEMS;
 		if (selected_item >= NUM_ITEMS) selected_item = 0;
 	}
 	else if (num == KEYPAD_LEFT || num == KEYPAD_RIGHT)
 	{
-		setLED(num,LED_BLUE);
-		
 		if (selected_item == ITEM_DYNAMIC_RANGE)
 		{
 			ftp_dynamic_range += (num == KEYPAD_RIGHT) ? 1 : -1;
@@ -146,7 +129,6 @@ void dlgFtpSens::onButtonEvent(int row, int col, int event)
 
 	else if (num == 20)
 	{
-		setLED(num,LED_GREEN);
 		for (int i=0; i<NUM_STRINGS; i++)
 		{
 			sendFTPCommandAndValue(FTP_CMD_GET_SENSITIVITY, i);
@@ -154,13 +136,10 @@ void dlgFtpSens::onButtonEvent(int row, int col, int event)
 	}
 	else if (num == 24)
 	{
-		setLED(num,LED_PURPLE);
 		sendFTPCommandAndValue(FTP_CMD_SPLIT_NUMBER,0x01);
 		sendFTPCommandAndValue(FTP_CMD_DYNAMICS_SENSITIVITY,ftp_dynamic_range);
 		sendFTPCommandAndValue(FTP_CMD_DYNAMICS_OFFSET,ftp_dynamic_offset);
 	}
-
-	showLEDs();
 }
 	
 

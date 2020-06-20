@@ -22,14 +22,8 @@ class systemConfig : public expConfig
         
         virtual void begin();
         virtual void updateUI();
-        virtual void timer_handler();
         virtual void onButtonEvent(int row, int col, int event);
-        virtual void onRotaryEvent(int num, int val);        
 
-        void draw();
-        void enableCancel();
-        void onNavPad(int num);
-        
 };
 
 
