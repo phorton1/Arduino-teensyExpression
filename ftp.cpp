@@ -64,16 +64,19 @@ const char *noteName(uint8_t note)
 
 
 note_t *addNote(uint8_t val, uint8_t vel, uint8_t string, uint8_t vel2)
+    // -1 is an invalid fret
+    // zero is an invalid note
 {
     note_t *note = new note_t;
-    note->val = val;
+    note->val = val;                
     note->vel = vel;
     note->vel2 = vel2;
-    note->fret = ((int) val) - string_base_notes[string];
+    note->fret = val ? ((int) val) - string_base_notes[string] : -1;
     note->string = string;
     note->tuning = 0;
     note->next = 0;
     
+    __disable_irq();
     if (!first_note)
         first_note = note;
     if (last_note)
@@ -85,46 +88,44 @@ note_t *addNote(uint8_t val, uint8_t vel, uint8_t string, uint8_t vel2)
         note->prev = 0;
     last_note = note;
     most_recent_note = note;
+    __enable_irq();
+
     return note;
 }
 
 
-note_t * findNote(uint8_t val, uint8_t string)
+
+
+void deleteNote(uint8_t string)
 {
+    __disable_irq();
     note_t *note = first_note;
-    while (note)
+    while (note && note->string != string)
     {
-        if (note->val == val && note->string == string)
-            return note;
         note = note->next;
     }
-    return 0;
-}
-
-
-void deleteNote(uint8_t val, uint8_t string)
-{
-    note_t *note = findNote(val,string);
-    if (!note)
+    if (note)
     {
-        warning(0,"could not find note(%d,%d) to delete",val,string);
-        return;
+        if (note->prev)
+            note->prev->next = note->next;
+        if (note->next)
+            note->next->prev = note->prev;
+        if (note == first_note)
+            first_note = note->next;
+        if (note == last_note)
+            last_note = note->prev;
+            
+        if (note == most_recent_note)
+            most_recent_note = 0;
+            
+        if (note == tuning_note)
+            tuning_note = 0;
     }
-    if (note->prev)
-        note->prev->next = note->next;
-    if (note->next)
-        note->next->prev = note->prev;
-    if (note == first_note)
-        first_note = note->next;
-    if (note == last_note)
-        last_note = note->prev;
-        
-    if (note == most_recent_note)
-        most_recent_note = 0;
-        
-    if (note == tuning_note)
-        tuning_note = 0;    
-
+    else
+    {
+        warning(0,"could not find note on string(%d) to delete",string);
+    }
+    __enable_irq();
     delete note;
 }
 

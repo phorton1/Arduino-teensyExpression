@@ -29,6 +29,15 @@ class msgUnion
 };
 
 
+extern int  showSysex;
+extern bool showActiveSense;
+extern bool showTuningMessages;
+extern bool showNoteInfoMessages;
+extern bool showVolumeLevel;
+extern bool showBatteryLevel;
+extern bool showPerformanceCCs;
+
+
 
 extern void enqueueProcess(uint32_t msg);
     // called by myMidiHost::rx_data for messages from host and

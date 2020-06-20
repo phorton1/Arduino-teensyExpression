@@ -12,13 +12,23 @@
 
 // display filters
 
-int  showSysex = 2; 
+
+int  showSysex = 2;
 bool showActiveSense = 0;
 bool showTuningMessages = 1;
 bool showNoteInfoMessages = 1;
     // Has a hard time running from the timer_handler()
     // with all of the serial output, FTP barfs often.
     // Especially with showSysex == 2
+bool showVolumeLevel = 1;
+bool showBatteryLevel = 1;
+    // useful to turn these off while trying to debug other messages
+bool showPerformanceCCs = 1;
+
+    
+bool showPatch(int hindex, uint8_t *buf, uint32_t buflen);
+    // forward
+
 
 
 // basic queues
@@ -151,11 +161,11 @@ void _processOutgoing()
             command_time = 0;
         }
     }
-    else if (command_retry_count > 50)
+    else if (command_retry_count > 10)
     {
         my_error("timed out sending command %08x %08x",pending_command,pending_command_value);
         command_retry_count = 0;
-        pending_command_value = 0;
+        pending_command = 0;
     }
     else if (command_time > 50)    // resend with timer
     {
@@ -246,9 +256,11 @@ void _processMessage(uint32_t i)
                 msg.getCable(),
                 sysex_buflen[hindex]);
             Serial.println(buf2);
-            if (showSysex == 2)
+            if (showPatch(hindex,sysex_buffer[hindex],sysex_buflen[hindex]) ||
+                showSysex == 2)
                 display_bytes_long(0,0,sysex_buffer[hindex],sysex_buflen[hindex]);
-            
+                
+            ;
         }
     }
     
@@ -260,14 +272,14 @@ void _processMessage(uint32_t i)
         if (type == 0x08)
         {
             s = "Note Off";
-            color = ansi_color_light_red;
+            color = ansi_color_light_blue;
             most_recent_note_val = msg.b[2];
             most_recent_note_vel = msg.b[3];
         }
         else if (type == 0x09)
         {
             s = "Note On";
-            color = ansi_color_light_blue;
+            color = ansi_color_light_red;
             most_recent_note_val = msg.b[2];
             most_recent_note_vel = msg.b[3];
         }
@@ -302,6 +314,7 @@ void _processMessage(uint32_t i)
         else if (type == 0x0b)
         {
             s = "ControlChange";
+            show_it = showPerformanceCCs || msg.getChannel() == 8;
             
             //===================================================
             // Messages from Controller ONLY
@@ -318,31 +331,41 @@ void _processMessage(uint32_t i)
             {
                 s = "NoteInfo";
                 show_it = showNoteInfoMessages;
-                color = ansi_color_light_red;
 
                 note_t *note = 0;
                 uint8_t string = p2>>4;
                 uint8_t vel = p2 & 0x0f;
-                color = most_recent_note_vel ? ansi_color_light_blue : ansi_color_light_red;
+                color = most_recent_note_vel ? ansi_color_light_red : ansi_color_light_blue;
 
-                if (!most_recent_note_val)
-                    warning(0,"NoteInfo (B7 1E xy) not following a note!!",0);
-                if (((bool)vel) != ((bool)most_recent_note_vel))
-                    warning(0,"expected NoteInfo (B7 1E %02x) vel(%02x) to correspond to most_recent_note_vel(%02x)",
-						p2,vel,most_recent_note_vel);
-                    
+                #if 0
+                    if (!most_recent_note_val)
+                        warning(0,"NoteInfo (B7 1E xy) not following a note!!",0);
+                    if (((bool)vel) != ((bool)most_recent_note_vel))
+                        warning(0,"expected NoteInfo (B7 1E %02x) vel(%02x) to correspond to most_recent_note_vel(%02x)",
+                            p2,vel,most_recent_note_vel);
+                #endif
+                
                 if (most_recent_note_vel)
                 {
-                    color = ansi_color_light_blue;
                     note = addNote(most_recent_note_val,most_recent_note_vel,string,vel);
                 }
                 else
                 {
-                    deleteNote(most_recent_note_val,string);
+                    deleteNote(string);
                 }
+                
+                // they've been used
+                // set them to zero in case there's a noteInfo without a Note message
+                
+                most_recent_note_vel = 0;
+                most_recent_note_val = 0;
                 sprintf(buf2,"string=%d fret=%d vel=%d",string,note?note->fret:0,vel);
             }
 
+            //-----------------------
+            // tuning
+            //------------------------
+            
             else if (p1 == FTP_SET_TUNING || p1 == FTP_TUNING)  // 0x1d || 0x3d
             {
                 s = "Tuning";
@@ -355,7 +378,7 @@ void _processMessage(uint32_t i)
                 {
                     s = "SetTuning";
                     tuning_note = most_recent_note;
-                    color = tuning_note ? ansi_color_light_blue : ansi_color_light_red;
+                    color = tuning_note ? ansi_color_light_red : ansi_color_light_blue;
                 }
                 else    // I am going to assume that if there is no tuning_note here, we inherit the most_recent_note, if any
                 {
@@ -412,6 +435,11 @@ void _processMessage(uint32_t i)
                 s = "ftpCmdOrReply";
                 incoming_command[hindex] = p2;
                 sprintf(buf2,"%s %s",hindex?"reply":"command",getFTPCommandName(p2));
+                
+                if (p2 == FTP_CMD_BATTERY_LEVEL)
+                    show_it = showBatteryLevel;
+                else if (p2 == FTP_CMD_VOLUME_LEVEL)
+                    show_it = showVolumeLevel;
             }
             else if (p1 == FTP_COMMAND_VALUE)
             {
@@ -435,6 +463,7 @@ void _processMessage(uint32_t i)
                 
                 if (command == FTP_CMD_BATTERY_LEVEL) // we can parse this one because it doesn't require extra knowledge
                 {
+                    show_it = showBatteryLevel;
                     if (hindex)     
                     {
                         sprintf(buf2,"%s %s setting battery_level=%02x",what_name,command_name,p2);
@@ -460,7 +489,10 @@ void _processMessage(uint32_t i)
                         sprintf(buf2,"%s %s %s=%02x",what_name,command_name,hindex?"level":"string",p2);
                     }
                 }
-                
+                else if (command == FTP_CMD_VOLUME_LEVEL)
+                {
+                    show_it = showVolumeLevel;
+                }
                 else if (command == FTP_CMD_SET_SENSITIVITY)  // we can parse this one because it doesn't require extra knowledge
                 {
                     int string = p2 >> 4;
@@ -540,4 +572,43 @@ void dequeueProcess()
     _processOutgoing();
 }
 
+
+
+//------------------------------------------------
+// patches
+//-------------------------------------------------
+
+uint8_t patch_sig[6] = {0xF0, 0x00, 0x01, 0x6E, 0x01, 0x21};
+
+bool showPatch(int hindex, uint8_t *buf, uint32_t buflen)
+{
+    uint8_t *p = buf;
+    patch_sig[5] = hindex ? 0x21 : 0x41;
+    // if (!hindex) return false;            // looking for things from controller
+    if (buflen != 142) return false;      // patches are 42
+    for (int i=0; i<6; i++)
+        if (*p++ != patch_sig[i])
+        {
+            warning(0,"sysex of 142 that does not match patch_sig!!",0);
+            return true;
+        }
+    
+    uint8_t bank_num = *p++;
+    uint8_t patch_num = *p++;
+    display(0,"    PATCH BANK(%d) PATCH(%d)",bank_num,patch_num);
+    if (bank_num > 1) return false;
+
+    p += 8;     // move to touch sensitivity
+    uint8_t touch_sense = *p;
+
+    p += 2;     // move to first split section
+    p += 6;
+    
+    uint8_t dyn_sense = *p++;
+    uint8_t dyn_off  = *p++;
+    
+    display(0,"        touch_sens=%d   dyn_sense=0x%02x  dyn_off=0x%02x",touch_sense,dyn_sense,dyn_off);
+    
+    return false;
+}
 

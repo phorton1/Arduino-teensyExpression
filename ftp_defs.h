@@ -392,10 +392,16 @@ typedef struct  // 142 byte "data" packet (subpatch)
     //
     // So the "data" for "Poly Program n" is in bank(0) patch(n-1) whereas it's "name"
     // is bank(2) patch(n-1) ... "Mono Program n" is in (1,n-1) and (3,n-1)
+    
+    // It looks like the controller's "current active patch" is banks1/3 patch 127
+    // When you change patches in the editor, it sends the patch you are editing
+    // to those numbers, and only upon a "save" does it write it to the "real" location.
+    
 {
-	uint8_t header1[6];	// F0 00 01 6E 01 21
+	uint8_t header1[6];	                // F0 00 01 6E 01 21
 	uint8_t bank_num;                   // 0=hardware poly, 1=hardware mono
 	uint8_t patch_num;                  // patch number within bank (0..127 .. only to 112 for mono bank?!?)
+
 	uint8_t pedal_mode; 	            // HoldUp(2), HoldDown(3), Alternate(4), Loop(6), DontBlockNewNotes(1), BlockNewNotes(0)
 	uint8_t fret_range_low_up_12;       // the range of frets, from the lowest fret (open position) for hardware patches 1 & 2
 	uint8_t fret_range_high_down_34;    // the range of frets from 1f down to this number, for hardware patches 3 and 4.
@@ -404,7 +410,8 @@ typedef struct  // 142 byte "data" packet (subpatch)
 	uint8_t azero0;                     // arpeggio mode which is "SEQUENTIAL" in all csv file examples
 	uint8_t arp_speed;                  // arpeggio speed gleened from csv file
 	uint8_t arp_length;	                // arp. length gleened from csv file (arpegio length?)
-	uint8_t touch_sens;                 // 0..4 Default(4)
+
+	uint8_t touch_sens;                 // 0..4 "pick" 5-9 "fingerstyle"  Default(4)
 	uint8_t poly_mode;                  // 0=mono, 1=poly  (Default 1 for bank0, 0 for bank1)
    
 	split_section_t split[5];

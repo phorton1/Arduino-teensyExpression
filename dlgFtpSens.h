@@ -15,22 +15,24 @@ class dlgFtpSens : public expConfig
         
         virtual const char *name()          { return "FTP String Sensitivity"; }
         virtual const char *short_name()    { return "FTP Sens"; }
+
+        virtual void end();
         virtual void begin();
         virtual void updateUI();
-        
+        virtual void timer_handler();
         virtual void onButtonEvent(int row, int col, int event);
+        void navPad(int num);
 
         // implementation
         
         bool draw_needed;
-        int last_battery_level;
-        int last_string_val[6];
-        int last_string_sens[6];
+        int last_vel[6];
+        int last_velocity[6];
+        int last_sens[6];
         
         void init();
-        void drawCircle(int string, int fret, bool pressed);
-        void vel2ToInts(int *ints);
-        void drawTunerPointer(int tuner_x, int color);
+        void vel2ToInts(int *vel2, int *velocity);
+        void drawBox(int string, int box32, int vel16);
 };
 
 

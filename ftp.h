@@ -9,12 +9,13 @@
 
 typedef struct noteStruct
 {
-    uint8_t val;
+    uint8_t val;                // zero is an invalid note
     uint8_t vel;                // full velocity from NoteOn event
     uint8_t string;
     uint8_t vel2;               // compressed velocity from NoteInfo event
     
-    int fret;                   // note that this concievably could be less than zero with alternate tunings at this time
+    int fret;                   // this concievably could be less than zero with alternate tunings
+                                // but generally, fret<0 is invalid for our purposes
     int tuning;                 // starts as NO_TUNING_YET
 
     noteStruct *prev;
@@ -31,8 +32,7 @@ extern note_t *most_recent_note;
 extern note_t *tuning_note;
 
 extern note_t *addNote(uint8_t val, uint8_t vel, uint8_t string, uint8_t vel2);
-extern note_t * findNote(uint8_t val, uint8_t string);
-extern void deleteNote(uint8_t val, uint8_t string);
+extern void deleteNote(uint8_t string);
 
 extern int ftp_battery_level;                       // -1 == not initialized
 extern int ftp_sensitivity[NUM_STRINGS];            // all must be !- -1 or we are not initialized

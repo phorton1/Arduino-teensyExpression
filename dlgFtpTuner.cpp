@@ -59,28 +59,6 @@ void dlgFtpTuner::begin()
 
 
 
-void dlgFtpTuner::fretsToInts(int *ints)
-{
-	for (int i=0; i<NUM_STRINGS; i++)
-	{
-		ints[i] = -1;
-	}
-
-	__disable_irq();
-	note_t *note = first_note;
-	while (note)
-	{
-		if (note->string != -1 && note->fret != -1)
-		{
-			ints[note->string] = note->fret;
-		}
-		note = note->next;
-	}
-	__enable_irq();
-}
-
-
-
 
 
 //------------------------------------------------------------
@@ -149,22 +127,53 @@ void dlgFtpTuner::onButtonEvent(int row, int col, int event)
 //#define TUNER_BOX_WIDTH     (TUNER_BOX_OFFSET - TUNER_FRAME_MARGIN)
 //#define TUNER_BOX_HEIGHT    (TUNER_FRAME_HEIGHT-2*TUNER_FRAME_MARGIN)
 //#define UNUSED_BOX_COLOR    TFT_BLUE
+
+
+
+
+void dlgFtpTuner::fretsToInts(int *ints)
+{
+	for (int i=0; i<NUM_STRINGS; i++)
+	{
+		ints[i] = -1;
+	}
+
+	__disable_irq();
+	note_t *note = first_note;
+	while (note)
+	{
+		if (note->string != -1 && note->fret != -1)
+		{
+			int i = note->fret;
+			ints[note->string] = i > NUM_INTERVALS ? NUM_INTERVALS + 1 : i;
+				// show everything else higher on the right
+		}
+		note = note->next;
+	}
+	__enable_irq();
+}
+
+
 	
 
 void dlgFtpTuner::drawCircle(int string, int fret, bool pressed)
 {
-	if (fret > NUM_INTERVALS)
+	if (fret > NUM_INTERVALS + 1)
 		return;
 	
 	int center_x = fret == 0 ?
 		BRIDGE_WIDTH/2 :
 		BRIDGE_WIDTH + (INTERVAL_WIDTH/2) + (fret-1)*INTERVAL_WIDTH;
+
+	if (fret > NUM_INTERVALS)
+		center_x -= INTERVAL_WIDTH/2 - BRIDGE_WIDTH;
+
 	int center_y = (STRING_SPACING/2) + STRING_SPACING * string;
 	center_x += FRETBOARD_X;
 	center_y += FRETBOARD_Y;
 
 	// display(0,"drawCircle(%d,%d,%d)",string,fret,pressed);
-	mylcd.Set_Draw_color(pressed ? PRESSED_COLOR : (fret == 0 ? FRET_COLOR : FRETBOARD_COLOR));
+	mylcd.Set_Draw_color(pressed ? PRESSED_COLOR : ((fret == 0 || fret > NUM_INTERVALS) ? FRET_COLOR : FRETBOARD_COLOR));
 	mylcd.Fill_Circle(center_x,center_y,CIRCLE_DIAMETER / 2);
 	
 	if (!pressed)
