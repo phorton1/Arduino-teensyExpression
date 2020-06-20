@@ -4,45 +4,26 @@
 #include "myTFT.h"
 #include "myLeds.h"
 #include "buttons.h"
-
-// This file brings up the question of possibly implementing configurations
-// that are NOT user selectable, like the FTP tuner/sensitivity "dialog"
-// instead of using the systemConfig - preferences approach.
-//
-// Which then harkens to a base class that has the arrow keys, and
-// a general "back" functionality that can return to a given configuration,
-// (i.e. a stack of active configurations).
-//
-// I also need to look at Scrolling option lists in systemConfig, the
-// touchScreen, and the possibility of gestures (i.e. swipe right) to
-// alliviate the need to put a "back" button on every configuration screen
-// if I am going to use the touch.
-//
-// I almost hate to digress to the touchscreen calibration (as well as the
-// pedal calibration and curves), because it would be more fun to see the
-// FTP thing light up.
-//
-// But there's a ton of work to get this right.  I am more of the assumption
-// than ever that the FTP config and foot pedals are more or less "global",
-// though there *might* be 'sets' of pedal configs for different end-user
-// configurations, I think the FTP stuff is to unweildy to have multiple
-// isntances floating around.  And I have not seriously approached, at all,
-// the use of the rotary controls.
-//
-// Sheesh, there's a tone of work to do.
+#include "ftp.h"
+#include "ftp_defs.h"
+#include "myMidiHost.h"
+#include "midiQueue.h"
 
 
-#define SHOW_MIDI_EVENTS   1
+#define PAD1_UP      1
+#define PAD1_DOWN    11
+#define PAD1_LEFT    5
+#define PAD1_RIGHT   7
+#define PAD1_SELECT  6
+
+#define PAD2_UP      13
+#define PAD2_DOWN    23
+#define PAD2_LEFT    17
+#define PAD2_RIGHT   19
+#define PAD2_SELECT  18
 
 
-#if WITH_MIDI_HOST
-	#define MIDI_PASS_THRU  1
-	#include "myMidiHost.h"
-#endif
 
-
-#define BUTTON_ONE   20
-#define BUTTON_TWO   21
 
 
 //------------------------------------------------------------
@@ -51,25 +32,93 @@
 
 midiHostConfig::midiHostConfig() 
 {
-    draw_needed = 0;
-    redraw_needed = 0;
+	dbg_bank_num = 0;
+	dbg_patch_num = 0;
+	dbg_command = 0x04;		// FTP_COMMAND_EDITOR_MODE
+	dbg_param = 0x00;
+	sens_button_repeat = -1;
+	sens_button_repeat_time = 0;
+	memset(my_led_color,0,sizeof(my_led_color));
+
+	init();
 }
+
+
+void midiHostConfig::init()
+{
+	draw_needed = 1;
+	for (int i=0; i<NUM_STRINGS; i++)
+	{
+		last_vel[i] = 0;
+		last_velocity[i] = 0;
+		last_sens[i] = 0;
+	}
+}
+
+
+void midiHostConfig::mySetLED(int i, int color)
+{
+	my_led_color[i] = color;
+	setLED(i,color);
+}
+void midiHostConfig::myRestoreLED(int i)
+{
+	setLED(i,my_led_color[i]);
+}
+
+
 
 
 // virtual
 void midiHostConfig::begin()
 {
+	init();
+	// initFTPifNeeded();
 	expConfig::begin();	
-    draw_needed = 1;
-
-    theButtons.setButtonEventMask(BUTTON_ONE, BUTTON_EVENT_CLICK);
-    theButtons.setButtonEventMask(BUTTON_TWO, BUTTON_EVENT_CLICK);
-	setLED(BUTTON_ONE,LED_BLUE);
-	setLED(BUTTON_TWO,LED_BLUE);
 	
+	for (int i=0; i<25; i++)
+		theButtons.setButtonEventMask(i, BUTTON_EVENT_CLICK);
+	
+	theButtons.setButtonEventMask(PAD1_UP,   	BUTTON_EVENT_PRESS | BUTTON_EVENT_RELEASE);
+	theButtons.setButtonEventMask(PAD1_DOWN,   	BUTTON_EVENT_PRESS | BUTTON_EVENT_RELEASE);
+	theButtons.setButtonEventMask(PAD1_LEFT,   	BUTTON_EVENT_PRESS | BUTTON_EVENT_RELEASE);
+	theButtons.setButtonEventMask(PAD1_RIGHT,   BUTTON_EVENT_PRESS | BUTTON_EVENT_RELEASE);
+	theButtons.setButtonEventMask(PAD1_SELECT,  BUTTON_EVENT_CLICK);
+
+	mySetLED(PAD1_UP,      LED_BLUE);
+	mySetLED(PAD1_DOWN,    LED_BLUE);
+	mySetLED(PAD1_LEFT,    LED_BLUE);
+	mySetLED(PAD1_RIGHT,   LED_BLUE);
+	mySetLED(PAD1_SELECT,  LED_GREEN);
+
+	theButtons.setButtonEventMask(PAD2_UP,   	BUTTON_EVENT_PRESS | BUTTON_EVENT_RELEASE);
+	theButtons.setButtonEventMask(PAD2_DOWN,   	BUTTON_EVENT_PRESS | BUTTON_EVENT_RELEASE);
+	theButtons.setButtonEventMask(PAD2_LEFT,   	BUTTON_EVENT_PRESS | BUTTON_EVENT_RELEASE);
+	theButtons.setButtonEventMask(PAD2_RIGHT,   BUTTON_EVENT_PRESS | BUTTON_EVENT_RELEASE);
+	theButtons.setButtonEventMask(PAD2_SELECT,  BUTTON_EVENT_CLICK);
+	
+	mySetLED(PAD2_UP,      LED_BLUE);
+	mySetLED(PAD2_DOWN,    LED_BLUE);
+	mySetLED(PAD2_LEFT,    LED_BLUE);
+	mySetLED(PAD2_RIGHT,   LED_BLUE);
+	mySetLED(PAD2_SELECT,  LED_GREEN);
+	
+	mySetLED(24,LED_PURPLE);
+	mySetLED(20,LED_GREEN);
+
 	showLEDs();
 }
 
+
+// virtual
+void midiHostConfig::end()
+{
+	showTuningMessages = 1;
+	showNoteInfoMessages = 1;
+	showVolumeLevel = 1;
+	showBatteryLevel = 1;
+	showPerformanceCCs = 1;
+}
 
 
 
@@ -77,100 +126,263 @@ void midiHostConfig::begin()
 // events
 //------------------------------------------------------------
 
+void midiHostConfig::myIncDec(int inc, uint8_t *val)
+{
+	int i = *val;
+	i += inc;
+	if (i > 127) i = 0;
+	if (i < 0) i = 127;
+	*val = i;
+}
+
+
+
+
+
 
 // virtual
 void midiHostConfig::onButtonEvent(int row, int col, int event)
 {
 	int num = row * NUM_BUTTON_COLS + col;
-
-	if (num == BUTTON_ONE)		// sysex test
+	if (event == BUTTON_EVENT_PRESS)
 	{
-		// SYSEX DEVICE ID REQUEST
-		// Send:  F0 7E 7F 06 01 F7
-		// Expected:           F0 7E 10 06 02 00 01 6E 00 01 00 01 02 21 01 00 F7
-		// Got (same for both dongles) from HOST :
-		//		SysEx Message: F0 7E 00 06 02 00 01 6E 00 01 00 02 01 55 01 00 F7  (end)
-		//		SysEx Message: F0 7E 10
-		//                     F0 7E 10 06 02 00 06 02 00 01 6E 00 01 6E 00 01 00 01 01 00 01 02 21 01 02 21 01 00 F7  (end)
-		//		SysEx Message: 00 F7  (end)
-		// Got from iPad:      F0 7E 10 06 02 00 01 6E 00 01 00 01 02 21 01 00 F7
-		//      == expected
-
-
-		#define REQUEST_LEN  6
-		uint8_t data[REQUEST_LEN] = {0xF0, 0x7E, 0x7F, 0x06, 0x01, 0xF7};
-
-		#if WITH_MIDI_HOST
-			if (midi_host_on)
+		sens_button_repeat = num;
+		sens_button_repeat_time = millis();
+		navPad(num);
+	}
+	else if (event == BUTTON_EVENT_RELEASE)
+	{
+		sens_button_repeat_time = 0;
+		myRestoreLED(num);
+	}
+	else
+	{
+		if (num == PAD1_SELECT)
+		{
+			display(0,"getting patch(%d,%d)",dbg_bank_num,dbg_patch_num);
+			uint8_t  ftpRequestPatch[]	= { 0xF0, 0x00, 0x01, 0x6E, 0x01, FTP_CODE_READ_PATCH, dbg_bank_num, dbg_patch_num, 0xf7 };
+			midi1.sendSysEx(sizeof(ftpRequestPatch),ftpRequestPatch,true); 	
+			myRestoreLED(num);
+		}
+		else if (num == PAD2_SELECT)
+		{
+			display(0,"sending command(0x%02x=%s)  param(%02x)",dbg_command,getFTPCommandName(dbg_command),dbg_param);
+			sendFTPCommandAndValue(dbg_command,dbg_param);
+			myRestoreLED(num);
+		}
+		else if (num == 24)
+		{
+			display(0,"trying to cold set dynamics sensitivity",0);
+			sendFTPCommandAndValue(FTP_CMD_SPLIT_NUMBER,0x01);
+			sendFTPCommandAndValue(FTP_CMD_DYNAMICS_SENSITIVITY,0x0A);
+			myRestoreLED(num);
+		}
+		else if (num == 20)
+		{
+			if (showTuningMessages)
 			{
-				display(0,"sending request(%d) to MIDI_HOST",REQUEST_LEN);
-				midi1.sendSysEx(REQUEST_LEN,data,true);
+				setLED(num,LED_RED);
+				showTuningMessages = 0;
+				showNoteInfoMessages = 0;
+				showVolumeLevel = 0;
+				showBatteryLevel = 0;
+				showPerformanceCCs = 0;
 			}
 			else
-		#endif
-		{
-			display(0,"sending request(%d) as midi device",REQUEST_LEN);
-			usbMIDI.sendSysEx(REQUEST_LEN,data,true); 	
+			{
+				setLED(num,LED_GREEN);
+				showTuningMessages = 1;
+				showNoteInfoMessages = 1;
+				showVolumeLevel = 1;
+				showBatteryLevel = 1;
+				showPerformanceCCs = 1;
+			}
 		}
-
-		setLED(num,LED_BLUE);
-		showLEDs();
 	}
+	showLEDs();
+}
 	
-	else if (num == BUTTON_TWO)		// trying to figure out senstitivy
+	
+void midiHostConfig::navPad(int num)
+{
+	if (num == PAD1_UP || num == PAD1_DOWN)
 	{
-		display(0,"Sending control change B7 1F 3C as device",0);
-
-		#if 0
-			uint32_t msg = 0x3c1Fb70b;
-			// doesn't pay any attention to MIDI_NUM_CABLES
-			usb_midi_write_packed(msg);		// write as device
-			usb_midi_flush_output();
-		#else
-			// Does pay attention to cables
-			usbMIDI.sendControlChange(0x1F, 0x3C, 8, 0);
-				// should send B7 1F 3C
-		#endif
-
-		setLED(num,LED_BLUE);
-		showLEDs();
+		myIncDec(num==PAD1_UP ? 1 : -1, &dbg_patch_num);
+		display(0,"setting patch_num to %02x",dbg_patch_num);
+	}
+	else if (num == PAD1_LEFT || num == PAD1_RIGHT)
+	{
+		myIncDec(num==PAD1_RIGHT ? 1 : -1, &dbg_bank_num);
+		display(0,"setting bank_num to %02x",dbg_bank_num);
+	}
+	else if (num == PAD2_UP || num == PAD2_DOWN)
+	{
+		myIncDec(num==PAD2_UP ? 1 : -1, &dbg_command);
+		display(0,"sending dbg command to 0x%02x=%s",dbg_command,getFTPCommandName(dbg_command));
+		
+	}
+	else if (num == PAD2_LEFT || num == PAD2_RIGHT)
+	{
+		myIncDec(num==PAD2_RIGHT ? 1 : -1, &dbg_param);
+		display(0,"setting dbg_param to %02x",dbg_param);
 	}
 }
 
 
+// virtual
+void midiHostConfig::timer_handler()
+{
+    static elapsedMillis timer2 = 0;
+    
+    if (sens_button_repeat_time)
+    {
+        int dif = millis() - sens_button_repeat_time;
+        if (dif > 350)
+        {
+            // starts repeating after 350ms
+            // starts at 10 per second and accelerates to 200 per second over one seconds
+
+            dif -= 350;
+            if (dif > 1500) dif = 1500;
+            unsigned interval = 1500 - dif;
+            interval = 5 + (interval / 8);
+        
+            if (timer2 > interval)
+            {
+				navPad(sens_button_repeat);
+                timer2 = 0;
+            }
+        }
+    }    
+}	
+
+	
 //------------------------------------------------------------
 // updateUI (draw)
 //------------------------------------------------------------
 
-// virtual
-void midiHostConfig::updateUI()	// draw
-{
-	if (draw_needed)
-	{
-		#if 0
-			mylcd.Fill_Screen(0);
-			mylcd.setFont(Arial_16_Bold);
-			mylcd.Set_Text_Cursor(10,10);
-			mylcd.Set_Text_colour(TFT_YELLOW);
-			mylcd.print(getCurConfig()->name());
-			mylcd.Set_Draw_color(TFT_YELLOW);
-			mylcd.Draw_Line(0,36,TFT_WIDTH,36);
-		#endif
 
-		draw_needed = false;
-		mylcd.setFont(Arial_20);
-		mylcd.Set_Text_Cursor(20,50);
-		mylcd.Set_Text_colour(TFT_WHITE);
-		
-		#if WITH_MIDI_HOST
-			mylcd.print("MIDI_HOST ");
-			mylcd.println(midi_host_on ? "ON" : " is OFF!! it must be on!!");
-		#else
-			mylcd.println("WITH_MIDI_HOST is not defined!!");
-		#endif
+void midiHostConfig::vel2ToInts(int *vel, int *velocity)
+	// move the vel2 and velocity values from notes to local variable
+	// and only change vel by 1 in the process
+{
+	for (int i=0; i<NUM_STRINGS; i++)
+	{
+		vel[i] = 0;		// zero indicator
+		velocity[i] = 0;	// on or off
 	}
+
+	__disable_irq();
+	note_t *note = first_note;
+	while (note)
+	{
+		int i = note->string;
+		int v = note->vel2;				// compressed velocity
+		velocity[i] = note->vel;		// full velocity
+		vel[i] = v;
+		note = note->next;
+	}
+	__enable_irq();
+
 }
 
 
+
+#define SENS_TOP     			50
+#define SENS_LEFT    			80
+#define SENS_DIVS       		(2 * 15)
+#define SENS_BOX_WIDTH  		9
+#define SENS_BOX_X_OFFSET 		10		// one blank col of pixels between
+#define SENS_BOX_HEIGHT         30		// two blank rows of pixels between
+#define SENS_ROW_Y_OFFSET       34
+
+#define SENS_START_GREEN        7
+#define SENS_START_RED			(30-6)
+
+#define SENS_HEIGHT				(SENS_ROW_Y_OFFSET * 6)
+#define SENS_WIDTH				(SENS_BOX_X_OFFSET * SENS_DIVS)
+#define SENS_BOTTOM  			(SENS_TOP  + SENS_HEIGHT - 1)
+#define SENS_RIGHT   			(SENS_LEFT + SENS_WIDTH - 1)
+
+#define SENS_COLOR_RED          TFT_RGB_COLOR(0xff,0,0)
+#define SENS_COLOR_GREEN        TFT_RGB_COLOR(0,0xff,0)
+#define SENS_COLOR_YELLOW       TFT_RGB_COLOR(0xff,0xff,0)
+#define SENS_COLOR_DARK_RED     TFT_RGB_COLOR(0x40,0,0)
+#define SENS_COLOR_DARK_GREEN   TFT_RGB_COLOR(0,0x40,0)
+#define SENS_COLOR_DARK_YELLOW  TFT_RGB_COLOR(0x40,0x40,0)
+
+#define SENS_MIDI_VEL_WIDTH     4
+#define SENS_COLOR_MIDI_VEL     TFT_RGB_COLOR(0xff,0xff,0xff)
+
+
+void midiHostConfig::drawBox(int string, int box32, int vel16)
+{
+	bool on = (box32/2) < vel16;
+	int color =
+		box32 >= SENS_START_RED ?
+			(on ? SENS_COLOR_RED : SENS_COLOR_DARK_RED) :
+		box32 >= SENS_START_GREEN ?
+			(on ? SENS_COLOR_GREEN : SENS_COLOR_DARK_GREEN) :
+			(on ? SENS_COLOR_YELLOW : SENS_COLOR_DARK_YELLOW);
+	mylcd.Fill_Rect(
+		SENS_LEFT + box32 * SENS_BOX_X_OFFSET,
+		SENS_TOP + string * SENS_ROW_Y_OFFSET,
+		SENS_BOX_WIDTH,
+		SENS_BOX_HEIGHT,
+		color);
+}
+
+
+
+// virtual
+void midiHostConfig::updateUI()	// draw
+{
+	bool full_draw = 0;
+	if (draw_needed)
+	{
+		full_draw = 1;
+		draw_needed = 0;
+		
+	}
+	
+	int vel[6];
+	int velocity[6];
+	vel2ToInts(vel,velocity);
+	for (int i=0; i<6; i++)
+	{
+		if (full_draw || last_vel[i] != vel[i])
+		{
+			if (last_velocity[i] && last_velocity[i] != velocity[i])
+			{
+				float pct = ((float)last_velocity[i]) / 127.0;
+				int x = (((float)SENS_WIDTH-SENS_MIDI_VEL_WIDTH) * pct);
+				mylcd.Fill_Rect(
+					SENS_LEFT + x,
+					SENS_TOP + i * SENS_ROW_Y_OFFSET - 1, // one pixel above
+					SENS_MIDI_VEL_WIDTH,
+					SENS_BOX_HEIGHT+2,					  // one pixel below
+					0);
+			}
+			last_velocity[i] = velocity[i];
+			
+			last_vel[i] = vel[i];
+			for (int j=0; j<SENS_DIVS; j++)
+				drawBox(i,j,vel[i]);
+				
+			if (velocity[i])
+			{
+				float pct = ((float)velocity[i]) / 127.0;
+				int x = (((float)SENS_WIDTH-SENS_MIDI_VEL_WIDTH) * pct);
+				mylcd.Fill_Rect(
+					SENS_LEFT + x,
+					SENS_TOP + i * SENS_ROW_Y_OFFSET - 1, // one pixel above
+					SENS_MIDI_VEL_WIDTH,
+					SENS_BOX_HEIGHT+2,					  // one pixel below
+					SENS_COLOR_MIDI_VEL);
+			}
+				
+		}
+	}
+}
 
 
