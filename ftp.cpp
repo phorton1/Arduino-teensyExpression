@@ -17,16 +17,6 @@ uint8_t ftp_get_sensitivy_command_string_number = 0;
 const int  string_base_notes[6] = {0x40, 0x3b, 0x37, 0x32, 0x2d, 0x28};
 
 
-
-
-void sendGetFTPSensitivityCommand(uint8_t string)
-{
-    display(0,"sendGetFTPSensitivityCommand(%d)",string);
-    sendFTPCommandAndValue(FTP_CMD_GET_SENSITIVITY, string);
-}
-
-
-
 const char *getFTPCommandName(uint8_t p2)
 {
     if (p2 == FTP_CMD_EDITOR_MODE           ) return "EDITOR_MODE";                 // 0x04
@@ -132,29 +122,6 @@ void deleteNote(uint8_t string)
 
 
 
-
-bool ftp_initialized = 0;
-
-void initFTPifNeeded(bool force)
-{
-    if (force || !ftp_initialized)
-    {
-        ftp_initialized = 0;
-        sendFTPCommandAndValue(FTP_CMD_EDITOR_MODE, 0x02);
-    }
-    if (force || ftp_battery_level == -1)
-    {
-        sendFTPCommandAndValue(FTP_CMD_BATTERY_LEVEL, 0);
-    }
-
-    for (int i=0; i<NUM_STRINGS; i++)
-    {
-        if (force || ftp_sensitivity[i] == -1)
-        {
-            sendGetFTPSensitivityCommand(i);
-        }
-    }
-}
 
 
 

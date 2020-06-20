@@ -5,8 +5,9 @@
 #include "myLeds.h"
 #include "buttons.h"
 #include "ftp.h"
+#include "ftp_defs.h"
 
-	
+#define BATTERY_CHECK_TIME  30000
 
 
 	
@@ -27,14 +28,20 @@ void dlgFtpTuner::init()
 	last_tuner_value = 0;	
 	for (int i=0; i<NUM_STRINGS; i++)
 		last_string_pressed[i] = -1;
+	battery_time = 0;
 }
 
 
 // virtual
 void dlgFtpTuner::begin()
 {
+    sendFTPCommandAndValue(FTP_CMD_EDITOR_MODE, 0x02);
+		// I think this should be called FTP_COMMAND_TUNER
+		// as the only value that seems to work is the 2/0 bit
+    sendFTPCommandAndValue(FTP_CMD_BATTERY_LEVEL, 0);
+		// get the battery level
+		
 	init();
-	initFTPifNeeded();		// for battery level
 	expConfig::begin();	
 	
 	//for (int i=0; i<5; i++)
@@ -236,6 +243,13 @@ void dlgFtpTuner::drawTunerPointer(int tuner_x, int color)
 // virtual
 void dlgFtpTuner::updateUI()	// draw
 {
+	if (battery_time > BATTERY_CHECK_TIME)
+	{
+	    sendFTPCommandAndValue(FTP_CMD_BATTERY_LEVEL, 0);
+		battery_time = 0;
+	}
+	
+	
 	bool full_draw = 0;
 	if (draw_needed)
 	{

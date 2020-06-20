@@ -49,10 +49,6 @@ extern void dequeueProcess();
     // and the return value is ignored, there are
     // no messages eneuqued for display
 
-extern void sendFTPCommandAndValue(uint8_t command, uint8_t value);
-    // send command and value, with with reply processing and
-    // retries in dequeueProcess.
-
 
 
 //-----------------------------------------------------------------------------

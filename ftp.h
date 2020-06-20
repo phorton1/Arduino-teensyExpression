@@ -25,35 +25,27 @@ typedef struct noteStruct
 
 
 
+// maintained state
 
 extern note_t *first_note;
 extern note_t *last_note;
 extern note_t *most_recent_note;
 extern note_t *tuning_note;
+extern int ftp_battery_level;                       // -1 == not initialized
+extern int ftp_sensitivity[NUM_STRINGS];            // all must be !- -1 or we are not initialized
 
 extern note_t *addNote(uint8_t val, uint8_t vel, uint8_t string, uint8_t vel2);
 extern void deleteNote(uint8_t string);
 
-extern int ftp_battery_level;                       // -1 == not initialized
-extern int ftp_sensitivity[NUM_STRINGS];            // all must be !- -1 or we are not initialized
-extern uint8_t ftp_get_sensitivy_command_string_number;    
-    // YOU must set this if you send the FTP_CMD_GET_SENSITIVITY command
-    // yourself ... it will be set automatically if the parser see
-    // the command come from the FTP editor, but it is needed to
-    // figure out what the 
-
-// methods
-
-extern void initFTPifNeeded(bool force=0);
-    // set ftp_battery level to -1 and call this for keep-alive probe.
-    // will get sensitivities for any strings that don't have them
-
-extern const char *getFTPCommandName(uint8_t p2);
-extern void sendGetFTPSensitivityCommand(uint8_t string);
-    // will send the command and set the following value for you
-
 extern const char *noteName(uint8_t note);
+extern const char *getFTPCommandName(uint8_t p2);
 
+// in midiQueue.cpp
+
+
+extern void sendFTPCommandAndValue(uint8_t command, uint8_t value);
+    // send command and value, with with reply processing and
+    // retries in dequeueProcess.
 
 
 

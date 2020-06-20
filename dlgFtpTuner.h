@@ -28,6 +28,7 @@ class dlgFtpTuner : public expConfig
         int last_string_pressed[6];
         int last_tuner_note;
         int last_tuner_value;        
+        elapsedMillis battery_time;
         
         void init();
         void drawCircle(int string, int fret, bool pressed);

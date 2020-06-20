@@ -7,31 +7,17 @@
 #include "ftp.h"
 #include "ftp_defs.h"
 #include "myMidiHost.h"
-#include "midiQueue.h"
 
 
-#define PAD1_UP      1
-#define PAD1_DOWN    11
-#define PAD1_LEFT    5
-#define PAD1_RIGHT   7
-#define PAD1_SELECT  6
+#define KEYPAD_UP      7
+#define KEYPAD_DOWN    17
+#define KEYPAD_LEFT    11
+#define KEYPAD_RIGHT   13
+#define KEYPAD_SELECT  12
 
-#define PAD2_UP      13
-#define PAD2_DOWN    23
-#define PAD2_LEFT    17
-#define PAD2_RIGHT   19
-#define PAD2_SELECT  18
-
-
-uint8_t dbg_bank_num = 0;
-uint8_t dbg_patch_num = 0;
-uint8_t dbg_command = 0x04;		// FTP_COMMAND_EDITOR_MODE
-uint8_t dbg_param = 0x00;
-	
-int sens_button_repeat = -1;
-unsigned sens_button_repeat_time = 0;
-
-int my_led_color[25] = {0,0,0,0,0, 0,0,0,0,0, 0,0,0,0,0, 0,0,0,0,0, 0,0,0,0,0};
+#define ITEM_DYNAMIC_RANGE  6
+#define ITEM_DYNAMIC_OFFSET 7
+#define NUM_ITEMS 8
 
 
 
@@ -42,6 +28,8 @@ int my_led_color[25] = {0,0,0,0,0, 0,0,0,0,0, 0,0,0,0,0, 0,0,0,0,0, 0,0,0,0,0};
 dlgFtpSens::dlgFtpSens() 
 {
 	init();
+	ftp_dynamic_range = 20;
+	ftp_dynamic_offset = 10;
 }
 
 
@@ -52,19 +40,12 @@ void dlgFtpSens::init()
 	{
 		last_vel[i] = 0;
 		last_velocity[i] = 0;
-		last_sens[i] = 0;
 	}
-}
-
-
-void mySetLED(int i, int color)
-{
-	my_led_color[i] = color;
-	setLED(i,color);
-}
-void myRestoreLED(int i)
-{
-	setLED(i,my_led_color[i]);
+	for (int i=0; i<NUM_ITEMS; i++)
+		last_value[i] = 0;
+		
+	selected_item = 0;
+	last_selected_item = 0;
 }
 
 
@@ -73,189 +54,115 @@ void myRestoreLED(int i)
 // virtual
 void dlgFtpSens::begin()
 {
+	// update the string sensitivity values
+	
+    for (int i=0; i<NUM_STRINGS; i++)
+    {
+	    sendFTPCommandAndValue(FTP_CMD_GET_SENSITIVITY, i);
+    }
+	
+	sendFTPCommandAndValue(FTP_CMD_SPLIT_NUMBER,0x01);
+	sendFTPCommandAndValue(FTP_CMD_DYNAMICS_SENSITIVITY,ftp_dynamic_range);
+	sendFTPCommandAndValue(FTP_CMD_DYNAMICS_OFFSET,ftp_dynamic_offset);
+	
+	// normal initialization
+	
 	init();
-	// initFTPifNeeded();
 	expConfig::begin();	
+
+	// to make it easy to add debug buttons
 	
 	for (int i=0; i<25; i++)
 		theButtons.setButtonEventMask(i, BUTTON_EVENT_CLICK);
 	
-	theButtons.setButtonEventMask(PAD1_UP,   	BUTTON_EVENT_PRESS | BUTTON_EVENT_RELEASE);
-	theButtons.setButtonEventMask(PAD1_DOWN,   	BUTTON_EVENT_PRESS | BUTTON_EVENT_RELEASE);
-	theButtons.setButtonEventMask(PAD1_LEFT,   	BUTTON_EVENT_PRESS | BUTTON_EVENT_RELEASE);
-	theButtons.setButtonEventMask(PAD1_RIGHT,   BUTTON_EVENT_PRESS | BUTTON_EVENT_RELEASE);
-	theButtons.setButtonEventMask(PAD1_SELECT,  BUTTON_EVENT_CLICK);
+	// theButtons.setButtonEventMask(KEYPAD_UP,   	BUTTON_EVENT_CLICK);
+	// theButtons.setButtonEventMask(KEYPAD_DOWN,  BUTTON_EVENT_CLICK);
+	// theButtons.setButtonEventMask(KEYPAD_LEFT,  BUTTON_EVENT_CLICK);
+	// theButtons.setButtonEventMask(KEYPAD_RIGHT, BUTTON_EVENT_CLICK);
+	// theButtons.setButtonEventMask(KEYPAD_SELECT,BUTTON_EVENT_CLICK);
 
-	mySetLED(PAD1_UP,      LED_BLUE);
-	mySetLED(PAD1_DOWN,    LED_BLUE);
-	mySetLED(PAD1_LEFT,    LED_BLUE);
-	mySetLED(PAD1_RIGHT,   LED_BLUE);
-	mySetLED(PAD1_SELECT,  LED_GREEN);
-
-	theButtons.setButtonEventMask(PAD2_UP,   	BUTTON_EVENT_PRESS | BUTTON_EVENT_RELEASE);
-	theButtons.setButtonEventMask(PAD2_DOWN,   	BUTTON_EVENT_PRESS | BUTTON_EVENT_RELEASE);
-	theButtons.setButtonEventMask(PAD2_LEFT,   	BUTTON_EVENT_PRESS | BUTTON_EVENT_RELEASE);
-	theButtons.setButtonEventMask(PAD2_RIGHT,   BUTTON_EVENT_PRESS | BUTTON_EVENT_RELEASE);
-	theButtons.setButtonEventMask(PAD2_SELECT,  BUTTON_EVENT_CLICK);
+	setLED(KEYPAD_UP,      LED_BLUE);
+	setLED(KEYPAD_DOWN,    LED_BLUE);
+	setLED(KEYPAD_LEFT,    LED_BLUE);
+	setLED(KEYPAD_RIGHT,   LED_BLUE);
+	setLED(KEYPAD_SELECT,  LED_GREEN);
 	
-	mySetLED(PAD2_UP,      LED_BLUE);
-	mySetLED(PAD2_DOWN,    LED_BLUE);
-	mySetLED(PAD2_LEFT,    LED_BLUE);
-	mySetLED(PAD2_RIGHT,   LED_BLUE);
-	mySetLED(PAD2_SELECT,  LED_GREEN);
+	// debug buttons
 	
-	mySetLED(24,LED_PURPLE);
-	mySetLED(20,LED_GREEN);
+	setLED(20,LED_GREEN);
+	setLED(24,LED_PURPLE);
 
 	showLEDs();
 }
-
-
-// virtual
-void dlgFtpSens::end()
-{
-	showTuningMessages = 1;
-	showNoteInfoMessages = 1;
-	showVolumeLevel = 1;
-	showBatteryLevel = 1;
-	showPerformanceCCs = 1;
-}
-
 
 
 //------------------------------------------------------------
 // events
 //------------------------------------------------------------
 
-void myIncDec(int inc, uint8_t *val)
-{
-	int i = *val;
-	i += inc;
-	if (i > 127) i = 0;
-	if (i < 0) i = 127;
-	*val = i;
-}
-
-
-
-
-
 
 // virtual
 void dlgFtpSens::onButtonEvent(int row, int col, int event)
 {
 	int num = row * NUM_BUTTON_COLS + col;
-	if (event == BUTTON_EVENT_PRESS)
+
+	if (num == KEYPAD_UP || num == KEYPAD_DOWN)
 	{
-		sens_button_repeat = num;
-		sens_button_repeat_time = millis();
-		navPad(num);
+		setLED(num,LED_BLUE);
+		selected_item += (num == KEYPAD_DOWN)? 1 : -1;
+		if (selected_item < 0) selected_item = NUM_ITEMS;
+		if (selected_item >= NUM_ITEMS) selected_item = 0;
 	}
-	else if (event == BUTTON_EVENT_RELEASE)
+	else if (num == KEYPAD_LEFT || num == KEYPAD_RIGHT)
 	{
-		sens_button_repeat_time = 0;
-		myRestoreLED(num);
-	}
-	else
-	{
-		if (num == PAD1_SELECT)
+		setLED(num,LED_BLUE);
+		
+		if (selected_item == ITEM_DYNAMIC_RANGE)
 		{
-			display(0,"getting patch(%d,%d)",dbg_bank_num,dbg_patch_num);
-			uint8_t  ftpRequestPatch[]	= { 0xF0, 0x00, 0x01, 0x6E, 0x01, FTP_CODE_READ_PATCH, dbg_bank_num, dbg_patch_num, 0xf7 };
-			midi1.sendSysEx(sizeof(ftpRequestPatch),ftpRequestPatch,true); 	
-			myRestoreLED(num);
+			ftp_dynamic_range += (num == KEYPAD_RIGHT) ? 1 : -1;
+			if (ftp_dynamic_range < 10) ftp_dynamic_range = 10;
+			if (ftp_dynamic_range > 20) ftp_dynamic_range = 20;
+			sendFTPCommandAndValue(FTP_CMD_DYNAMICS_SENSITIVITY,ftp_dynamic_range);
 		}
-		else if (num == PAD2_SELECT)
+		else if (selected_item == ITEM_DYNAMIC_OFFSET)
 		{
-			display(0,"sending command(0x%02x=%s)  param(%02x)",dbg_command,getFTPCommandName(dbg_command),dbg_param);
-			sendFTPCommandAndValue(dbg_command,dbg_param);
-			myRestoreLED(num);
+			ftp_dynamic_offset += (num == KEYPAD_RIGHT) ? 1 : -1;
+			if (ftp_dynamic_offset < 0)  ftp_dynamic_offset = 0;
+			if (ftp_dynamic_offset > 20) ftp_dynamic_offset = 20;
+			sendFTPCommandAndValue(FTP_CMD_DYNAMICS_OFFSET,ftp_dynamic_offset);
 		}
-		else if (num == 24)
+		else
 		{
-			display(0,"trying to cold set dynamics sensitivity",0);
-			sendFTPCommandAndValue(FTP_CMD_SPLIT_NUMBER,0x01);
-			sendFTPCommandAndValue(FTP_CMD_DYNAMICS_SENSITIVITY,0x0A);
-			myRestoreLED(num);
-		}
-		else if (num == 20)
-		{
-			if (showTuningMessages)
+			int value = ftp_sensitivity[selected_item];
+			if (value != -1)
 			{
-				setLED(num,LED_RED);
-				showTuningMessages = 0;
-				showNoteInfoMessages = 0;
-				showVolumeLevel = 0;
-				showBatteryLevel = 0;
-				showPerformanceCCs = 0;
-			}
-			else
-			{
-				setLED(num,LED_GREEN);
-				showTuningMessages = 1;
-				showNoteInfoMessages = 1;
-				showVolumeLevel = 1;
-				showBatteryLevel = 1;
-				showPerformanceCCs = 1;
+				value += (num == KEYPAD_RIGHT) ? 1 : -1;
+				if (value < 0)  value = 0;
+				if (value > 15) value = 15;
+				sendFTPCommandAndValue(FTP_CMD_SET_SENSITIVITY,selected_item<<4 | value);
 			}
 		}
 	}
+
+	else if (num == 20)
+	{
+		setLED(num,LED_GREEN);
+		for (int i=0; i<NUM_STRINGS; i++)
+		{
+			sendFTPCommandAndValue(FTP_CMD_GET_SENSITIVITY, i);
+		}
+	}
+	else if (num == 24)
+	{
+		setLED(num,LED_PURPLE);
+		sendFTPCommandAndValue(FTP_CMD_SPLIT_NUMBER,0x01);
+		sendFTPCommandAndValue(FTP_CMD_DYNAMICS_SENSITIVITY,ftp_dynamic_range);
+		sendFTPCommandAndValue(FTP_CMD_DYNAMICS_OFFSET,ftp_dynamic_offset);
+	}
+
 	showLEDs();
 }
 	
-	
-void dlgFtpSens::navPad(int num)
-{
-	if (num == PAD1_UP || num == PAD1_DOWN)
-	{
-		myIncDec(num==PAD1_UP ? 1 : -1, &dbg_patch_num);
-		display(0,"setting patch_num to %02x",dbg_patch_num);
-	}
-	else if (num == PAD1_LEFT || num == PAD1_RIGHT)
-	{
-		myIncDec(num==PAD1_RIGHT ? 1 : -1, &dbg_bank_num);
-		display(0,"setting bank_num to %02x",dbg_bank_num);
-	}
-	else if (num == PAD2_UP || num == PAD2_DOWN)
-	{
-		myIncDec(num==PAD2_UP ? 1 : -1, &dbg_command);
-		display(0,"sending dbg command to 0x%02x=%s",dbg_command,getFTPCommandName(dbg_command));
-		
-	}
-	else if (num == PAD2_LEFT || num == PAD2_RIGHT)
-	{
-		myIncDec(num==PAD2_RIGHT ? 1 : -1, &dbg_param);
-		display(0,"setting dbg_param to %02x",dbg_param);
-	}
-}
-
-
-// virtual
-void dlgFtpSens::timer_handler()
-{
-    static elapsedMillis timer2 = 0;
-    
-    if (sens_button_repeat_time)
-    {
-        int dif = millis() - sens_button_repeat_time;
-        if (dif > 350)
-        {
-            // starts repeating after 350ms
-            // starts at 10 per second and accelerates to 200 per second over one seconds
-
-            dif -= 350;
-            if (dif > 1500) dif = 1500;
-            unsigned interval = 1500 - dif;
-            interval = 5 + (interval / 8);
-        
-            if (timer2 > interval)
-            {
-				navPad(sens_button_repeat);
-                timer2 = 0;
-            }
-        }
-    }    
-}	
 
 	
 //------------------------------------------------------------
@@ -294,7 +201,7 @@ void dlgFtpSens::vel2ToInts(int *vel, int *velocity)
 #define SENS_DIVS       		(2 * 15)
 #define SENS_BOX_WIDTH  		9
 #define SENS_BOX_X_OFFSET 		10		// one blank col of pixels between
-#define SENS_BOX_HEIGHT         30		// two blank rows of pixels between
+#define SENS_BOX_HEIGHT         31		// two blank rows of pixels between
 #define SENS_ROW_Y_OFFSET       34
 
 #define SENS_START_GREEN        7
@@ -314,6 +221,9 @@ void dlgFtpSens::vel2ToInts(int *vel, int *velocity)
 
 #define SENS_MIDI_VEL_WIDTH     4
 #define SENS_COLOR_MIDI_VEL     TFT_RGB_COLOR(0xff,0xff,0xff)
+
+#define NUMBER_X  				(SENS_RIGHT + 10)
+#define NUMBER_WIDTH  			40
 
 
 void dlgFtpSens::drawBox(int string, int box32, int vel16)
@@ -381,8 +291,59 @@ void dlgFtpSens::updateUI()	// draw
 					SENS_BOX_HEIGHT+2,					  // one pixel below
 					SENS_COLOR_MIDI_VEL);
 			}
-				
 		}
 	}
+	
+	if (full_draw)
+	{
+		mylcd.setFont(Arial_16);
+        mylcd.Set_Text_colour(TFT_YELLOW);
+	    mylcd.Set_Text_Cursor(SENS_LEFT + 80,SENS_BOTTOM + 8);
+		mylcd.print("Dynamic Range");
+	    mylcd.Set_Text_Cursor(SENS_LEFT + 80,SENS_BOTTOM + 3 + SENS_ROW_Y_OFFSET);
+		mylcd.print("Dynamic Offset");
+	}
+	
+	bool selection_changed = last_selected_item != selected_item;
+	
+	for (int i=0; i<NUM_ITEMS; i++)
+	{
+		int value =
+			i == ITEM_DYNAMIC_RANGE ? ftp_dynamic_range :
+			i == ITEM_DYNAMIC_OFFSET ? ftp_dynamic_offset :
+			ftp_sensitivity[i];
+			
+		
+        if (full_draw ||
+			last_value[i] != value ||
+			(selection_changed && (
+				selected_item == i ||
+				last_selected_item == i	)))
+		{
+			last_value[i] = value;
+			int color = i == selected_item ? TFT_BLUE : 0;
+			int y = SENS_TOP + i * SENS_ROW_Y_OFFSET - 3;
+			
+			mylcd.setFont(Arial_16_Bold);
+			mylcd.Fill_Rect(
+				NUMBER_X,
+				y,
+				NUMBER_WIDTH,
+				SENS_BOX_HEIGHT,
+				color);
+			mylcd.printf_justified(
+				NUMBER_X + 5,
+				y + 7,
+				NUMBER_WIDTH-10,
+				SENS_BOX_HEIGHT-6,
+				LCD_JUST_RIGHT,
+				TFT_WHITE,
+				color,
+				"%-2d",
+				last_value[i]);
+		}
+	}
+	
+	last_selected_item = selected_item;
 }
 
