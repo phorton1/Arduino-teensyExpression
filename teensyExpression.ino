@@ -4,8 +4,12 @@
 #include "defines.h"
 #include "myTFT.h"
 #include "myLeds.h"
+#include "pedals.h"
+#include "rotary.h"
 #include "buttons.h"
 #include "expSystem.h"
+#include "myMidiHost.h"
+#include "TouchScreen.h"    // modified to (at least) reset pinModes
 #include "systemConfig.h"
 #include "oldRigConfig.h"
 #include "dlgFtpTuner.h"
@@ -14,52 +18,37 @@
 #include "testConfig.h"
 #include <EEPROM.h>
 
+    
+// #include <stdint.h>
+// #include <Arduino.h>
 
 
-#define WITH_SDCARD   0
 #define TOUCH_DRAW_TEST  0
     // test defines at this time
     
 
-#if WITH_PEDALS
-    #include "pedals.h"
-#endif
+//----------------------------------
+// globals here for time being
+//----------------------------------
 
-#if WITH_ROTARY
-    #include "rotary.h"
-#endif
+int serial_port_on = 0;
 
+// Resistive touch screen on Cheap Ardino 3.5" 320x480 TFT's
+// need an object, calibration routine, etc
 
-#if WITH_SERIAL_PORT
-    int serial_port_on = 0;
-        // no current usage
-#endif
+int touch_minx=240;
+int touch_maxx=920;
+int touch_miny=90;
+int touch_maxy=860;
+
+TouchScreen theTouchScreen = TouchScreen(XP, YP, XM, YM);   // , 300);
+
     
-    
-#if WITH_MIDI_HOST
-    #include "myMidiHost.h"
-    int midi_host_on = 0;
-#endif
+//-------------------------------------
+// SD Card Test
+//-------------------------------------
 
-
-#if WITH_TOUCH
-    // Resistive touch screen on Cheap Ardino 3.5" 320x480 TFT's
-    
-    #include <stdint.h>
-    #include <Arduino.h>
-    #include "TouchScreen.h"    // modified to (at least) reset pinModes
-
-    // need an object, calibration routine, etc
-    
-    int touch_minx=240;
-    int touch_maxx=920;
-    int touch_miny=90;
-    int touch_maxy=860;
-
-    TouchScreen theTouchScreen = TouchScreen(XP, YP, XM, YM);   // , 300);
-#endif
-
-
+#define WITH_SDCARD      0
 #if WITH_SDCARD
     #include <SD.h>
     #include <SPI.h>
@@ -169,7 +158,6 @@ extern "C" {
 }
 
 
-
 void setup()
 {
     // start the teensyDuino (self) USB device
@@ -202,96 +190,33 @@ void setup()
     mylcd.print("teensyExpression version ");
     mylcd.print(VERSION);
     mylcd.println(" started ...");
-    #if defined(USB_SERIAL)
-        display(0,"    USB_SERIAL",0);
-        mylcd.println("    USB_SERIAL");
-    #elif defined(USB_MIDI)
-        display(0,"    USB_MIDI",0);
-        mylcd.println("    USB_MIDI");
-    #elif defined(USB_MIDI_SERIAL)
-        display(0,"    USB_MIDI_SERIAL",0);
-        mylcd.println("    USB_MIDI_SERIAL");
-    #else
-        display(0,"    WARNING: NO MIDI OR SERIAL!!",0);
-        mylcd.println("    WARNING: NO MIDI OR SERIAL!!");
+
+    #if !defined(USB_MIDI4_SERIAL)
+        warning(0,"PROGRAM IS NOT COMPILED UNDER USB_MIDI4_SERIAL teensyDuino type!! Things may not work correctly!!!",0);
+        mylcd.println("    !! NOT USB_MIDI4_SERIAL !!");
     #endif
 
+    midi1.init();
+    display(0,"    MIDI_HOST %s",midi1.isOn()?"ON":"OFF");
+    mylcd.print("    MIDI_HOST ");
+    mylcd.println(midi1.isOn()?"ON":"OFF");
+    
     // serial port
     
-    #if WITH_SERIAL_PORT
-        serial_port_on = EEPROM.read(EEPROM_SERIAL_PORT);
-        if (serial_port_on == 255)
-            serial_port_on = DEFAULT_SERIAL_PORT;
+    serial_port_on = EEPROM.read(EEPROM_SERIAL_PORT);
+    if (serial_port_on == 255)
+        serial_port_on = DEFAULT_SERIAL_PORT_ON;
+    display(0,"    SERIAL_PORT %s",serial_port_on?"ON":"OFF");
+    mylcd.print("    SERIAL_PORT ");
+    mylcd.println(serial_port_on?"ON":"OFF");
     
-        display(0,"    SERIAL_PORT %s",serial_port_on?"ON":"OFF");
-        mylcd.print("    SERIAL_PORT ");
-        mylcd.println(serial_port_on?"ON":"OFF");
-        
-        if (serial_port_on)
-        {
-            Serial3.begin(115200);
-            Serial3.println("teensy expression Serial3 to rPi started");
-        }
-    #else
-        display(0,"    NO SERIAL_IO_PORT!!",0);
-        mylcd.println("    NO SERIAL_IO_PORT!!");
-    #endif
+    if (serial_port_on)
+    {
+        Serial3.begin(115200);
+        Serial3.println("teensy expression Serial3 to rPi started");
+    }
     
-    
-    #if WITH_MIDI_HOST
-        // Wait 1.5 seconds before turning on USB Host.  If connected USB devices
-        // use too much power, Teensy at least completes USB enumeration, which
-        // makes isolating the power issue easier.
-
-        midi_host_on = EEPROM.read(EEPROM_MIDI_HOST);
-        if (midi_host_on == 255)
-            midi_host_on = DEFAULT_MIDI_HOST;
-            
-        display(0,"    MiDI_HOST %s",midi_host_on?"ON":"OFF");
-        mylcd.print("    MiDI_HOST ");
-        mylcd.println(midi_host_on?"ON":"OFF");
-
-        if (midi_host_on)
-        {
-            // delay(1500);
-            myusb.begin();
-        }
-    #else
-        display(0,"    NO MIDI_HOST!!",0);
-        #if WITH_CHEAP_TFT
-            mylcd.println("    NO MIDI_HOST!!");
-        #endif
-    #endif    
-    
-    
-    #if WITH_ROTARY
-        display(0,"    WITH ROTARY",0);
-        mylcd.println("    WITH ROTARY");
-        initRotary();
-    #else
-        display(0,"    NO ROTARY!!",0);
-        mylcd.println("    NO ROTARY!!");
-    #endif
-
-    
-    #if WITH_PEDALS
-        display(0,"    WITH PEDALS",0);
-        mylcd.println("    WITH PEDALS");
-        thePedals.init();
-    #else
-        display(0,"    NO PEDALS!!",0);
-        mylcd.println("    NO PEDALS!!");
-    #endif
-
-    
-    #if WITH_TOUCH
-        display(0,"    WITH TOUCH",0);
-        mylcd.println("    WITH TOUCH");
-    #else
-        display(0,"    NO TOUCH!!",0);
-        mylcd.println("    NO TOUCH!!");
-    #endif
-
+          
 
     display(0,"initializing system ...",0);
     mylcd.println("initializing system .");
@@ -336,7 +261,7 @@ void loop()
         // midi1.read(), and usbMIDI.read() at this time.
 
     
-    #if WITH_TOUCH && TOUCH_DRAW_TEST
+    #if TOUCH_DRAW_TEST
     
         static elapsedMillis clear_it = 0;
         if (clear_it > 3000)

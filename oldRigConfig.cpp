@@ -275,43 +275,39 @@ void oldRigConfig::updateUI()
         }
     }
     
-    #if WITH_PEDALS
-
-        bool font_set = false;
-        for (int i=0; i<4; i++)
+    bool font_set = false;
+    for (int i=0; i<4; i++)
+    {
+        expressionPedal *pedal = thePedals.getPedal(i);
+        if (draw_full || pedal->displayValueChanged())
         {
-            expressionPedal *pedal = thePedals.getPedal(i);
-            if (draw_full || pedal->displayValueChanged())
-            {
-                pedal->clearDisplayValueChanged();
-                int v = pedal->getValue();
+            pedal->clearDisplayValueChanged();
+            int v = pedal->getValue();
 
-                #if SHOW_SENT_MIDI
-                    // shows the frequency of UI vs MIDI messages on pedals
-                    display(0,"updateUI pedal(%d) changed to %d",i,v);
-                #endif
-                
-                if (!font_set)
-                {
-                    mylcd.setFont(Arial_40_Bold);   // Arial_40);
-                    mylcd.Set_Text_colour(TFT_WHITE);
-                    font_set = 1;                    
-                }
-               
-                mylcd.printf_justified(
-                    12+i*120,
-                    260+14,
-                    100,
-                    45,
-                    LCD_JUST_CENTER,
-                    TFT_WHITE,
-                    TFT_BLACK,
-                    "%d",
-                    v);
+            #if SHOW_SENT_MIDI
+                // shows the frequency of UI vs MIDI messages on pedals
+                display(0,"updateUI pedal(%d) changed to %d",i,v);
+            #endif
+            
+            if (!font_set)
+            {
+                mylcd.setFont(Arial_40_Bold);   // Arial_40);
+                mylcd.Set_Text_colour(TFT_WHITE);
+                font_set = 1;                    
             }
+           
+            mylcd.printf_justified(
+                12+i*120,
+                260+14,
+                100,
+                45,
+                LCD_JUST_CENTER,
+                TFT_WHITE,
+                TFT_BLACK,
+                "%d",
+                v);
         }
-        
-    #endif  // WITH_PEDALS
+    }
         
 
     if (m_cur_patch_num >= 0 &&

@@ -1,12 +1,8 @@
-#include "defines.h"
-
-#if WITH_PEDALS     // empty compile if not
-
 #include <myDebug.h>
 #include "pedals.h"
+#include "defines.h"
 #include "expSystem.h"
 #include "oldRig_defs.h"
-
 
 
 #define HYSTERISIS   30
@@ -157,6 +153,3 @@ void expressionPedal::poll()
     }
 }
 
-
-
-#endif  // WITH_PEDALS     // empty compile if not

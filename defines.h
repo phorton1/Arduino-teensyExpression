@@ -3,40 +3,18 @@
 
 #define VERSION   "1.2"
 
-// This program must always run as a teensy MIDI device.
-// It is optional to have it also run as a teensy Serial device.
-// Calls to myDebug::display(), etc, vanish if
-// !defined(USB_SERIAL) && !defined(USB_MIDI_SERIAL)
 
-
-    
-// these defines are generally "ON" but are allowed to be
-// turned off piecemeal for debugging ...
-
-
-#define WITH_TOUCH            1         // Cheap Arduino Resistive touch screen
-#define WITH_ROTARY           1
-#define WITH_PEDALS           1
-#define WITH_MIDI_HOST        1
-#define WITH_SERIAL_PORT      1
-
-
-#if WITH_MIDI_HOST
-    #define DEFAULT_MIDI_HOST  0
-    extern int midi_host_on;
-#endif
-
-#if WITH_SERIAL_PORT
-    #define DEFAULT_SERIAL_PORT 0
-    extern int serial_port_on;
-#endif
+#define NUM_BUTTON_COLS   5
+#define NUM_BUTTON_ROWS   5
 
 
 #define DEFAULT_CONFIG_NUM  1
 #define DEFAULT_BRIGHTNESS  60
+#define DEFAULT_MIDI_HOST_ON  0
+#define DEFAULT_SERIAL_PORT_ON 0
 
-#define NUM_BUTTON_COLS   5
-#define NUM_BUTTON_ROWS   5
+extern int serial_port_on;
+
 
     
 //----------------------------------------------------------------------
@@ -117,24 +95,20 @@
 #define PIN_BUTTON_IN4          33
 
 
-#if WITH_ROTARY
-    #define ROTARY_1A   4     // mashed up pin assignments
-    #define ROTARY_1B   6     
-    #define ROTARY_2A   2                          
-    #define ROTARY_2B   3                          
-    #define ROTARY_3A   10    // this one is wired differently than the others
-    #define ROTARY_3B   9     
-    #define ROTARY_4A   11    
-    #define ROTARY_4B   12    
-#endif
+#define ROTARY_1A   4     // mashed up pin assignments
+#define ROTARY_1B   6     
+#define ROTARY_2A   2                          
+#define ROTARY_2B   3                          
+#define ROTARY_3A   10    // this one is wired differently than the others
+#define ROTARY_3B   9     
+#define ROTARY_4A   11    
+#define ROTARY_4B   12    
 
 
-#if WITH_PEDALS
-    #define PIN_EXPR1    23  // A6
-    #define PIN_EXPR2    22  // A7
-    #define PIN_EXPR3    21  // A8
-    #define PIN_EXPR4    20  // A9
-#endif
+#define PIN_EXPR1    23  // A6
+#define PIN_EXPR2    22  // A7
+#define PIN_EXPR3    21  // A8
+#define PIN_EXPR4    20  // A9
 
 
 //-----------------------------------------
@@ -174,13 +148,11 @@
 #define CHEAP_TFT_RESET      18
 
 
-#if WITH_TOUCH
-    // define   my definition    // pin number   // arduino pin number and notes    // general notes
-    #define YP  CHEAP_TFT_CD_RS  // 17=A4        // A2 maps to LCD_RS on arduino    // must be an analog pin, use "An" notation!
-    #define XM  CHEAP_TFT_CS     // 16=A2        // A3 maps to LCD_CS on arduino    // must be an analog pin, use "An" notation!
-    #define YM  CHEAP_TFT_DATA0  // 14=A0        // 8  maps to LCD_D0 on arduino    // can be a digital pin
-    #define XP  CHEAP_TFT_DATA1  // 13           // 9  maps to LCD_D1 on arduino    // can be a digital pin
-#endif
+// define   my definition    // pin number   // arduino pin number and notes    // general notes
+#define YP  CHEAP_TFT_CD_RS  // 17=A4        // A2 maps to LCD_RS on arduino    // must be an analog pin, use "An" notation!
+#define XM  CHEAP_TFT_CS     // 16=A2        // A3 maps to LCD_CS on arduino    // must be an analog pin, use "An" notation!
+#define YM  CHEAP_TFT_DATA0  // 14=A0        // 8  maps to LCD_D0 on arduino    // can be a digital pin
+#define XP  CHEAP_TFT_DATA1  // 13           // 9  maps to LCD_D1 on arduino    // can be a digital pin
 
 
 //-----------------------------------

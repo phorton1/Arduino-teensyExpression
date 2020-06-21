@@ -2,6 +2,7 @@
 #include <myDebug.h>
 #include "myTFT.h"
 #include "myLeds.h"
+#include "myMidiHost.h"
 #include <EEPROM.h>
 
 
@@ -283,7 +284,7 @@ midiHostOption::midiHostOption(configOption *parent) :
 void midiHostOption::init()
 {
     onOffOption::init();
-    orig_value = value = midi_host_on;
+    orig_value = value = midi1.isOn();
 }
 
 

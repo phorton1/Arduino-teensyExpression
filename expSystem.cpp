@@ -339,20 +339,18 @@ void expSystem::critical_timer_handler()
 // static
 void expSystem::timer_handler()
 {
+	// basics
+	
     theButtons.task();
-    
-    #if WITH_PEDALS
-        thePedals.task();
-    #endif
-    
-    #if WITH_ROTARY
-        pollRotary();
-    #endif
+	thePedals.task();
+    pollRotary();
 
     // process incoming and outgoing midi events
     
     dequeueProcess();
     
+	// call window handler
+	
     theSystem.getCurConfig()->timer_handler();
 }
 

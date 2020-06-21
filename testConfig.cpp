@@ -35,25 +35,6 @@ void testConfig::begin()
 
 
 
-#define LINE_HEIGHT  20
-int ypos = 0;
-
-void printCentered(const char *s)
-{
-    mylcd.setFont(Arial_16);
-    mylcd.printf_justified(
-        0,
-        ypos,
-        480,
-        LINE_HEIGHT,
-        LCD_JUST_CENTER,
-        TFT_WHITE,
-        TFT_BLACK,
-        "%s",
-        s);
-    ypos += LINE_HEIGHT;
-}
-
 
 // virtual
 void testConfig::updateUI()
@@ -87,59 +68,6 @@ void testConfig::updateUI()
             "version %s",
             VERSION);
             
-        ypos = 145;
-        
-        #if defined(USB_SERIAL)
-            printCentered("USB_SERIAL");
-        #elif defined(USB_MIDI)
-            printCentered("USB_MIDI");
-        #elif defined(USB_MIDI_SERIAL)
-            printCentered("USB_MIDI_SERIAL");
-        #else
-            printCentered("NO MIDI OR SERIAL!!");
-        #endif
-        
-
-        #if WITH_ROTARY
-            printCentered("WITH ROTARY");
-        #else
-            printCentered("NO ROTARY!!");
-        #endif
-
-
-        #if WITH_PEDALS
-            printCentered("WITH PEDALS");
-        #else
-            printCentered("NO PEDALS!!");
-        #endif
-    
-        
-        #if WITH_TOUCH
-            printCentered("WITH TOUCH");
-        #else
-            printCentered("NO TOUCH!!");
-        #endif
-
-        
-        #if WITH_MIDI_HOST
-            if (midi_host_on)
-                printCentered("MIDI_HOST ON");
-            else
-                printCentered("MIDI_HOST OFF");
-        #else
-            printCentered("NO MIDI_HOST!!");
-        #endif
-
-        
-        #if WITH_SERIAL_PORT
-            if (serial_port_on)
-                printCentered("SERIAL_PORT ON");
-            else
-                printCentered("SERIAL_PORT OFF");
-        #else
-            printCentered("NO SERIAL_IO_PORT!!");
-        #endif
-    
         
     }        
 }

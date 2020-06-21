@@ -1,6 +1,9 @@
 #include <myDebug.h>
 #include "myMidiHost.h"
+#include "defines.h"
 #include "midiQueue.h"
+#include <EEPROM.h>
+
 
 #define HOST_CABLE_BIT  0x80
 
@@ -20,6 +23,25 @@ myMidiHostDevice midi1(myusb);
     int direction = -1;
 #endif
 
+
+
+void myMidiHostDevice::init()
+{
+    // Wait 1.5 seconds before turning on USB Host.  If connected USB devices
+    // use too much power, Teensy at least completes USB enumeration, which
+    // makes isolating the power issue easier.
+
+    startup_state = EEPROM.read(EEPROM_MIDI_HOST);
+     
+    if (startup_state == 255)
+        startup_state = DEFAULT_MIDI_HOST_ON;
+
+    if (isOn())
+    {
+        // delay(1500);
+        myusb.begin();
+    }
+}
 
 
 

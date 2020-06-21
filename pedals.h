@@ -1,8 +1,7 @@
 #ifndef _pedals_h_
 #define _pedals_h_
 
-#include "defines.h"
-#if WITH_PEDALS
+// #include "defines.h"
 
 
 #define NUM_PEDALS  4
@@ -114,6 +113,7 @@ class expressionPedal
             // min=0, max=m_curve_type+1
             // in between are m_curve_type points that are called
             // "mid", or "left" and "right"
+
         pedalPoint_t m_points[MAX_PEDAL_CURVE_POINTS];
             
 };
@@ -144,7 +144,6 @@ class pedalManager
     
 extern pedalManager thePedals;
 
+
   
-    
-#endif      // WITH_PEDALS
 #endif      // !_pedals_h_  

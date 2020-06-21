@@ -1,7 +1,3 @@
-#include "defines.h"
-
-#if WITH_ROTARY     // empty compile if not
-    
 #include <myDebug.h>
 #include "rotary.h"
 #include "defines.h"
@@ -118,4 +114,3 @@ void pollRotary()
 }
 
 
-#endif // WITH_ROTARY     // empty compile if not
