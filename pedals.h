@@ -55,8 +55,13 @@ class expressionPedal
         
         pedalPoint_t *getPoint(int i)   { return &m_points[i]; }
         
-        void readFromEEPROM();
-        void saveToEEPROM();
+        // midi
+        
+        int getCCChannel()              { return m_cc_channel; }
+        int getCCNum()                  { return m_cc_num; }
+        
+        // void readFromEEPROM();
+        // void saveToEEPROM();
         
         
     protected:
@@ -69,6 +74,8 @@ class expressionPedal
             int num,
             int pin,
             const char *name,
+            int cc_channel,
+            int cc_num,
             int value_max=127);
         
         void poll();
@@ -80,35 +87,35 @@ class expressionPedal
         int     m_num;       
         int     m_pin;          // defined in pedals.cpp
         int     m_pedal_num;    // they know this too ...
+        int     m_cc_channel;
+        int     m_cc_num;
+
         const char *m_name;
 
-        // configuration in EEPROM
+        // working configuration 
         
-        int     m_calib_min;      // defaults in pedals.cpp
-        int     m_calib_max;      // 0..1023
-        int     m_curve_type;     // 0..2 (also defines number of points)
-        int     m_value_min;      // 0..127
+        int     m_calib_min;        // defaults in pedals.cpp
+        int     m_calib_max;        // 0..1023
+        int     m_value_min;        // 0..127
         int     m_value_max;
-        pedalPoint_t m_points[MAX_PEDAL_CURVE_POINTS];
                               
         // runtime working variables                              
 
-        int      m_raw_value;         // 0..1023
-        int      m_direction;
+        int      m_raw_value;       // 0..1023
+        int      m_direction;       // -1,0,1
         unsigned m_settle_time; 
+        int      m_value;           // 0..127
+        int      m_last_value;      // display helper
         
-        // defines the "curve" for the pedals
+        // for editing curves (future development)
         
-        int      m_value;
-        int      m_last_value;
-        
-        // for editing
-        
-        int      m_cur_point;
+        int     m_curve_type;     // 0..2 (also defines number of points)
+        int     m_cur_point;
             // min=0, max=m_curve_type+1
             // in between are m_curve_type points that are called
             // "mid", or "left" and "right"
-
+        pedalPoint_t m_points[MAX_PEDAL_CURVE_POINTS];
+            
 };
 
 

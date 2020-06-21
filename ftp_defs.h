@@ -448,7 +448,7 @@ const uint8_t FTP_CODE_READ_PATCH = 0x01;	// get patch from controller (short me
 const uint8_t FTP_CODE_ACK = 0x11;			// ack from the controller
 const uint8_t FTP_CODE_WRITE_PATCH = 0x41;	// write patch to controller
 const uint8_t FTP_CODE_PATCH_REPLY = 0x21;	// patch request reply from controller
-const uint8_t FTP_CODE_PATCH_NAME  - 0x43;  // a 25 byte packet with the current patch name 
+const uint8_t FTP_CODE_PATCH_NAME  = 0x43;  // a 25 byte packet with the current patch name 
 
 // const uint8_t FTP_CODE_UNKNOWN = 0x02;		// ? clear the patch ?
 // const uint8_t FTP_CODE_ERROR1 = 0x12;		// ? error ?

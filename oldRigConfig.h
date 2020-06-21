@@ -18,7 +18,6 @@ class oldRigConfig : public expConfig
         
         virtual void begin();
         virtual void onButtonEvent(int row, int col, int event);
-        virtual void onPedalEvent(int num, int val);
         virtual void updateUI();
         
         int m_cur_patch_num;    // 0..14

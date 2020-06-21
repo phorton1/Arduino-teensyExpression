@@ -32,8 +32,10 @@ class expConfig
             // don't generally need to worry about buttons and LEDs,
             // but may want to unregister midi event handlers, etc
             
-        virtual void onRotaryEvent(int num, int val)  {}
-        virtual void onPedalEvent(int num, int val)   {}
+        virtual bool onRotaryEvent(int num, int val)  { return false; }
+        virtual bool onPedalEvent(int num, int val)   { return false; }
+            // derived classes return true if they handled the event
+            // otherwise default base class behavior takes place
         virtual void onButtonEvent(int row, int col, int event) {}
         
         virtual void updateUI() {}

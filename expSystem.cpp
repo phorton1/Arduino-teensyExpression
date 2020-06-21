@@ -12,6 +12,9 @@
 #include "midiQueue.h"
 
 
+#define SHOW_SENT_MIDI  1
+
+
 // Fishman TriplePlay MIDI HOST Spoof Notes
 //
 // This version WORKS as a midi host to the FTP dongle, appears in
@@ -114,7 +117,6 @@
 //    until the handler has returned.
 // 2. At some point the timers use so much resources that the rest of
 //    the system is non functional
-
 
 expSystem theSystem;
 
@@ -256,8 +258,27 @@ void expSystem::activateConfig(int i)
 
 void expSystem::pedalEvent(int num, int value)
 {
-    getCurConfig()->onPedalEvent(num,value);
+    if (!getCurConfig()->onPedalEvent(num,value))
+	{
+		expressionPedal *pedal = thePedals.getPedal(num);
+		if (pedal->getCCChannel() && pedal->getCCNum())
+		usbMIDI.sendControlChange(
+			pedal->getCCNum(),
+			value,
+			pedal->getCCChannel());
+		#if SHOW_SENT_MIDI
+			display(0,"pedal(%d,%s) sent MIDI CC(%d,%d,%d)",
+				num,
+				pedal->getCCNum(),
+				value,
+				pedal->getCCChannel(),
+				value);
+		#endif
+	}
 }
+
+
+
 
 
 void expSystem::rotaryEvent(int num, int value)

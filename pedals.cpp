@@ -5,6 +5,8 @@
 #include <myDebug.h>
 #include "pedals.h"
 #include "expSystem.h"
+#include "oldRig_defs.h"
+
 
 
 #define HYSTERISIS   30
@@ -22,10 +24,10 @@ pedalManager thePedals;
 
 void pedalManager::init()
 {
-    m_pedals[0].init(0,PIN_EXPR1,"Synth");
-    m_pedals[1].init(1,PIN_EXPR2,"Loop",96);
-    m_pedals[2].init(2,PIN_EXPR3,"Wah");
-    m_pedals[3].init(3,PIN_EXPR4,"Guitar");
+    m_pedals[0].init(0, PIN_EXPR1, "Synth",  SYNTH_VOLUME_CHANNEL,   SYNTH_VOLUME_CC);
+    m_pedals[1].init(1, PIN_EXPR2, "Loop",   LOOP_CONTROL_CHANNEL,   LOOP_VOLUME_CC,96);
+    m_pedals[2].init(2, PIN_EXPR3, "Wah",    GUITAR_EFFECTS_CHANNEL, GUITAR_WAH_CONTROL_CC);
+    m_pedals[3].init(3, PIN_EXPR4, "Guitar", GUITAR_VOLUME_CHANNEL,  GUITAR_VOLUME_CC);
 }
 
 
@@ -45,25 +47,21 @@ void expressionPedal::init(
     int num,
     int pin,
     const char *name,
+    int cc_channel,
+    int cc_num,
     int value_max)
 {
     m_num = num;
     m_pin = pin;
+    m_cc_num = cc_num;
+    m_cc_channel = cc_channel;
     m_name = name;
     
     m_calib_min  = 0;      
     m_calib_max  = 1023;   
-    m_curve_type = 0;     
     m_value_min  = 0;      
     m_value_max  = value_max;
     
-    for (int i=0; i<MAX_PEDAL_CURVE_POINTS; i++)
-    {
-        m_points[i].x = 0;
-        m_points[i].y = 0;
-        m_points[i].weight = 0;
-    }
-
     m_raw_value = -1;         // 0..1023
     m_direction = -1;
     m_settle_time = 0; 
@@ -71,8 +69,15 @@ void expressionPedal::init(
     m_value = 0;
     m_last_value = -1;
     
+    m_curve_type = 0;     
     m_cur_point = m_curve_type + 1;
-    
+    for (int i=0; i<MAX_PEDAL_CURVE_POINTS; i++)
+    {
+        m_points[i].x = 0;
+        m_points[i].y = 0;
+        m_points[i].weight = 0;
+    }
+
     pinMode(m_pin,INPUT_PULLDOWN);
     
 }
