@@ -30,7 +30,7 @@
 #define FTP_CMD_MIDI_REVERB             0x31
 #define FTP_CMD_SET_SENSITIVITY         0x3C    // documented
     // 0x3d editor sends at startup
-#define FTP_CMD_POLYMODE                0x3f    // 0=poly, 1=mono
+#define FTP_CMD_POLYMODE                0x3f    // 0=mono, 1=poly
     // 0x40 editor sends at startup
     // 0x41 editor sends at startup
 #define FTP_CMD_GET_SENSITIVITY         0x42    // documented
@@ -88,20 +88,35 @@
 //  |      |      |                            |                  | 
 //  +======+======+============================+==================+========================================================================
 //  |      |  1F  |  0x04                      | Editor Mode      | For lack of a better term, I call this "editor" mode
-//  |      |  3F  |  0x02                      |                  | The only parameter I know is "0x02"
+//  |      |  3F  |  0x02  = tuner on          |                  | Might better be called "TUNER_MODE", though I suspect it is
+//  |      |      |  0x00  = tuner off         |                  | interpreted bitwise as a tri-state value.
 //  |      |      |                            |                  |
-//  |      |      |                            |                  | This appears to put the device into the mode used by the FTP Editor.
-//  |      |      |                            |                  | Without this you don't get the Tuning messages needed for the Tuner UI.
+//  |      |      |                            |                  | The only parameters I know which "do" something are "0x02" which
+//  |      |      |                            |                  | turns the tuner on, and 0x00 which turns the tuner off.
 //  |      |      |                            |                  |
-//  |      |      |                            |                  | When this message is sent, the controller returns a slew of stuff
-//  |      |      |                            |                  | on channels 1-7 and 11-16 which are probably "performance state"
+//  |      |      |                            |                  | Without this 0x02 you don't get the Tuning messages needed for the Tuner UI.
+//  |      |      |                            |                  |
+//  |      |      |                            |                  | But as I said, I suspect there is more going on here than just tuning mode.
+//  |      |      |                            |                  | When this message is sent the controller also may send out a slew of stuff, on channels 1-7 and 11-16 which are probably "performance state"
 //  |      |      |                            |                  |
 //  |      |      |                            |                  |      host(1, 1)  B0  ControlChange     65  00
 //  |      |      |                            |                  |      host(1, 1)  B0  ControlChange     64  00 
 //  |      |      |                            |                  |      host(1, 1)  B0  ControlChange     06  0c 
 //  |      |      |                            |                  |      host(1, 1)  B0  ControlChange     26  00 
 //  |      |      |                            |                  |
-//  |      |      |                            |                  | These four messages are sent to those 13 channels
+//  |      |      |                            |                  | These four messages are sent to those 13 channels, regardless of poly mode
+//  |      |      |                            |                  | Yet when the same command is sent again, you DON'T get thses "performance state"
+//  |      |      |                            |                  | values, like it only sends them out on a "change" to this mode.
+//  |      |      |                            |                  |
+//  |      |      |                            |                  | The controller also sends out some other 1f/3C replies, including 
+//  |      |      |                            |                  | unknown 0c, slider position 05, the ubiquitous unknown 55, unknown 1e, 
+//  |      |      |                            |                  | pitch bends on channel 1 & 2, another 55, and a 25 byte sysex with the
+//  |      |      |                            |                  | current patch name.
+//  |      |      |                            |                  |
+//  |      |      |                            |                  |
+//  |      |      |                            |                  |
+//  |      |      |                            |                  |
+
 //  |      |      |                            |                  |
 //  |      |      |                            |                  | param values
 //  |      |      |                            |                  | 0x00 - also sends out some message on channel 8, including the sysex for a patch
@@ -115,15 +130,14 @@
 //  |      |      |                            |                  |
 //  +======+======+============================+==================+========================================================================
 //  |  B7  |  1F  |  0z05                      | SliderPosition   | reply:    B7 1F 05, B7 3F nn    where nn=1, 3, or 2 (not in order)
-//  |  B7  |  3F  |  1,3,2                     |                  | 
-//  |      |      |                            |                  | I don't know if you can query this (with param zero)
-//  |      |      |  possibly sent only        |                  | I do think the controller will report slider changes
-//  |      |      |  by controller             |                  | outside of the context of the FTP editor ... which may mung
-//  |      |      |                            |                  | their behavior.
+//  |  B7  |  3F  |  1,3,2                     | (get or notif)   | 
+//  |      |      |                            |                  | You can query this nn==0
+//  |      |      |  value sent only           |                  | The controller reports this on default startup.
+//  |      |      |  by controller             |                  | and it is part of the Editor startup conversation.
 //  |      |      |                            |                  |
-//  |      |      |                            |                  | Note that it also has the nasty behavior of sending out 
-//  |      |      |                            |                  | a midi volume change message (Bn 07 xx) on (t least) channels 1 
-//  |      |      |                            |                  | and 2 each time it is changed!
+//  |      |      |                            |                  | Changing the slider position has the additional behavior of sending
+//  |      |      |                            |                  | midi volume CC messages (Bn 07 xx) on channels 1 and 2 in poly mode,
+//  |      |      |                            |                  | and 1-7 AND 11-16 in mono mode.
 //  |      |      |                            |                  |
 //  +------+------+----------------------------+------------------+------------------------------------------------------------------------
 //  |  B7  |  1F  |  0z07                      | GetBatteryLevel  | command:  B7 1F 07, B7 3F 00
@@ -155,7 +169,7 @@
 //  |      |      |                            |                  | the array of sensetivities in memory for UI purposes
 //  +------+------+----------------------------+------------------+------------------------------------------------------------------------
 //  |      |  1F  |  0x3f = POLY/MONO MODE
-//  |      |  3F  |  xx == 0=poly, 1=mono
+//  |      |  3F  |  xx == 0=mono, 1=poly      
 //  +------+------+----------------------------+------------------+------------------------------------------------------------------------
 //  |  B7  |  1F  | 0x42                       | GetSensitivity   | command:  B7 1F 42, B7 3F xx  = string 0..5
 //  |  B7  |  3F  | xx = string | yy = level   |                  | reply:    B7 1F 42, B7 3F yy  = level, 0..14
@@ -213,7 +227,7 @@
 
 
 //-----------------------------------------------------------------------------
-// POLY (MONO) MODE
+// POLY (MONO) MODE via patch change
 //-----------------------------------------------------------------------------
 //
 //  poly = all strings on channel 1
@@ -398,7 +412,7 @@ typedef struct  // 142 byte "data" packet (subpatch)
     // to those numbers, and only upon a "save" does it write it to the "real" location.
     
 {
-	uint8_t header1[6];	                // F0 00 01 6E 01 21
+	uint8_t header1[6];	                // F0 00 01 6E 01 21 or 41
 	uint8_t bank_num;                   // 0=hardware poly, 1=hardware mono
 	uint8_t patch_num;                  // patch number within bank (0..127 .. only to 112 for mono bank?!?)
 
@@ -434,6 +448,7 @@ const uint8_t FTP_CODE_READ_PATCH = 0x01;	// get patch from controller (short me
 const uint8_t FTP_CODE_ACK = 0x11;			// ack from the controller
 const uint8_t FTP_CODE_WRITE_PATCH = 0x41;	// write patch to controller
 const uint8_t FTP_CODE_PATCH_REPLY = 0x21;	// patch request reply from controller
+const uint8_t FTP_CODE_PATCH_NAME  - 0x43;  // a 25 byte packet with the current patch name 
 
 // const uint8_t FTP_CODE_UNKNOWN = 0x02;		// ? clear the patch ?
 // const uint8_t FTP_CODE_ERROR1 = 0x12;		// ? error ?
