@@ -46,7 +46,7 @@
 #if F_CPU >= 20000000 && defined(NUM_ENDPOINTS)
 
 #include "kinetis.h"
-//#include "HardwareSerial.h"
+//#include "HardwaredbgSerial->h"
 #include "usb_mem.h"
 #include <string.h> // for memset
 

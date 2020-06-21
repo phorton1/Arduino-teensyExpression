@@ -168,16 +168,13 @@ void setup()
     my_usb_init();
     delay(1000);
 
-    // Only initialize the serial port if it's in the build options
-    // Wait up to 1 second for it to start .. 
+    // initialize the main (debugging) serial port
     
-    #if 1 || defined(USB_SERIAL) || defined(USB_MIDI_SERIAL)
-        Serial.begin(115200);
-        elapsedMillis serial_started = 0;
-        while (serial_started<1000 && !Serial) {}
-        delay(400);
-        display(0,"teensyExpression version %s started",VERSION);
-    #endif
+    Serial.begin(115200);
+    elapsedMillis serial_started = 0;
+    while (serial_started<1000 && !Serial) {}
+    delay(400);
+    display(0,"teensyExpression version %s started",VERSION);
 
     // start the TFT display device
 
@@ -214,10 +211,18 @@ void setup()
     {
         Serial3.begin(115200);
         Serial3.println("teensy expression Serial3 to rPi started");
+
+        // divert myDebug output to Serial 3
+        
+        display(0,"Serial=%08x",(uint32_t) &Serial);
+        display(0,"Serial3=%08x",(uint32_t) &Serial3);
+        display(0,"dbgSerial=%08x",(uint32_t) dbgSerial);
+        
+        dbgSerial = &Serial3;
+
+        display(0,"after dbgSerial=%08x",(uint32_t) dbgSerial);
     }
     
-          
-
     display(0,"initializing system ...",0);
     mylcd.println("initializing system .");
 

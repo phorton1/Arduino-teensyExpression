@@ -255,7 +255,7 @@ void _processMessage(uint32_t i)
                 who,
                 msg.getCable(),
                 sysex_buflen[hindex]);
-            Serial.println(buf2);
+            dbgSerial->println(buf2);
             if (showPatch(hindex,sysex_buffer[hindex],sysex_buflen[hindex]) ||
                 showSysex == 2)
                 display_bytes_long(0,0,sysex_buffer[hindex],sysex_buflen[hindex]);
@@ -422,7 +422,7 @@ void _processMessage(uint32_t i)
             // critical_timer_handler() methods,
             //
             // It means that I *should* be building a (fast) representation of what
-            // I want to show in the serial monitor here, but not calling Serial.print,
+            // I want to show in the serial monitor here, but not calling dbgSerial->print,
             // defering that to the updateUI() method (along with tft screen drawing),
             // but that the state machine should be very quick to update the model of
             // the controller.
@@ -534,7 +534,7 @@ void _processMessage(uint32_t i)
                 p1,
                 p2,
                 buf2);
-            Serial.println(buf);
+            dbgSerial->println(buf);
             
         }   // show_it
     }   // Not Sysext

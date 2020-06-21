@@ -144,70 +144,70 @@
 
 void tftDiagnostics()
 {
-   Serial.println("ILI9341 Test!"); 
+   dbgSerial->println("ILI9341 Test!"); 
    
    // read diagnostics (optional but can help debug problems)
    uint8_t x = tft.readcommand8(ILI9341_RDMODE);
-   Serial.print("Display Power Mode: 0x"); Serial.println(x, HEX);
+   dbgSerial->print("Display Power Mode: 0x"); dbgSerial->println(x, HEX);
    x = tft.readcommand8(ILI9341_RDMADCTL);
-   Serial.print("MADCTL Mode: 0x"); Serial.println(x, HEX);
+   dbgSerial->print("MADCTL Mode: 0x"); dbgSerial->println(x, HEX);
    x = tft.readcommand8(ILI9341_RDPIXFMT);
-   Serial.print("Pixel Format: 0x"); Serial.println(x, HEX);
+   dbgSerial->print("Pixel Format: 0x"); dbgSerial->println(x, HEX);
    x = tft.readcommand8(ILI9341_RDIMGFMT);
-   Serial.print("Image Format: 0x"); Serial.println(x, HEX);
+   dbgSerial->print("Image Format: 0x"); dbgSerial->println(x, HEX);
    x = tft.readcommand8(ILI9341_RDSELFDIAG);
-   Serial.print("Self Diagnostic: 0x"); Serial.println(x, HEX); 
+   dbgSerial->print("Self Diagnostic: 0x"); dbgSerial->println(x, HEX); 
    
-   Serial.println(F("Benchmark                Time (microseconds)"));
+   dbgSerial->println(F("Benchmark                Time (microseconds)"));
    
-   Serial.print(F("Screen fill              "));
-   Serial.println(testFillScreen());
+   dbgSerial->print(F("Screen fill              "));
+   dbgSerial->println(testFillScreen());
    delay(200);
    
-   Serial.print(F("Text                     "));
-   Serial.println(testText());
+   dbgSerial->print(F("Text                     "));
+   dbgSerial->println(testText());
    delay(600);
    
-   Serial.print(F("Lines                    "));
-   Serial.println(testLines(ILI9341_CYAN));
+   dbgSerial->print(F("Lines                    "));
+   dbgSerial->println(testLines(ILI9341_CYAN));
    delay(200);
    
-   Serial.print(F("Horiz/Vert Lines         "));
-   Serial.println(testFastLines(ILI9341_RED, ILI9341_BLUE));
+   dbgSerial->print(F("Horiz/Vert Lines         "));
+   dbgSerial->println(testFastLines(ILI9341_RED, ILI9341_BLUE));
    delay(200);
    
-   Serial.print(F("Rectangles (outline)     "));
-   Serial.println(testRects(ILI9341_GREEN));
+   dbgSerial->print(F("Rectangles (outline)     "));
+   dbgSerial->println(testRects(ILI9341_GREEN));
    delay(200);
    
-   Serial.print(F("Rectangles (filled)      "));
-   Serial.println(testFilledRects(ILI9341_YELLOW, ILI9341_MAGENTA));
+   dbgSerial->print(F("Rectangles (filled)      "));
+   dbgSerial->println(testFilledRects(ILI9341_YELLOW, ILI9341_MAGENTA));
    delay(200);
    
-   Serial.print(F("Circles (filled)         "));
-   Serial.println(testFilledCircles(10, ILI9341_MAGENTA));
+   dbgSerial->print(F("Circles (filled)         "));
+   dbgSerial->println(testFilledCircles(10, ILI9341_MAGENTA));
    
-   Serial.print(F("Circles (outline)        "));
-   Serial.println(testCircles(10, ILI9341_WHITE));
+   dbgSerial->print(F("Circles (outline)        "));
+   dbgSerial->println(testCircles(10, ILI9341_WHITE));
    delay(200);
    
-   Serial.print(F("Triangles (outline)      "));
-   Serial.println(testTriangles());
+   dbgSerial->print(F("Triangles (outline)      "));
+   dbgSerial->println(testTriangles());
    delay(200);
    
-   Serial.print(F("Triangles (filled)       "));
-   Serial.println(testFilledTriangles());
+   dbgSerial->print(F("Triangles (filled)       "));
+   dbgSerial->println(testFilledTriangles());
    delay(200);
    
-   Serial.print(F("Rounded rects (outline)  "));
-   Serial.println(testRoundRects());
+   dbgSerial->print(F("Rounded rects (outline)  "));
+   dbgSerial->println(testRoundRects());
    delay(200);
    
-   Serial.print(F("Rounded rects (filled)   "));
-   Serial.println(testFilledRoundRects());
+   dbgSerial->print(F("Rounded rects (filled)   "));
+   dbgSerial->println(testFilledRoundRects());
    delay(200);
    
-   Serial.println(F("Done!"));
+   dbgSerial->println(F("Done!"));
 }
 
 

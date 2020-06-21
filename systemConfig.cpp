@@ -61,7 +61,11 @@ bool in_terminal_mode = false;
 
 void reboot(int num)
 {
-    Serial.end();
+    if (dbgSerial == &Serial)
+        Serial.end();
+    else
+        Serial3.end();
+        
     for (int i=0; i<21; i++)
     {
         setLED(num,i & 1 ? LED_RED : 0);
