@@ -1,15 +1,15 @@
-#ifndef _dlgFtpTuner_h_
-#define _dlgFtpTuner_h_
+#ifndef _winFtpTuner_h_
+#define _winFtpTuner_h_
 
 #include "expSystem.h"
 
 
 
-class dlgFtpTuner : public expConfig
+class winFtpTuner : public expWindow
 {
     public:
         
-        dlgFtpTuner();
+        winFtpTuner();
 
     private:
         
@@ -37,4 +37,4 @@ class dlgFtpTuner : public expConfig
 };
 
 
-#endif      // !_dlgFtpTuner_h_
+#endif      // !_winFtpTuner_h_

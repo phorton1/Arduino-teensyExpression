@@ -10,12 +10,12 @@
 #include "expSystem.h"
 #include "myMidiHost.h"
 #include "TouchScreen.h"    // modified to (at least) reset pinModes
-#include "systemConfig.h"
-#include "oldRigConfig.h"
-#include "dlgFtpTuner.h"
-#include "dlgFtpSens.h"
-#include "midiHostConfig.h"
-#include "testConfig.h"
+#include "configSystem.h"
+#include "patchOldRig.h"
+#include "patchTest.h"
+#include "patchMidiHost.h"
+#include "winFtpTuner.h"
+#include "winFtpSensitivity.h"
 #include <EEPROM.h>
 
     
@@ -235,12 +235,12 @@ void setup()
     
     delay(1200);
 
-    theSystem.addConfig(new systemConfig());
-    theSystem.addConfig(new oldRigConfig());
-    theSystem.addConfig(new dlgFtpTuner());
-    theSystem.addConfig(new dlgFtpSens());
-    theSystem.addConfig(new midiHostConfig());
-    theSystem.addConfig(new testConfig());
+    theSystem.addPatch(new configSystem());
+    theSystem.addPatch(new patchOldRig());
+    theSystem.addPatch(new patchTest());
+    theSystem.addPatch(new patchMidiHost());
+    theSystem.addPatch(new winFtpTuner());
+    theSystem.addPatch(new winFtpSensitivity());
     theSystem.begin();
         
     display(0,"system running ...",0);

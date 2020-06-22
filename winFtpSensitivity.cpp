@@ -1,5 +1,5 @@
 #include <myDebug.h>
-#include "dlgFtpSens.h"
+#include "winFtpSensitivity.h"
 #include "defines.h"
 #include "myTFT.h"
 #include "myLeds.h"
@@ -25,7 +25,7 @@
 // life cycle
 //------------------------------------------------------------
 
-dlgFtpSens::dlgFtpSens() 
+winFtpSensitivity::winFtpSensitivity() 
 {
 	init();
 	ftp_dynamic_range = 20;
@@ -33,7 +33,7 @@ dlgFtpSens::dlgFtpSens()
 }
 
 
-void dlgFtpSens::init()
+void winFtpSensitivity::init()
 {
 	draw_needed = 1;
 	for (int i=0; i<NUM_STRINGS; i++)
@@ -52,7 +52,7 @@ void dlgFtpSens::init()
 
 
 // virtual
-void dlgFtpSens::begin()
+void winFtpSensitivity::begin()
 {
 	// update the string sensitivity values
 	
@@ -68,7 +68,7 @@ void dlgFtpSens::begin()
 	// normal initialization
 	
 	init();
-	expConfig::begin();	
+	expWindow::begin();	
 
 	theButtons.setButtonType(KEYPAD_UP,   	BUTTON_TYPE_CLICK);
 	theButtons.setButtonType(KEYPAD_DOWN,	BUTTON_TYPE_CLICK);
@@ -88,7 +88,7 @@ void dlgFtpSens::begin()
 
 
 // virtual
-void dlgFtpSens::onButtonEvent(int row, int col, int event)
+void winFtpSensitivity::onButtonEvent(int row, int col, int event)
 {
 	int num = row * NUM_BUTTON_COLS + col;
 
@@ -149,7 +149,7 @@ void dlgFtpSens::onButtonEvent(int row, int col, int event)
 //------------------------------------------------------------
 
 
-void dlgFtpSens::vel2ToInts(int *vel, int *velocity)
+void winFtpSensitivity::vel2ToInts(int *vel, int *velocity)
 	// move the vel2 and velocity values from notes to local variable
 	// and only change vel by 1 in the process
 {
@@ -205,7 +205,7 @@ void dlgFtpSens::vel2ToInts(int *vel, int *velocity)
 #define NUMBER_WIDTH  			40
 
 
-void dlgFtpSens::drawBox(int string, int box32, int vel16)
+void winFtpSensitivity::drawBox(int string, int box32, int vel16)
 {
 	bool on = (box32/2) < vel16;
 	int color =
@@ -225,7 +225,7 @@ void dlgFtpSens::drawBox(int string, int box32, int vel16)
 
 
 // virtual
-void dlgFtpSens::updateUI()	// draw
+void winFtpSensitivity::updateUI()	// draw
 {
 	bool full_draw = 0;
 	if (draw_needed)

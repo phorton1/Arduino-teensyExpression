@@ -4,18 +4,18 @@
 #include "defines.h"
 #include <Arduino.h>        // for intevalTimer
 
-#define MAX_EXP_CONFIGS     10
+#define MAX_EXP_PATCHES     5
 
 class expSystem;
 
 
-class expConfig
-    // base class for configurations
+class expWindow
+    // base class for patches, modal windows, and the configSystem
 {
     public:
         
-        expConfig();
-        ~expConfig() {}
+        expWindow();
+        ~expWindow() {}
         
         virtual const char *name() = 0;
         virtual const char *short_name() = 0;
@@ -28,7 +28,7 @@ class expConfig
             // derived classes should call base class method FIRST
             // base class clears all button registrations.
         virtual void end()  {}
-            // called when the config is taken out of focus, they
+            // called when the window is taken out of focus, they
             // don't generally need to worry about buttons and LEDs,
             // but may want to unregister midi event handlers, etc
             
@@ -55,15 +55,15 @@ class expSystem
         void begin();
         void updateUI();
         
-        void activateConfig(int i);
+        void activatePatch(int i);
 
-        int getNumConfigs()         { return m_num_configs; }
-        int getCurConfigNum()       { return m_cur_config_num; }
-        int getPrevConfigNum()      { return m_prev_config_num; }
-        expConfig *getCurConfig()   { return m_pConfigs[m_cur_config_num]; }
-        expConfig *getConfig(int i) { return m_pConfigs[i]; }
+        int getNumPatches()         { return m_num_patches; }
+        int getCurPatchNum()       { return m_cur_patch_num; }
+        int getPrevConfigNum()      { return m_prev_patch_num; }
+        expWindow *getCurPatch()   { return m_patches[m_cur_patch_num]; }
+        expWindow *getConfig(int i) { return m_patches[i]; }
         
-        void addConfig(expConfig *pConfig);
+        void addPatch(expWindow *pConfig);
         
         void pedalEvent(int num, int val);
         void rotaryEvent(int num, int val);
@@ -71,10 +71,12 @@ class expSystem
         
     private:
 
-        int m_num_configs;
-        int m_cur_config_num;
-        int m_prev_config_num;
-        expConfig *m_pConfigs[MAX_EXP_CONFIGS];
+        int m_num_patches;
+        int m_cur_patch_num;
+        int m_prev_patch_num;
+        expWindow *m_patches[MAX_EXP_PATCHES + 1];
+            // 1 extra for patch #0 which is overloaded
+            // as the configSystem window.
             
         IntervalTimer m_timer;
         IntervalTimer m_critical_timer;

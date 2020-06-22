@@ -1,5 +1,5 @@
 #include <myDebug.h>
-#include "midiHostConfig.h"
+#include "patchMidiHost.h"
 #include "defines.h"
 #include "myTFT.h"
 #include "myLeds.h"
@@ -30,7 +30,7 @@
 // life cycle
 //------------------------------------------------------------
 
-midiHostConfig::midiHostConfig() 
+patchMidiHost::patchMidiHost() 
 {
 	dbg_bank_num = 0;
 	dbg_patch_num = 0;
@@ -40,7 +40,7 @@ midiHostConfig::midiHostConfig()
 }
 
 
-void midiHostConfig::init()
+void patchMidiHost::init()
 {
 	draw_needed = 1;
 	for (int i=0; i<NUM_STRINGS; i++)
@@ -54,11 +54,11 @@ void midiHostConfig::init()
 
 
 // virtual
-void midiHostConfig::begin()
+void patchMidiHost::begin()
 {
 	init();
 	// initFTPifNeeded();
-	expConfig::begin();	
+	expWindow::begin();	
 
 	theButtons.setButtonType(PAD1_UP,   	BUTTON_EVENT_PRESS | BUTTON_MASK_REPEAT );
 	theButtons.setButtonType(PAD1_DOWN,		BUTTON_EVENT_PRESS | BUTTON_MASK_REPEAT );
@@ -80,7 +80,7 @@ void midiHostConfig::begin()
 
 
 // virtual
-void midiHostConfig::end()
+void patchMidiHost::end()
 {
 	showTuningMessages = 1;
 	showNoteInfoMessages = 1;
@@ -95,7 +95,7 @@ void midiHostConfig::end()
 // events
 //------------------------------------------------------------
 
-void midiHostConfig::myIncDec(int inc, uint8_t *val)
+void patchMidiHost::myIncDec(int inc, uint8_t *val)
 {
 	int i = *val;
 	i += inc;
@@ -110,7 +110,7 @@ void midiHostConfig::myIncDec(int inc, uint8_t *val)
 
 
 // virtual
-void midiHostConfig::onButtonEvent(int row, int col, int event)
+void patchMidiHost::onButtonEvent(int row, int col, int event)
 {
 	int num = row * NUM_BUTTON_COLS + col;
 	if (num == PAD1_UP || num == PAD1_DOWN)
@@ -179,7 +179,7 @@ void midiHostConfig::onButtonEvent(int row, int col, int event)
 //------------------------------------------------------------
 
 
-void midiHostConfig::vel2ToInts(int *vel, int *velocity)
+void patchMidiHost::vel2ToInts(int *vel, int *velocity)
 	// move the vel2 and velocity values from notes to local variable
 	// and only change vel by 1 in the process
 {
@@ -232,7 +232,7 @@ void midiHostConfig::vel2ToInts(int *vel, int *velocity)
 #define SENS_COLOR_MIDI_VEL     TFT_RGB_COLOR(0xff,0xff,0xff)
 
 
-void midiHostConfig::drawBox(int string, int box32, int vel16)
+void patchMidiHost::drawBox(int string, int box32, int vel16)
 {
 	bool on = (box32/2) < vel16;
 	int color =
@@ -252,7 +252,7 @@ void midiHostConfig::drawBox(int string, int box32, int vel16)
 
 
 // virtual
-void midiHostConfig::updateUI()	// draw
+void patchMidiHost::updateUI()	// draw
 {
 	bool full_draw = 0;
 	if (draw_needed)

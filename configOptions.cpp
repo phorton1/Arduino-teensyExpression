@@ -62,7 +62,7 @@ void configOption::init_cold(configOption *parent, const char *tit, int typ, int
 
 
 // not virutal!
-void configOption::init(systemConfig *sysConfig)
+void configOption::init(configSystem *sysConfig)
     // non-virtual entry point for root node
 {
     m_pSysConfig = sysConfig;
@@ -229,28 +229,28 @@ void brightnessOption::setValue(int i)
 
 
 //--------------------------------------------
-// configNumOption
+// patchNumOption
 //--------------------------------------------
 
-configNumOption::configNumOption(configOption *parent) :
+patchNumOption::patchNumOption(configOption *parent) :
     integerOption(parent,"Config",
         OPTION_TYPE_IMMEDIATE | OPTION_TYPE_CONFIG_NUM,1,0)
 {}
 
 
 // virtual
-void configNumOption::init()
+void patchNumOption::init()
 {
     integerOption::init();
     value = theSystem.getPrevConfigNum();
-    max_value = theSystem.getNumConfigs() - 1;
+    max_value = theSystem.getNumPatches() - 1;
     orig_value = value;
     display_value = -1;
 }
 
 
 // virtual
-const char *configNumOption::getValueString()
+const char *patchNumOption::getValueString()
 {
     return theSystem.getConfig(value)->short_name();
 }

@@ -1,19 +1,19 @@
-#ifndef _systemConfig_h_
-#define _systemConfig_h_
+#ifndef _configSystem_h_
+#define _configSystem_h_
 
 #include "expSystem.h"
 
 
-class systemConfig : public expConfig
+class configSystem : public expWindow
 {
     public:
         
-        systemConfig();
+        configSystem();
 
         void notifyTerminalModeEnd();
             // called by options with implemented terminal modes
             // at the end of their operation to return to the
-            // configuration editor;
+            // configSystem editor
 
     private:
         
@@ -27,4 +27,4 @@ class systemConfig : public expConfig
 };
 
 
-#endif      // !_systemConfig_h_
+#endif      // !_configSystem_h_

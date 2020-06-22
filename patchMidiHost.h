@@ -1,14 +1,14 @@
-#ifndef _midiHostConfig_h_
-#define _midiHostConfig_h_
+#ifndef _patchMidiHost_h_
+#define _patchMidiHost_h_
 
 #include "expSystem.h"
 
 
-class midiHostConfig : public expConfig
+class patchMidiHost : public expWindow
 {
     public:
         
-        midiHostConfig();
+        patchMidiHost();
 
     private:
         
@@ -40,4 +40,4 @@ class midiHostConfig : public expConfig
 };
 
 
-#endif      // !_midiHostConfig_h_
+#endif      // !_patchMidiHost_h_

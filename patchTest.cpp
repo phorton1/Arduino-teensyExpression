@@ -1,5 +1,5 @@
 #include <myDebug.h>
-#include "testConfig.h"
+#include "patchTest.h"
 #include "myTFT.h"
 #include "myLeds.h"
 
@@ -7,9 +7,9 @@ bool draw_needed = false;
 
 
 // virtual
-void testConfig::begin()
+void patchTest::begin()
 {
-    expConfig::begin();
+    expWindow::begin();
     draw_needed = true;
     for (int row=0; row<NUM_BUTTON_ROWS; row++)
     {
@@ -37,7 +37,7 @@ void testConfig::begin()
 
 
 // virtual
-void testConfig::updateUI()
+void patchTest::updateUI()
 {
     if (draw_needed)
     {

@@ -1,7 +1,7 @@
 #ifndef __configOptions_h_
 #define __configOptions_h_
 
-#include "systemConfig.h"
+#include "configSystem.h"
 
 
 #define OPTION_TYPE_MENU         0x8000     // item represents a submenu
@@ -39,9 +39,9 @@ class configOption
         configOption(configOption *parent, const char *title, int type, int min, int max);
 
     // protected:
-        // friend class systemConfig;
+        // friend class configSystem;
     
-        void init(systemConfig *sysConfig);
+        void init(configSystem *sysConfig);
             // non-virtual entry point for root node
         virtual void init();
             // called recursively during begin() on subclasses that
@@ -59,7 +59,7 @@ class configOption
         
          
     protected:
-        friend class systemConfig;
+        friend class configSystem;
         
         const char *title;
         int         type;
@@ -70,7 +70,7 @@ class configOption
         configOption *pFirstChild;
         configOption *pLastChild;
 
-        systemConfig *m_pSysConfig;
+        configSystem *m_pSysConfig;
         
         int  value;
         int  orig_value;
@@ -85,7 +85,7 @@ class configOption
         
         virtual bool beginTerminalMode()  { return false; }
             // implemented classes should return true
-            // and must call systemConfig::notifyTerminalModeEnd() when finished
+            // and must call configSystem::notifyTerminalModeEnd() when finished
         virtual void terminalNav(int num) {}
         virtual void terminalDraw()       {}
             // For the duration, these methods will be called.
@@ -126,10 +126,10 @@ class brightnessOption : public integerOption
 };
 
 
-class configNumOption : public integerOption
+class patchNumOption : public integerOption
 {
     public:
-        configNumOption(configOption *parent);
+        patchNumOption(configOption *parent);
         virtual void init();
         virtual const char *getValueString();
 };

@@ -159,12 +159,13 @@ extern int serial_port_on;
 // SETTINGS (PREFERENCES) OPTIONS
 //-----------------------------------
 //
-// These are modifiable by the systemConfig configuration.
-// They are used by the rest of the program, including configuration specific settings.
+// These are modifiable by the configSystem object.
+// They are used by the rest of the program, including patch
+// specific settings.
 
 
 #define EEPROM_BRIGHTNESS       0
-#define EEPROM_CONFIG_NUM       1
+#define EEPROM_PATCH_NUM       1
 #define EEPROM_MIDI_HOST        2
 #define EEPROM_SERIAL_PORT      3
 #define EEPROM_SPOOF_FTP        4

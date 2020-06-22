@@ -1,7 +1,7 @@
 
 // The upper right magenta <exit/save> button retains its functionality
 // The upper right optional <cancel> button retains it's functionality
-// The entire configuration can be saved or aborted (there is no cancel)
+// The entire patch can be saved or aborted (there is no cancel)
 
 //
 // KEYPAD

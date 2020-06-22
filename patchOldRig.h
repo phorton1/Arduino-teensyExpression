@@ -1,14 +1,14 @@
-#ifndef __oldrig_config_h__
-#define __oldrig_config_h__
+#ifndef __patchOldRig_h__
+#define __patchOldRig_h__
 
 #include "expSystem.h"
 
 
-class oldRigConfig : public expConfig
+class patchOldRig : public expWindow
 {
     public:
         
-        oldRigConfig();
+        patchOldRig();
         
 
     private:
@@ -24,4 +24,4 @@ class oldRigConfig : public expConfig
 };
 
 
-#endif // !__oldrig_config_h__
+#endif // !__patchOldRig_h__

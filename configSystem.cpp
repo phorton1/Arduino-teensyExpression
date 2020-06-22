@@ -1,7 +1,7 @@
 
 #include <EEPROM.h>
 #include <myDebug.h>
-#include "systemConfig.h"
+#include "configSystem.h"
 #include "defines.h"
 #include "myTFT.h"
 #include "myLeds.h"
@@ -18,14 +18,13 @@
 #define BUTTON_EXIT_DONE        4
 
 #define ROW_CONFIGS             1
-#define FIRST_CONFIG_BUTTON     (ROW_CONFIGS * NUM_BUTTON_COLS)
-#define MAX_CONFIGS             NUM_BUTTON_COLS    // upto 5 configs
+#define FIRST_PATCH_BUTTON     (ROW_CONFIGS * NUM_BUTTON_COLS)
 
 
 
 configOption     rootOption;
 brightnessOption optBrightness(&rootOption);
-configNumOption  optConfigNum(&rootOption);
+patchNumOption  optPatchNum(&rootOption);
 configOption     optPedals(&rootOption,"Pedals",OPTION_TYPE_MENU);
 configOption     optSystem(&rootOption,"System",OPTION_TYPE_MENU);
 spoofFTPOption   optSpoofFTP(&rootOption);
@@ -81,7 +80,7 @@ void reboot(int num)
 
 
 
-systemConfig::systemConfig()
+configSystem::configSystem()
 {
 }
 
@@ -90,13 +89,13 @@ bool config_changed()
 {
     return
         optBrightness.getValue() != optBrightness.getOrigValue() ||
-        optConfigNum.getValue() != optConfigNum.getOrigValue() ||
+        optPatchNum.getValue() != optPatchNum.getOrigValue() ||
         optMidiHost.getValue() != optMidiHost.getOrigValue() ||
         optSerialPort.getValue() != optSerialPort.getOrigValue();
 }
 
 
-void systemConfig::notifyTerminalModeEnd()
+void configSystem::notifyTerminalModeEnd()
     // called by terminal nodes to end their sessions
 {
     in_terminal_mode = 0;
@@ -109,10 +108,10 @@ void systemConfig::notifyTerminalModeEnd()
 
 
 // virtual
-void systemConfig::begin()
+void configSystem::begin()
 {
-    display(0,"systemConfig::begin()",0);
-    expConfig::begin();
+    display(0,"configSystem::begin()",0);
+    expWindow::begin();
 
     // setup option terminal nodes
     // calls init() on entire tree
@@ -141,15 +140,15 @@ void systemConfig::begin()
 	theButtons.setButtonType(BUTTON_MOVE_RIGHT,	BUTTON_EVENT_PRESS);
 	theButtons.setButtonType(BUTTON_SELECT,	    BUTTON_EVENT_CLICK, 	LED_GREEN);
     
-    // setup the config_num button row
+    // setup the patch_num button row
     
-    int num_show = theSystem.getNumConfigs()-1;
-    if (num_show >= MAX_CONFIGS) num_show = MAX_CONFIGS;
+    int num_show = theSystem.getNumPatches()-1;
+    if (num_show >= MAX_EXP_PATCHES) num_show = MAX_EXP_PATCHES;
     for (int i=0; i<num_show; i++)
-        theButtons.setButtonType(FIRST_CONFIG_BUTTON+i,BUTTON_TYPE_RADIO(1));
+        theButtons.setButtonType(FIRST_PATCH_BUTTON+i,BUTTON_TYPE_RADIO(1));
         
-    if (optConfigNum.value && optConfigNum.value<=MAX_CONFIGS)
-        theButtons.select(FIRST_CONFIG_BUTTON+optConfigNum.value-1,1);
+    if (optPatchNum.value && optPatchNum.value<=MAX_EXP_PATCHES)
+        theButtons.select(FIRST_PATCH_BUTTON+optPatchNum.value-1,1);
         
     // finished
     // do not call draw() here!
@@ -157,14 +156,14 @@ void systemConfig::begin()
     
     showLEDs();
     
-}   // systemConfig::begin
+}   // configSystem::begin
 
 
 
 // virtual
-void systemConfig::onButtonEvent(int row, int col, int event)
+void configSystem::onButtonEvent(int row, int col, int event)
 {
-    // display(0,"systemConfig(%d,%d) event(%s)",row,col,buttonArray::buttonEventName(event));
+    // display(0,"configSystem(%d,%d) event(%s)",row,col,buttonArray::buttonEventName(event));
     int num = row * NUM_BUTTON_COLS + col;
     
     if (in_terminal_mode)
@@ -218,10 +217,10 @@ void systemConfig::onButtonEvent(int row, int col, int event)
             cur_option->incValue(1);
             
             if ((cur_option->type & OPTION_TYPE_CONFIG_NUM) &&
-                optConfigNum.value &&
-                optConfigNum.value <= 5)
+                optPatchNum.value &&
+                optPatchNum.value <= 5)
             {
-                theButtons.select(FIRST_CONFIG_BUTTON+optConfigNum.value-1,1);
+                theButtons.select(FIRST_PATCH_BUTTON+optPatchNum.value-1,1);
                 showLEDs();
             }
         }
@@ -242,7 +241,7 @@ void systemConfig::onButtonEvent(int row, int col, int event)
 }
     else if (row == ROW_CONFIGS)
     {
-        optConfigNum.setValue(col + 1);
+        optPatchNum.setValue(col + 1);
     }
 
     // exit / cancel
@@ -256,7 +255,7 @@ void systemConfig::onButtonEvent(int row, int col, int event)
         else 
         {
             setLEDBrightness(optBrightness.orig_value);
-            theSystem.activateConfig(optConfigNum.orig_value);
+            theSystem.activatePatch(optPatchNum.orig_value);
         }
     }
     else if (num == BUTTON_EXIT_DONE)
@@ -265,10 +264,10 @@ void systemConfig::onButtonEvent(int row, int col, int event)
         {
             display(0,"write bright=%d and config=%d to EEPROM",
                 optBrightness.value,
-                optConfigNum.value);
+                optPatchNum.value);
   
             EEPROM.write(EEPROM_BRIGHTNESS,optBrightness.value);
-            EEPROM.write(EEPROM_CONFIG_NUM,optConfigNum.value);
+            EEPROM.write(EEPROM_PATCH_NUM,optPatchNum.value);
             EEPROM.write(EEPROM_MIDI_HOST,optMidiHost.value);
             EEPROM.write(EEPROM_SERIAL_PORT,optSerialPort.value);
             EEPROM.write(EEPROM_SPOOF_FTP,optSpoofFTP.value);
@@ -286,7 +285,7 @@ void systemConfig::onButtonEvent(int row, int col, int event)
         // midi_host_on = optMidiHost.value;
         // serial_port_on = optSerialPort.value;
         
-        theSystem.activateConfig(optConfigNum.value);
+        theSystem.activatePatch(optPatchNum.value);
     }
     
 }
@@ -309,7 +308,7 @@ void systemConfig::onButtonEvent(int row, int col, int event)
 #define MID_OFFSET      (TFT_WIDTH/2)
 
 
-void systemConfig::updateUI()
+void configSystem::updateUI()
 
 {
     if (in_terminal_mode)
@@ -334,7 +333,7 @@ void systemConfig::updateUI()
         mylcd.Fill_Rect(0,0,TFT_WIDTH,TFT_HEIGHT,0);
         
         if (cur_option->pParent == &rootOption)
-            mylcd.print( theSystem.getCurConfig()->name());
+            mylcd.print( theSystem.getCurPatch()->name());
         else
         {
             configOption *opt = cur_option->pParent;

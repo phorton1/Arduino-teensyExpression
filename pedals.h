@@ -7,8 +7,8 @@
 #define NUM_PEDALS  4
 
 // for the time being there is one set of values for the pedals
-// across all configurations.  An idea is then to have "pedal sets"
-// that can be shared between different configurations while still
+// across all patches.  An idea is then to have "pedal sets"
+// that can be shared between different patches while still
 // allowing for multiple definitions.
 
 
@@ -91,7 +91,7 @@ class expressionPedal
 
         const char *m_name;
 
-        // working configuration 
+        // implmented configuration variables
         
         int     m_calib_min;        // defaults in pedals.cpp
         int     m_calib_max;        // 0..1023

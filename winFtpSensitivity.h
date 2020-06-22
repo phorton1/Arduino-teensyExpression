@@ -1,16 +1,16 @@
-#ifndef _dlgFtpSens_h_
-#define _dlgFtpSens_h_
+#ifndef _winFtpSensitivity_h_
+#define _winFtpSensitivity_h_
 
 #include "expSystem.h"
 
 #define NUM_ITEMS 8
 
 
-class dlgFtpSens : public expConfig
+class winFtpSensitivity : public expWindow
 {
     public:
         
-        dlgFtpSens();
+        winFtpSensitivity();
 
     private:
         
@@ -41,4 +41,4 @@ class dlgFtpSens : public expConfig
 };
 
 
-#endif      // !_dlgFtpSens_h_
+#endif      // !_winFtpSensitivity_h_

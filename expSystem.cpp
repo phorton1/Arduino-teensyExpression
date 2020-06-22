@@ -19,7 +19,8 @@
 //
 // This version WORKS as a midi host to the FTP dongle, appears in
 // windows as a "Fishman TriplePlay" with similarly named
-// midi ports, and successfully runs within the Windows FTP Editor
+// midi ports, and successfully runs within the Windows FTP Editor,
+// based on an EEPROM/configuration setting "SPOOF_FTP"
 //
 // REQUIRES setting MIDI4+SERIAL in Arduino IDE, as I did not want
 // to muck around with Paul's midi.h file where it checks MIDI_NUM_CABLES
@@ -27,7 +28,7 @@
 // will not work properly as just a MIDI device (which uses SEREMU).
 //
 // Also note that the COM port changes from 3 to 11 when you change
-// the configuration.
+// the SPOOF_FTP setting.
 //
 // As it stands right now, I am using a modified version of Paul's
 // USBHost_t36.h file that exposes variables on it's MIDIDevice class,
@@ -122,16 +123,16 @@ expSystem theSystem;
 
 
 //----------------------------------------
-// expConfig (base class)
+// expWindow (base class)
 //----------------------------------------
 
 
-expConfig::expConfig()
+expWindow::expWindow()
 {}
 
 
 // virtual
-void expConfig::begin()
+void expWindow::begin()
     // derived classes should call base class method FIRST
     // base class clears all button registrations.
 {
@@ -147,12 +148,12 @@ void expConfig::begin()
 
 expSystem::expSystem()
 {
-    m_num_configs = 0;
-    m_cur_config_num = -1;
-    m_prev_config_num = 0;
+    m_num_patches = 0;
+    m_cur_patch_num = -1;
+    m_prev_patch_num = 0;
 
-    for (int i=0; i<MAX_EXP_CONFIGS; i++)
-        m_pConfigs[i] = 0;
+    for (int i=0; i<MAX_EXP_PATCHES; i++)
+        m_patches[i] = 0;
 
 }
 
@@ -170,17 +171,17 @@ void expSystem::begin()
 
     // get config_num from EEPROM and activate it
     
-    int config_num = EEPROM.read(EEPROM_CONFIG_NUM);
-    if (config_num == 255)
-        config_num = DEFAULT_CONFIG_NUM;
-    if (config_num == 255)
-        config_num = DEFAULT_CONFIG_NUM;
-    if (config_num >= m_num_configs)
-        config_num = m_num_configs - 1;
+    int patch_num = EEPROM.read(EEPROM_PATCH_NUM);
+    if (patch_num == 255)
+        patch_num = DEFAULT_CONFIG_NUM;
+    if (patch_num == 255)
+        patch_num = DEFAULT_CONFIG_NUM;
+    if (patch_num >= m_num_patches)
+        patch_num = m_num_patches - 1;
 
-    // config_num = 0;
+    // patch_num = 0;
         // override EEPROM setting 
-        // for working on a particular config
+        // for working on a particular patch
     
     m_timer.priority(EXP_TIMER_PRIORITY);
     m_timer.begin(timer_handler,EXP_TIMER_INTERVAL);
@@ -189,7 +190,7 @@ void expSystem::begin()
     m_critical_timer.begin(critical_timer_handler,EXP_CRITICAL_TIMER_INTERVAL);
         // start the timer
         
-    activateConfig(config_num);
+    activatePatch(patch_num);
         // show the first windw
     
 }
@@ -199,51 +200,51 @@ void expSystem::begin()
 // Config management
 //-------------------------------------------------
     
-void expSystem::addConfig(expConfig *pConfig)
+void expSystem::addPatch(expWindow *pConfig)
 {
-    if (m_num_configs >= MAX_EXP_CONFIGS)
+    if (m_num_patches >= MAX_EXP_PATCHES + 1)
     {
-        my_error("TOO MANY CONFIGURATIONS! %d",m_num_configs+1);
+        my_error("TOO MANY PATCHES! %d",m_num_patches+1);
         return;
     }
-    m_pConfigs[m_num_configs++] = pConfig;
+    m_patches[m_num_patches++] = pConfig;
 }
 
 
-void expSystem::activateConfig(int i)
+void expSystem::activatePatch(int i)
 {
-    if (m_cur_config_num >= m_num_configs)
+    if (m_cur_patch_num >= m_num_patches)
     {
-        my_error("attempt to activate illegal configuarion %d",i);
+        my_error("attempt to activate illegal patch number %d",i);
         return;
     }
     
-    // deactivate previous configuration
+    // deactivate previous patch
     
-    if (m_cur_config_num >= 0)
+    if (m_cur_patch_num >= 0)
     {
-        getCurConfig()->end();
-        m_prev_config_num = m_cur_config_num;
+        getCurPatch()->end();
+        m_prev_patch_num = m_cur_patch_num;
     }
     
-    m_cur_config_num = i;
+    m_cur_patch_num = i;
     
-    // clear the TFT and show the config title
+    // clear the TFT and show the patch (window) title
     
-    if (m_cur_config_num)
+    if (m_cur_patch_num)
     {
         mylcd.Fill_Screen(0);
         mylcd.setFont(Arial_16_Bold);
         mylcd.Set_Text_Cursor(10,10);
         mylcd.Set_Text_colour(TFT_YELLOW);
-        mylcd.print(getCurConfig()->name());
+        mylcd.print(getCurPatch()->name());
         mylcd.Set_Draw_color(TFT_YELLOW);
 	    mylcd.Draw_Line(0,36,mylcd.Get_Display_Width()-1,36);
     }
     
-    // start the configuration running
+    // start the patch (window) running
     
-    getCurConfig()->begin();
+    getCurPatch()->begin();
     
     // add the system long click handler
     
@@ -258,7 +259,7 @@ void expSystem::activateConfig(int i)
 
 void expSystem::pedalEvent(int num, int value)
 {
-    if (!getCurConfig()->onPedalEvent(num,value))
+    if (!getCurPatch()->onPedalEvent(num,value))
 	{
 		expressionPedal *pedal = thePedals.getPedal(num);
 		if (pedal->getCCChannel() && pedal->getCCNum())
@@ -283,26 +284,26 @@ void expSystem::pedalEvent(int num, int value)
 
 void expSystem::rotaryEvent(int num, int value)
 {
-    getCurConfig()->onRotaryEvent(num,value);
+    getCurPatch()->onRotaryEvent(num,value);
 }
 
 
 
 void expSystem::buttonEvent(int row, int col, int event)
 {
-    // handle changes to systemConfig
+    // handle changes to configSystem
     
     if (row == 0 &&
         col == 4 &&
-        m_cur_config_num &&
+        m_cur_patch_num &&
         event == BUTTON_EVENT_LONG_CLICK)
     {
         setLED(0,4,LED_PURPLE);
-        activateConfig(0);
+        activatePatch(0);
     }
     else
     {
-        getCurConfig()->onButtonEvent(row,col,event);
+        getCurPatch()->onButtonEvent(row,col,event);
     }
 }
 
@@ -351,7 +352,7 @@ void expSystem::timer_handler()
     
 	// call window handler
 	
-    theSystem.getCurConfig()->timer_handler();
+    theSystem.getCurPatch()->timer_handler();
 }
 
 
@@ -361,7 +362,7 @@ void expSystem::updateUI()
 	// current "process" function called from timer_handler()
 	// dequeueProcess();
 	
-    getCurConfig()->updateUI();
+    getCurPatch()->updateUI();
 }
 
 

@@ -1,5 +1,5 @@
 #include <myDebug.h>
-#include "dlgFtpTuner.h"
+#include "winFtpTuner.h"
 #include "defines.h"
 #include "myTFT.h"
 #include "myLeds.h"
@@ -15,12 +15,12 @@
 // life cycle
 //------------------------------------------------------------
 
-dlgFtpTuner::dlgFtpTuner() 
+winFtpTuner::winFtpTuner() 
 {
 	init();
 }
 
-void dlgFtpTuner::init()
+void winFtpTuner::init()
 {
 	draw_needed = 1;
 	last_battery_level = 0;
@@ -33,7 +33,7 @@ void dlgFtpTuner::init()
 
 
 // virtual
-void dlgFtpTuner::begin()
+void winFtpTuner::begin()
 {
     sendFTPCommandAndValue(FTP_CMD_EDITOR_MODE, 0x02);
 		// I think this should be called FTP_COMMAND_TUNER
@@ -42,7 +42,7 @@ void dlgFtpTuner::begin()
 		// get the battery level
 		
 	init();
-	expConfig::begin();	
+	expWindow::begin();	
 	
 	//for (int i=0; i<5; i++)
 	//	last_tuner_box_color[i] = -1;
@@ -74,7 +74,7 @@ void dlgFtpTuner::begin()
 
 
 // virtual
-void dlgFtpTuner::onButtonEvent(int row, int col, int event)
+void winFtpTuner::onButtonEvent(int row, int col, int event)
 {
 }
 
@@ -138,7 +138,7 @@ void dlgFtpTuner::onButtonEvent(int row, int col, int event)
 
 
 
-void dlgFtpTuner::fretsToInts(int *ints)
+void winFtpTuner::fretsToInts(int *ints)
 {
 	for (int i=0; i<NUM_STRINGS; i++)
 	{
@@ -163,7 +163,7 @@ void dlgFtpTuner::fretsToInts(int *ints)
 
 	
 
-void dlgFtpTuner::drawCircle(int string, int fret, bool pressed)
+void winFtpTuner::drawCircle(int string, int fret, bool pressed)
 {
 	if (fret > NUM_INTERVALS + 1)
 		return;
@@ -195,7 +195,7 @@ void dlgFtpTuner::drawCircle(int string, int fret, bool pressed)
 }
 
 
-void dlgFtpTuner::drawTunerPointer(int tuner_x, int color)
+void winFtpTuner::drawTunerPointer(int tuner_x, int color)
 {
 	mylcd.Set_Draw_color(color);
 	
@@ -241,7 +241,7 @@ void dlgFtpTuner::drawTunerPointer(int tuner_x, int color)
 
 
 // virtual
-void dlgFtpTuner::updateUI()	// draw
+void winFtpTuner::updateUI()	// draw
 {
 	if (battery_time > BATTERY_CHECK_TIME)
 	{

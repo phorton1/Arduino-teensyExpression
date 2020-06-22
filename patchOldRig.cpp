@@ -1,4 +1,4 @@
-#include "oldRigConfig.h"
+#include "patchOldRig.h"
 #include <myDebug.h>
 #include "defines.h"
 #include "myLeds.h"
@@ -78,13 +78,13 @@ int loop_ccs[NUM_BUTTON_COLS] =
 
 
 //====================================================================
-// oldRigConfig
+// patchOldRig
 //====================================================================
 
 bool full_redraw = -0;
 
 
-oldRigConfig::oldRigConfig()
+patchOldRig::patchOldRig()
 {
     m_cur_patch_num = -1;    // 0..14
 }
@@ -95,9 +95,9 @@ oldRigConfig::oldRigConfig()
     
 
 // virtual
-void oldRigConfig::begin()
+void patchOldRig::begin()
 {
-    expConfig::begin();
+    expWindow::begin();
     full_redraw = 1;
     last_displayed_patch_num = -1;
     
@@ -121,7 +121,7 @@ void oldRigConfig::begin()
 
 
 // virtual
-void oldRigConfig::onButtonEvent(int row, int col, int event)
+void patchOldRig::onButtonEvent(int row, int col, int event)
 {
     if (row < 3)
     {
@@ -246,7 +246,7 @@ void oldRigConfig::onButtonEvent(int row, int col, int event)
 
 
 // virtual
-void oldRigConfig::updateUI()
+void patchOldRig::updateUI()
 {
     bool draw_full = false;
     if (full_redraw)
