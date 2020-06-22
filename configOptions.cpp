@@ -233,7 +233,7 @@ void brightnessOption::setValue(int i)
 //--------------------------------------------
 
 patchNumOption::patchNumOption(configOption *parent) :
-    integerOption(parent,"Config",
+    integerOption(parent,"Patch",
         OPTION_TYPE_IMMEDIATE | OPTION_TYPE_CONFIG_NUM,1,0)
 {}
 
