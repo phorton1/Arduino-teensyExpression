@@ -7,9 +7,6 @@
 #include "ftp.h"
 #include "ftp_defs.h"
 
-#define BATTERY_CHECK_TIME  30000
-
-
 	
 //------------------------------------------------------------
 // life cycle
@@ -23,12 +20,10 @@ winFtpTuner::winFtpTuner()
 void winFtpTuner::init()
 {
 	draw_needed = 1;
-	last_battery_level = 0;
 	last_tuner_note = -1;
 	last_tuner_value = 0;	
 	for (int i=0; i<NUM_STRINGS; i++)
 		last_string_pressed[i] = -1;
-	battery_time = 0;
 }
 
 
@@ -38,9 +33,7 @@ void winFtpTuner::begin()
     sendFTPCommandAndValue(FTP_CMD_EDITOR_MODE, 0x02);
 		// I think this should be called FTP_COMMAND_TUNER
 		// as the only value that seems to work is the 2/0 bit
-    sendFTPCommandAndValue(FTP_CMD_BATTERY_LEVEL, 0);
-		// get the battery level
-		
+
 	init();
 	expWindow::begin();	
 	
@@ -67,29 +60,9 @@ void winFtpTuner::begin()
 
 
 
-
-//------------------------------------------------------------
-// events
-//------------------------------------------------------------
-
-
-// virtual
-void winFtpTuner::onButtonEvent(int row, int col, int event)
-{
-}
-
-
 //------------------------------------------------------------
 // updateUI (draw)
 //------------------------------------------------------------
-// battery indicator
-
-#define BATTERY_X       426
-#define BATTERY_Y       12
-#define BATTERY_FRAME   2
-#define BATTERY_WIDTH   36
-#define BATTERY_HEIGHT  16
-
 // fretboard
 		
 #define FRETBOARD_X     	10
@@ -243,41 +216,11 @@ void winFtpTuner::drawTunerPointer(int tuner_x, int color)
 // virtual
 void winFtpTuner::updateUI()	// draw
 {
-	if (battery_time > BATTERY_CHECK_TIME)
-	{
-	    sendFTPCommandAndValue(FTP_CMD_BATTERY_LEVEL, 0);
-		battery_time = 0;
-	}
-	
-	
 	bool full_draw = 0;
 	if (draw_needed)
 	{
 		full_draw = 1;
 		draw_needed = 0;
-		
-		//----------------------------------
-		//  battery indicator
-		//----------------------------------
-		
-		mylcd.Fill_Rect(
-			BATTERY_X,
-			BATTERY_Y,
-			BATTERY_WIDTH,
-			BATTERY_HEIGHT,
-			TFT_DARKGREY);
-		mylcd.Fill_Rect(
-			BATTERY_X + BATTERY_WIDTH -1,
-			BATTERY_Y + (BATTERY_HEIGHT/4),
-			4,
-			(BATTERY_HEIGHT/2),
-			TFT_DARKGREY);
-		mylcd.Fill_Rect(
-			BATTERY_X + BATTERY_FRAME,
-			BATTERY_Y + BATTERY_FRAME,
-			BATTERY_WIDTH - 2*BATTERY_FRAME,
-			BATTERY_HEIGHT - 2*BATTERY_FRAME,
-			TFT_BLACK);
 		
 		//----------------------------------
 		// fretboard
@@ -363,43 +306,6 @@ void winFtpTuner::updateUI()	// draw
 				TUNER_FRAME_Y + TUNER_FRAME_MARGIN - 1);
 		}
 	}
-	
-	//------------------------------
-	// battery indicator value
-	//------------------------------
-	
-	if (full_draw ||
-		last_battery_level != ftp_battery_level)
-	{
-		float pct = ftp_battery_level == -1 ? 1.0 : (((float)ftp_battery_level)-0x40) / 0x24;
-		int color = ftp_battery_level == -1 ? TFT_LIGHTGREY : (pct <= .15 ? TFT_RED : TFT_DARKGREEN);
-		if (pct > 1) pct = 1.0;
-		
-		display(0,"battery_level=%d   pct=%0.2f",ftp_battery_level,pct);
-		
-		float left_width = pct * ((float) BATTERY_WIDTH - 2*BATTERY_FRAME);
-		float right_width = (1-pct) * ((float) BATTERY_WIDTH - 2*BATTERY_FRAME);
-		int left_int = left_width;
-		int right_int = right_width;
-		
-		mylcd.Fill_Rect(
-			BATTERY_X + BATTERY_FRAME,
-			BATTERY_Y + BATTERY_FRAME,
-			left_int,
-			BATTERY_HEIGHT - 2*BATTERY_FRAME,
-			color);
-
-		if (right_int > 0)
-			mylcd.Fill_Rect(
-				BATTERY_X + BATTERY_FRAME + left_int,
-				BATTERY_Y + BATTERY_FRAME,
-				right_int,
-				BATTERY_HEIGHT - 2*BATTERY_FRAME,
-				TFT_BLACK);
-		
-		last_battery_level = ftp_battery_level;
-	}
-	
 	
 	//------------------------------
 	// fretboard pressed notes

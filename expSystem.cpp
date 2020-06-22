@@ -8,6 +8,7 @@
 #include "pedals.h"
 #include "rotary.h"
 #include "ftp.h"
+#include "ftp_defs.h"
 #include "myMidiHost.h"
 #include "midiQueue.h"
 
@@ -20,6 +21,8 @@
 
 
 #define SHOW_SENT_MIDI  1
+
+#define BATTERY_CHECK_TIME  30000
 
 
 // Fishman TriplePlay MIDI HOST Spoof Notes
@@ -158,10 +161,21 @@ expSystem::expSystem()
     m_num_patches = 0;
     m_cur_patch_num = -1;
     m_prev_patch_num = 0;
+	
+	last_battery_level = 0;
+	battery_time = BATTERY_CHECK_TIME;
+	draw_needed	= 1;
+	m_title = 0;
 
     for (int i=0; i<MAX_EXP_PATCHES; i++)
         m_patches[i] = 0;
 
+}
+
+void expSystem::setTitle(const char *title)
+{
+	m_title = title;
+	draw_needed = 1;
 }
 
 
@@ -247,13 +261,9 @@ void expSystem::activatePatch(int i)
     
     if (m_cur_patch_num)
     {
+		draw_needed = 1;
         mylcd.Fill_Screen(0);
-        mylcd.setFont(Arial_16_Bold);
-        mylcd.Set_Text_Cursor(10,10);
-        mylcd.Set_Text_colour(TFT_YELLOW);
-        mylcd.print(getCurPatch()->name());
-        mylcd.Set_Draw_color(TFT_YELLOW);
-	    mylcd.Draw_Line(0,36,mylcd.Get_Display_Width()-1,36);
+		setTitle(getCurPatch()->name());
     }
     
     // start the patch (window) running
@@ -371,8 +381,105 @@ void expSystem::timer_handler()
 
 
 
+
+
+//------------------------------
+// updateUI
+//-------------------------------
+// battery indicator
+
+#define BATTERY_X       426
+#define BATTERY_Y       12
+#define BATTERY_FRAME   2
+#define BATTERY_WIDTH   36
+#define BATTERY_HEIGHT  16
+
+
+
 void expSystem::updateUI()
 {
+	if (battery_time > BATTERY_CHECK_TIME)
+	{
+	    sendFTPCommandAndValue(FTP_CMD_BATTERY_LEVEL, 0);
+		battery_time = 0;
+	}
+	
+	bool full_draw = 0;
+	if (draw_needed)
+	{
+		draw_needed = 0;
+		full_draw = 1;
+		
+		// title
+		
+        mylcd.setFont(Arial_16_Bold);
+        mylcd.Set_Text_Cursor(10,10);
+        mylcd.Set_Text_colour(TFT_YELLOW);
+        mylcd.print(m_title);
+        mylcd.Set_Draw_color(TFT_YELLOW);
+	    mylcd.Draw_Line(0,36,mylcd.Get_Display_Width()-1,36);
+
+		//----------------------------------
+		//  battery indicator
+		//----------------------------------
+		
+		mylcd.Fill_Rect(
+			BATTERY_X,
+			BATTERY_Y,
+			BATTERY_WIDTH,
+			BATTERY_HEIGHT,
+			TFT_DARKGREY);
+		mylcd.Fill_Rect(
+			BATTERY_X + BATTERY_WIDTH -1,
+			BATTERY_Y + (BATTERY_HEIGHT/4),
+			4,
+			(BATTERY_HEIGHT/2),
+			TFT_DARKGREY);
+		mylcd.Fill_Rect(
+			BATTERY_X + BATTERY_FRAME,
+			BATTERY_Y + BATTERY_FRAME,
+			BATTERY_WIDTH - 2*BATTERY_FRAME,
+			BATTERY_HEIGHT - 2*BATTERY_FRAME,
+			TFT_BLACK);
+	}
+	
+	//------------------------------
+	// battery indicator value
+	//------------------------------
+	
+	if (full_draw ||
+		last_battery_level != ftp_battery_level)
+	{
+		float pct = ftp_battery_level == -1 ? 1.0 : (((float)ftp_battery_level)-0x40) / 0x24;
+		int color = ftp_battery_level == -1 ? TFT_LIGHTGREY : (pct <= .15 ? TFT_RED : TFT_DARKGREEN);
+		if (pct > 1) pct = 1.0;
+		
+		display(0,"battery_level=%d   pct=%0.2f",ftp_battery_level,pct);
+		
+		float left_width = pct * ((float) BATTERY_WIDTH - 2*BATTERY_FRAME);
+		float right_width = (1-pct) * ((float) BATTERY_WIDTH - 2*BATTERY_FRAME);
+		int left_int = left_width;
+		int right_int = right_width;
+		
+		mylcd.Fill_Rect(
+			BATTERY_X + BATTERY_FRAME,
+			BATTERY_Y + BATTERY_FRAME,
+			left_int,
+			BATTERY_HEIGHT - 2*BATTERY_FRAME,
+			color);
+
+		if (right_int > 0)
+			mylcd.Fill_Rect(
+				BATTERY_X + BATTERY_FRAME + left_int,
+				BATTERY_Y + BATTERY_FRAME,
+				right_int,
+				BATTERY_HEIGHT - 2*BATTERY_FRAME,
+				TFT_BLACK);
+		
+		last_battery_level = ftp_battery_level;
+	}
+		
+	
 	// current "process" function called from timer_handler()
 	// dequeueProcess();
 	

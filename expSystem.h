@@ -67,6 +67,9 @@ class expSystem
         void rotaryEvent(int num, int val);
         void buttonEvent(int row, int col, int event);
         
+        void setTitle(const char *title);
+        
+        
     private:
 
         int m_num_patches;
@@ -85,6 +88,14 @@ class expSystem
         
         static void timer_handler();
         static void critical_timer_handler();
+        
+        
+        int last_battery_level;
+        elapsedMillis battery_time;
+        bool draw_needed;
+        
+        const char *m_title;
+        
         
 };
 

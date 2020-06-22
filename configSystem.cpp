@@ -314,21 +314,15 @@ void configSystem::updateUI()
         display_menu = cur_menu;
         draw_all = true;
         
-        mylcd.setFont(Arial_16_Bold);
-        mylcd.Set_Text_Cursor(10,10);
-        mylcd.Set_Text_colour(TFT_YELLOW);
-        mylcd.Set_Draw_color(TFT_YELLOW);
-        mylcd.Fill_Rect(0,0,TFT_WIDTH,TFT_HEIGHT,0);
-        
+        mylcd.Fill_Screen(0);
+
         if (cur_option->pParent == &rootOption)
-            mylcd.print( theSystem.getCurPatch()->name());
+            theSystem.setTitle(theSystem.getCurPatch()->name());
         else
         {
             configOption *opt = cur_option->pParent;
-            mylcd.print(opt->title);
+            theSystem.setTitle(opt->title);
         }
-
-	    mylcd.Draw_Line(0,36,TFT_WIDTH-1,36);
     }
 
     mylcd.setFont(Arial_20);
