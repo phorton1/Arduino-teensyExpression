@@ -138,7 +138,7 @@ void patchMidiHost::onButtonEvent(int row, int col, int event)
 	{
 		display(0,"getting patch(%d,%d)",dbg_bank_num,dbg_patch_num);
 		uint8_t  ftpRequestPatch[]	= { 0xF0, 0x00, 0x01, 0x6E, 0x01, FTP_CODE_READ_PATCH, dbg_bank_num, dbg_patch_num, 0xf7 };
-		midi1.sendSysEx(sizeof(ftpRequestPatch),ftpRequestPatch,true); 	
+		midi_host.sendSysEx(sizeof(ftpRequestPatch),ftpRequestPatch,true); 	
 	}
 	else if (num == PAD2_SELECT)
 	{

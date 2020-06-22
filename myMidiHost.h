@@ -5,10 +5,6 @@
 #include <USBHost_t36.h>
 
 
-// 255 is reserved (EEPROM) value
-
-#define MIDI_HOST_ON          0x01
-
 
 class myMidiHostDevice : public MIDIDevice
     // requires slightly modified USBHost_t36.h
@@ -18,7 +14,6 @@ class myMidiHostDevice : public MIDIDevice
         myMidiHostDevice(USBHost &host) :
             MIDIDevice(host)
         {
-            startup_state = 0;
         }
         
         void init();
@@ -27,20 +22,13 @@ class myMidiHostDevice : public MIDIDevice
             // virtual override to handle USB irq,
             // write packet to teensyDuino device,
             // and enqueue packet for processing
-        
-        
-        bool isOn()     { return startup_state & MIDI_HOST_ON; }
-        
-    private:
-        
-        int startup_state;
 
 };
 
 
     
-extern USBHost myusb;
-extern myMidiHostDevice midi1;
+//extern USBHost myusb;
+extern myMidiHostDevice midi_host;
 
 
 #endif  // __myMidiHost_h__

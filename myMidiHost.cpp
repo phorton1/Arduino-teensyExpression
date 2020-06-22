@@ -10,7 +10,7 @@
 
 USBHost myusb;
 // MIDIDevice midi1(myusb);
-myMidiHostDevice midi1(myusb);
+myMidiHostDevice midi_host(myusb);
     
 
 #define SPOOF_FTP_BATTERY  0
@@ -30,17 +30,7 @@ void myMidiHostDevice::init()
     // Wait 1.5 seconds before turning on USB Host.  If connected USB devices
     // use too much power, Teensy at least completes USB enumeration, which
     // makes isolating the power issue easier.
-
-    startup_state = EEPROM.read(EEPROM_MIDI_HOST);
-     
-    if (startup_state == 255)
-        startup_state = DEFAULT_MIDI_HOST_ON;
-
-    if (isOn())
-    {
-        // delay(1500);
-        myusb.begin();
-    }
+    myusb.begin();
 }
 
 

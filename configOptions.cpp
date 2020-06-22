@@ -252,7 +252,7 @@ void patchNumOption::init()
 // virtual
 const char *patchNumOption::getValueString()
 {
-    return theSystem.getConfig(value)->short_name();
+    return theSystem.getPatch(value)->short_name();
 }
 
 
@@ -271,33 +271,6 @@ const char *onOffOption::getValueString()
     return value ? "ON" : "OFF";
 }
 
-
-
-//-------------------------------------
-// Specific Options
-//-------------------------------------
-
-midiHostOption::midiHostOption(configOption *parent) :
-    onOffOption(parent,"Midi Host") {}
-
-// virtual
-void midiHostOption::init()
-{
-    onOffOption::init();
-    orig_value = value = midi1.isOn();
-}
-
-
-
-serialPortOption::serialPortOption(configOption *parent) :
-    onOffOption(parent,"Serial Port") {}
-    
-// virtual
-void serialPortOption::init()
-{
-    onOffOption::init();
-    orig_value = value = serial_port_on;
-}
 
 
 

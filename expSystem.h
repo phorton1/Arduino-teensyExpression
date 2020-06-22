@@ -58,12 +58,10 @@ class expSystem
         void activatePatch(int i);
 
         int getNumPatches()         { return m_num_patches; }
-        int getCurPatchNum()       { return m_cur_patch_num; }
+        int getCurPatchNum()        { return m_cur_patch_num; }
         int getPrevConfigNum()      { return m_prev_patch_num; }
-        expWindow *getCurPatch()   { return m_patches[m_cur_patch_num]; }
-        expWindow *getConfig(int i) { return m_patches[i]; }
-        
-        void addPatch(expWindow *pConfig);
+        expWindow *getCurPatch()    { return m_patches[m_cur_patch_num]; }
+        expWindow *getPatch(int i) { return m_patches[i]; }
         
         void pedalEvent(int num, int val);
         void rotaryEvent(int num, int val);
@@ -74,6 +72,10 @@ class expSystem
         int m_num_patches;
         int m_cur_patch_num;
         int m_prev_patch_num;
+
+
+        void addPatch(expWindow *pConfig);
+        
         expWindow *m_patches[MAX_EXP_PATCHES + 1];
             // 1 extra for patch #0 which is overloaded
             // as the configSystem window.

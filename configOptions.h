@@ -144,22 +144,6 @@ class onOffOption : public integerOption
 
 
 
-class midiHostOption : public onOffOption
-{
-    public:
-        midiHostOption(configOption *parent);
-        virtual void init();
-};
-
-
-class serialPortOption : public onOffOption
-{
-    public:
-        serialPortOption(configOption *parent);
-        virtual void init();
-};
-
-
 class spoofFTPOption : public onOffOption
 {
     public:

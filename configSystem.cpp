@@ -44,8 +44,6 @@ configOption     optConfigPedal3(&optConfigPedals,"Configure Pedal3 (Wah)",    O
 configOption     optConfigPedal4(&optConfigPedals,"Configure Pedal4 (Guitar)", OPTION_TYPE_TERMINAL);
 
 
-midiHostOption   optMidiHost(&optSystem);
-serialPortOption optSerialPort(&optSystem);
 configOption     optCalibrateTouch(&optSystem,"Calibrate Touch",OPTION_TYPE_TERMINAL);
 
 
@@ -90,8 +88,7 @@ bool config_changed()
     return
         optBrightness.getValue() != optBrightness.getOrigValue() ||
         optPatchNum.getValue() != optPatchNum.getOrigValue() ||
-        optMidiHost.getValue() != optMidiHost.getOrigValue() ||
-        optSerialPort.getValue() != optSerialPort.getOrigValue();
+		optSpoofFTP.getValue() != optSpoofFTP.getOrigValue();
 }
 
 
@@ -268,23 +265,14 @@ void configSystem::onButtonEvent(int row, int col, int event)
   
             EEPROM.write(EEPROM_BRIGHTNESS,optBrightness.value);
             EEPROM.write(EEPROM_PATCH_NUM,optPatchNum.value);
-            EEPROM.write(EEPROM_MIDI_HOST,optMidiHost.value);
-            EEPROM.write(EEPROM_SERIAL_PORT,optSerialPort.value);
             EEPROM.write(EEPROM_SPOOF_FTP,optSpoofFTP.value);
             
-            if ((optMidiHost.value != optMidiHost.orig_value) ||
-                (optSerialPort.value != optSerialPort.orig_value) ||
-                (optSpoofFTP.value != optSpoofFTP.orig_value))
+            if (optSpoofFTP.value != optSpoofFTP.orig_value)
             {
                 reboot(num);                
             }
         }
 
-        // you cannot change these at run time!!!
-        //
-        // midi_host_on = optMidiHost.value;
-        // serial_port_on = optSerialPort.value;
-        
         theSystem.activatePatch(optPatchNum.value);
     }
     

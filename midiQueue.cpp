@@ -132,14 +132,14 @@ void sendFTPCommandAndValue(uint8_t command, uint8_t value)
         command);
     
     _enqueueOutgoing(msg.i);
-    // midi1.write_packed(msg.i);
+    // midi_host.write_packed(msg.i);
 
     msg.b[2] = FTP_COMMAND_VALUE;       // 0x3f
     msg.b[3] = value;
     
     _enqueueOutgoing(msg.i);
-    // midi1.write_packed(msg.i);
-    // midi1.flush();
+    // midi_host.write_packed(msg.i);
+    // midi_host.flush();
 }
 
 
@@ -156,8 +156,8 @@ void _processOutgoing()
             command_retry_count = 0;
             
             display(0,"--> sending(%d) command(%08x) value(%08x)",command_retry_count,pending_command,pending_command_value);
-            midi1.write_packed(pending_command);
-            midi1.write_packed(pending_command_value);
+            midi_host.write_packed(pending_command);
+            midi_host.write_packed(pending_command_value);
             command_time = 0;
         }
     }
@@ -171,8 +171,8 @@ void _processOutgoing()
     {
         command_retry_count++;
         display(0,"--> sending(%d) command(%08x) value(%08x)",command_retry_count,pending_command,pending_command_value);
-        midi1.write_packed(pending_command);
-        midi1.write_packed(pending_command_value);
+        midi_host.write_packed(pending_command);
+        midi_host.write_packed(pending_command_value);
         command_time = 0;
     }
 }

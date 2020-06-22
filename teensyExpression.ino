@@ -9,46 +9,21 @@
 #include "buttons.h"
 #include "expSystem.h"
 #include "myMidiHost.h"
-#include "TouchScreen.h"    // modified to (at least) reset pinModes
-#include "configSystem.h"
-#include "patchOldRig.h"
-#include "patchTest.h"
-#include "patchMidiHost.h"
-#include "winFtpTuner.h"
-#include "winFtpSensitivity.h"
+#include "myTouchScreen.h"
 #include <EEPROM.h>
 
-    
-// #include <stdint.h>
-// #include <Arduino.h>
 
 
 #define TOUCH_DRAW_TEST  0
+#define WITH_SDCARD      0
     // test defines at this time
     
-
-//----------------------------------
-// globals here for time being
-//----------------------------------
-
-int serial_port_on = 0;
-
-// Resistive touch screen on Cheap Ardino 3.5" 320x480 TFT's
-// need an object, calibration routine, etc
-
-int touch_minx=240;
-int touch_maxx=920;
-int touch_miny=90;
-int touch_maxy=860;
-
-TouchScreen theTouchScreen = TouchScreen(XP, YP, XM, YM);   // , 300);
 
     
 //-------------------------------------
 // SD Card Test
 //-------------------------------------
 
-#define WITH_SDCARD      0
 #if WITH_SDCARD
     #include <SD.h>
     #include <SPI.h>
@@ -193,35 +168,17 @@ void setup()
         mylcd.println("    !! NOT USB_MIDI4_SERIAL !!");
     #endif
 
-    midi1.init();
-    display(0,"    MIDI_HOST %s",midi1.isOn()?"ON":"OFF");
-    mylcd.print("    MIDI_HOST ");
-    mylcd.println(midi1.isOn()?"ON":"OFF");
+    midi_host.init();
     
     // serial port
     
-    serial_port_on = EEPROM.read(EEPROM_SERIAL_PORT);
-    if (serial_port_on == 255)
-        serial_port_on = DEFAULT_SERIAL_PORT_ON;
-    display(0,"    SERIAL_PORT %s",serial_port_on?"ON":"OFF");
-    mylcd.print("    SERIAL_PORT ");
-    mylcd.println(serial_port_on?"ON":"OFF");
-    
-    if (serial_port_on)
-    {
-        Serial3.begin(115200);
-        Serial3.println("teensy expression Serial3 to rPi started");
-
-        // divert myDebug output to Serial 3
-        
-        display(0,"Serial=%08x",(uint32_t) &Serial);
-        display(0,"Serial3=%08x",(uint32_t) &Serial3);
-        display(0,"dbgSerial=%08x",(uint32_t) dbgSerial);
-        
+    Serial3.begin(115200);
+    // Serial3.println("teensy expression Serial3 to rPi started");
+    #if 0
+         // divert myDebug output to Serial 3
         dbgSerial = &Serial3;
-
-        display(0,"after dbgSerial=%08x",(uint32_t) dbgSerial);
-    }
+        display(0,"debugging output redirected to Serial3",0);
+    #endif
     
     display(0,"initializing system ...",0);
     mylcd.println("initializing system .");
@@ -235,12 +192,6 @@ void setup()
     
     delay(1200);
 
-    theSystem.addPatch(new configSystem());
-    theSystem.addPatch(new patchOldRig());
-    theSystem.addPatch(new patchTest());
-    theSystem.addPatch(new patchMidiHost());
-    theSystem.addPatch(new winFtpTuner());
-    theSystem.addPatch(new winFtpSensitivity());
     theSystem.begin();
         
     display(0,"system running ...",0);
@@ -268,32 +219,28 @@ void loop()
     
     #if TOUCH_DRAW_TEST
     
+        // if I don't assume a "release" for at least 350 or so ms
+        // after a "press", then I can implement swipe gestures.
+    
+        static bool cleared = 0;
         static elapsedMillis clear_it = 0;
-        if (clear_it > 3000)
+        if (!cleared && clear_it > 350)
         {
             mylcd.Fill_Screen(0);
             clear_it = 0;
+            cleared = 1;
         }
-        
-        TSPoint p = theTouchScreen.getPoint();
-        if (p.z> 50 &&        // > ts.pressureThreshhold) {
-            p.x > touch_minx && 
-            p.x < touch_maxx && 
-            p.y > touch_miny && 
-            p.y < touch_maxy) 
-            
+       
+        int x,y,z;
+        theTouchScreen.get(&z,&x,&y);
+        if (z)
         {
+            cleared = 0;
             clear_it = 0;
-            float myx = ((float)(p.x - touch_minx)) / ((float)(touch_maxx - touch_minx));
-            float myy = ((float)(p.y - touch_miny)) / ((float)(touch_maxy - touch_miny));
-            
-            int use_x = ((1-myx) * 480);
-            int use_y = ((1-myy) * 320);
-            mylcd.Print_String("o",use_x,use_y);
-            
-            #if 0
-                display("x=%d \ty=%d \tpressure=%d \t\t%d\t%d",p.x,p.y,p.z,myx,myy);
-            #endif
+            mylcd.setDefaultFont();
+            mylcd.Set_Text_Size(3);
+            mylcd.Set_Text_Mode(false);     // false=black fill, true=no fill
+            mylcd.Print_String("o",x,y);
         }
         
     #endif

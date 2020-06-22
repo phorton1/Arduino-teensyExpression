@@ -10,11 +10,6 @@
 
 #define DEFAULT_CONFIG_NUM  1
 #define DEFAULT_BRIGHTNESS  60
-#define DEFAULT_MIDI_HOST_ON  0
-#define DEFAULT_SERIAL_PORT_ON 0
-
-extern int serial_port_on;
-
 
     
 //----------------------------------------------------------------------

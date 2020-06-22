@@ -11,6 +11,13 @@
 #include "myMidiHost.h"
 #include "midiQueue.h"
 
+#include "configSystem.h"
+#include "patchOldRig.h"
+#include "patchTest.h"
+#include "patchMidiHost.h"
+#include "winFtpTuner.h"
+#include "winFtpSensitivity.h"
+
 
 #define SHOW_SENT_MIDI  1
 
@@ -59,7 +66,7 @@
 //         in the critical_timer_handler() implementation
 //      which is where they get written TO the hosted device (FTP)
 //         via the exposed USBHost_t36 MIDIDevice myMidiHost
-//         midi1.write_packed(msg) method
+//         midi_host.write_packed(msg) method
 //
 // IT WAS IMPORTANT AND HARD TO FIND THAT I HAD TO LOWER THE PRIORITY
 // OF THE critical_timer to let the host usb IRQs have priority.
@@ -160,6 +167,13 @@ expSystem::expSystem()
 
 void expSystem::begin()
 {
+    addPatch(new configSystem());
+    addPatch(new patchOldRig());
+    addPatch(new patchTest());
+    addPatch(new patchMidiHost());
+    addPatch(new winFtpTuner());
+    addPatch(new winFtpSensitivity());
+			
     theButtons.init();
     
     // get the brightness from EEPROM
@@ -189,7 +203,7 @@ void expSystem::begin()
     m_critical_timer.priority(EXP_CRITICAL_TIMER_PRIORITY);
     m_critical_timer.begin(critical_timer_handler,EXP_CRITICAL_TIMER_INTERVAL);
         // start the timer
-        
+
     activatePatch(patch_num);
         // show the first windw
     
@@ -326,7 +340,7 @@ void expSystem::critical_timer_handler()
     {
 		// write it to the midi host
 
-        midi1.write_packed(msg);
+        midi_host.write_packed(msg);
         
         // enqueue it for processing (display from device)
         
