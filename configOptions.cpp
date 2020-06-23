@@ -179,6 +179,7 @@ void integerOption::terminalDraw()
             LCD_JUST_CENTER,
             TFT_YELLOW,
             TFT_BLACK,
+            false,
             "%s",
             title);
     }
@@ -197,6 +198,7 @@ void integerOption::terminalDraw()
             LCD_JUST_CENTER,
             TFT_WHITE,
             TFT_BLACK,
+            true,
             "%s",
             getValueString());
     }

@@ -239,7 +239,6 @@ void loop()
             clear_it = 0;
             mylcd.setDefaultFont();
             mylcd.Set_Text_Size(3);
-            mylcd.Set_Text_Mode(false);     // false=black fill, true=no fill
             mylcd.Print_String("o",x,y);
         }
         

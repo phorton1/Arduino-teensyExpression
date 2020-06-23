@@ -24,6 +24,7 @@ void initMyTFT()
         CHEAP_TFT_DATA7);
     mylcd.Init_LCD();
     mylcd.Set_Rotation(1);
-    mylcd.Set_Text_Mode(0);
+    // mylcd.Set_Text_Mode(0);
+    // starts with default my "m_use_bc=1"
     mylcd.Fill_Screen(0);
 }
