@@ -47,6 +47,7 @@ class configOption
             // called recursively during begin() on subclasses that
             // are linked to other objects to initialize the value, etc
         
+        virtual int   getNum()                { return option_num; }
         virtual int   getValue()              { return value; }
         virtual int   getOrigValue()          { return orig_value; }
         virtual bool  needsValueDisplay()     { return display_value != value; }
@@ -63,6 +64,8 @@ class configOption
         
         const char *title;
         int         type;
+        int         option_num;
+        int         num_children;
         
         configOption *pParent;
         configOption *pNextOption;

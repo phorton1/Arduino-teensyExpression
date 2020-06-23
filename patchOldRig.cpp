@@ -10,6 +10,10 @@
 
 #define SHOW_SENT_MIDI  1
 
+#define GROUP_LOOPER 	7
+#define GROUP_SYNTH		1
+#define GROUP_GUITAR	2
+
 //--------------------
 // SampleTank
 //--------------------
@@ -90,8 +94,8 @@ patchOldRig::patchOldRig()
 }
     
     
-#define BUTTON_TYPE_LOOPER      (BUTTON_EVENT_PRESS | BUTTON_MASK_TOUCH | BUTTON_MASK_RADIO | BUTTON_GROUP(7) )
-#define BUTTON_TYPE_LOOP_CLEAR  (BUTTON_EVENT_CLICK | BUTTON_EVENT_LONG_CLICK | BUTTON_MASK_TOUCH | BUTTON_MASK_RADIO | BUTTON_GROUP(7) )
+#define BUTTON_TYPE_LOOPER      (BUTTON_EVENT_PRESS | BUTTON_MASK_TOUCH | BUTTON_MASK_RADIO | BUTTON_GROUP(GROUP_LOOPER) )
+#define BUTTON_TYPE_LOOP_CLEAR  (BUTTON_EVENT_CLICK | BUTTON_EVENT_LONG_CLICK | BUTTON_MASK_TOUCH | BUTTON_MASK_RADIO | BUTTON_GROUP(GROUP_LOOPER) )
     
 
 // virtual
@@ -102,10 +106,10 @@ void patchOldRig::begin()
     last_displayed_patch_num = -1;
     
     for (int i=0; i<15; i++)
-    	theButtons.setButtonType(i,	BUTTON_TYPE_RADIO(1), 0);
+    	theButtons.setButtonType(i,	BUTTON_TYPE_RADIO(GROUP_SYNTH), 0);
     for (int i=15; i<19; i++)
-        theButtons.setButtonType(i,	BUTTON_TYPE_TOGGLE | BUTTON_GROUP(2), 0, LED_GREEN);
-    theButtons.setButtonType(19,    BUTTON_TYPE_TOGGLE | BUTTON_GROUP(2) | BUTTON_EVENT_LONG_CLICK, 0, LED_GREEN);
+        theButtons.setButtonType(i,	BUTTON_TYPE_TOGGLE | BUTTON_GROUP(GROUP_GUITAR), 0, LED_GREEN);
+    theButtons.setButtonType(19,    BUTTON_TYPE_TOGGLE | BUTTON_GROUP(GROUP_GUITAR) | BUTTON_EVENT_LONG_CLICK, 0, LED_GREEN);
     
     for (int i=20; i<24; i++)
         theButtons.setButtonType(i,BUTTON_TYPE_LOOPER, 0, LED_RED, LED_YELLOW);
@@ -139,7 +143,7 @@ void patchOldRig::onButtonEvent(int row, int col, int event)
     {
         if (event == BUTTON_EVENT_LONG_CLICK)           // turn off all effects on long click
         {
-            theButtons.clearRadioGroup(2);
+            theButtons.clearRadioGroup(GROUP_GUITAR);
             for (int c=0; c<NUM_BUTTON_COLS; c++)
             {
                 usbMIDI.sendControlChange(
@@ -174,7 +178,7 @@ void patchOldRig::onButtonEvent(int row, int col, int event)
     {
         if (event == BUTTON_EVENT_LONG_CLICK)
         {
-            theButtons.clearRadioGroup(7);
+            theButtons.clearRadioGroup(GROUP_LOOPER);
             
             usbMIDI.sendControlChange(
                 LOOP_CONTROL_CLEAR_ALL,

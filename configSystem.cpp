@@ -19,8 +19,9 @@
 
 #define ROW_CONFIGS             1
 #define FIRST_PATCH_BUTTON     (ROW_CONFIGS * NUM_BUTTON_COLS)
+#define MAX_SHOWN_PATCHES		5
 
-
+#define GROUP_PATCH_NUMS  		1
 
 configOption     rootOption;
 brightnessOption optBrightness(&rootOption);
@@ -28,6 +29,11 @@ patchNumOption  optPatchNum(&rootOption);
 configOption     optPedals(&rootOption,"Pedals",OPTION_TYPE_MENU);
 configOption     optSystem(&rootOption,"System",OPTION_TYPE_MENU);
 spoofFTPOption   optSpoofFTP(&rootOption);
+
+configOption     testOption1(&rootOption,"Test1",  OPTION_TYPE_TERMINAL);
+configOption     testOption2(&rootOption,"Test2",  OPTION_TYPE_TERMINAL);
+configOption     testOption3(&rootOption,"Test3",  OPTION_TYPE_TERMINAL);
+configOption     testOption4(&rootOption,"Test4",  OPTION_TYPE_TERMINAL);
 
 
 configOption     optCalibPedals(&optPedals,"Calibrate Pedals",OPTION_TYPE_MENU);
@@ -123,7 +129,9 @@ void configSystem::begin()
     display_menu = 0;
     display_option = 0;
     in_terminal_mode = false;
-
+	m_scroll_top = 0;
+	m_last_display_option = 0;
+	
     // setup buttons and leds
     
     theButtons.setButtonType(BUTTON_BRIGHTNESS_DOWN, BUTTON_EVENT_PRESS | BUTTON_MASK_REPEAT, LED_RED);
@@ -140,11 +148,11 @@ void configSystem::begin()
     // setup the patch_num button row
     
     int num_show = theSystem.getNumPatches()-1;
-    if (num_show >= MAX_EXP_PATCHES) num_show = MAX_EXP_PATCHES;
+    if (num_show >= MAX_SHOWN_PATCHES) num_show = MAX_SHOWN_PATCHES;
     for (int i=0; i<num_show; i++)
-        theButtons.setButtonType(FIRST_PATCH_BUTTON+i,BUTTON_TYPE_RADIO(1));
+        theButtons.setButtonType(FIRST_PATCH_BUTTON+i,BUTTON_TYPE_RADIO(GROUP_PATCH_NUMS));
         
-    if (optPatchNum.value && optPatchNum.value<=MAX_EXP_PATCHES)
+    if (optPatchNum.value && optPatchNum.value<=MAX_SHOWN_PATCHES)
         theButtons.select(FIRST_PATCH_BUTTON+optPatchNum.value-1,1);
         
     // finished
@@ -213,11 +221,18 @@ void configSystem::onButtonEvent(int row, int col, int event)
         {
             cur_option->incValue(1);
             
-            if ((cur_option->type & OPTION_TYPE_CONFIG_NUM) &&
-                optPatchNum.value &&
-                optPatchNum.value <= 5)
-            {
-                theButtons.select(FIRST_PATCH_BUTTON+optPatchNum.value-1,1);
+            if (cur_option->type & OPTION_TYPE_CONFIG_NUM)
+			{
+                if (optPatchNum.value &&
+					optPatchNum.value <= MAX_SHOWN_PATCHES)
+				{
+					theButtons.select(FIRST_PATCH_BUTTON+optPatchNum.value-1,1);
+				}
+				else
+				{
+					theButtons.clearRadioGroup(GROUP_PATCH_NUMS);
+				}
+			
                 showLEDs();
             }
         }
@@ -296,6 +311,9 @@ void configSystem::onButtonEvent(int row, int col, int event)
 #define MID_OFFSET      (TFT_WIDTH/2)
 
 
+#define OPTIONS_PER_PAGE   6
+
+
 void configSystem::updateUI()
 
 {
@@ -306,6 +324,25 @@ void configSystem::updateUI()
     }
     
     bool draw_all = false;
+	
+	if (cur_option != m_last_display_option)
+	{
+		m_last_display_option = cur_option;
+		int  option_num = cur_option->getNum();
+		//display(0,"m_scroll_top=%d option_num=%d",m_scroll_top,option_num);
+		int scroll_top = m_scroll_top;
+		if (option_num < scroll_top)
+			scroll_top = option_num;
+		else if (option_num >= scroll_top + OPTIONS_PER_PAGE)
+			scroll_top = option_num - OPTIONS_PER_PAGE + 1;
+		if (scroll_top != m_scroll_top)
+		{
+			mylcd.Fill_Rect(0,TOP_OFFSET,TFT_WIDTH,TFT_HEIGHT-TOP_OFFSET,0);
+			m_scroll_top = scroll_top;
+			draw_all = true;
+			//display(0,"new m_scroll_top=%d",m_scroll_top);
+		}
+	}		
     
     // title
     
@@ -327,55 +364,60 @@ void configSystem::updateUI()
 
     mylcd.setFont(Arial_20);
 
-    int num = 0;
+    // int num = 0;
     int y = TOP_OFFSET;
     configOption *opt = cur_menu;
     
     while (opt)
     {
-        num++;
-        
-        bool draw_selected = opt->display_selected != opt->selected;
-        bool draw_value = opt->display_value != opt->value;
-        opt->display_selected = opt->selected;
-        opt->display_value = opt->value;
-        
-        if (draw_all || draw_selected)
-        {
-            int color = TFT_BLACK;
-            if (opt->selected)
-                color = TFT_BLUE;
-                
-            // don't need to draw black on a full redraw
-            
-            if (color != TFT_BLACK || !draw_all)            
-                mylcd.Fill_Rect(0,y,TFT_WIDTH,LINE_HEIGHT-HIGHLIGHT_OFFSET,color);
-    
-            mylcd.Set_Text_colour(TFT_YELLOW);
-            mylcd.Set_Text_Cursor(LEFT_OFFSET,y + TEXT_OFFSET);
-            mylcd.print(num,DEC);
-            mylcd.print(". ");
-            mylcd.print(opt->title);
-        }
-
-        if (opt->type & OPTION_TYPE_VALUE && (
-            draw_all || draw_selected || draw_value))
-        {
-            mylcd.printf_justified(
-                MID_OFFSET,
-                y + TEXT_OFFSET,
-                MID_OFFSET - RIGHT_OFFSET,
-                LINE_HEIGHT - TEXT_OFFSET - HIGHLIGHT_OFFSET,
-                LCD_JUST_RIGHT,
-                TFT_WHITE,
-                opt->selected ? TFT_BLUE : TFT_BLACK,
-                "%s",
-                opt->getValueString());
-        }
+        // num++;
+		
+		int num = opt->getNum();
+		if (num >= m_scroll_top && num < m_scroll_top + OPTIONS_PER_PAGE)
+		{
+			bool draw_selected = opt->display_selected != opt->selected;
+			bool draw_value = opt->display_value != opt->value;
+			opt->display_selected = opt->selected;
+			opt->display_value = opt->value;
+			
+			if (draw_all || draw_selected)
+			{
+				int color = TFT_BLACK;
+				if (opt->selected)
+					color = TFT_BLUE;
+					
+				// don't need to draw black on a full redraw
+				
+				if (color != TFT_BLACK || !draw_all)            
+					mylcd.Fill_Rect(0,y,TFT_WIDTH,LINE_HEIGHT-HIGHLIGHT_OFFSET,color);
+		
+				mylcd.Set_Text_colour(TFT_YELLOW);
+				mylcd.Set_Text_Cursor(LEFT_OFFSET,y + TEXT_OFFSET);
+				mylcd.print(num+1,DEC);
+				mylcd.print(". ");
+				mylcd.print(opt->title);
+			}
+	
+			if (opt->type & OPTION_TYPE_VALUE && (
+				draw_all || draw_selected || draw_value))
+			{
+				mylcd.printf_justified(
+					MID_OFFSET,
+					y + TEXT_OFFSET,
+					MID_OFFSET - RIGHT_OFFSET,
+					LINE_HEIGHT - TEXT_OFFSET - HIGHLIGHT_OFFSET,
+					LCD_JUST_RIGHT,
+					TFT_WHITE,
+					opt->selected ? TFT_BLUE : TFT_BLACK,
+					"%s",
+					opt->getValueString());
+			}
+	        y += LINE_HEIGHT;
+		}
 
         opt = opt->pNextOption;
-        y += LINE_HEIGHT;
     }
+	
 }
 
 

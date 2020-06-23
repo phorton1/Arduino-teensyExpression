@@ -3,6 +3,7 @@
 
 #include "expSystem.h"
 
+class configOption;
 
 class configSystem : public expWindow
 {
@@ -23,6 +24,9 @@ class configSystem : public expWindow
         virtual void begin();
         virtual void updateUI();
         virtual void onButtonEvent(int row, int col, int event);
+        
+        int m_scroll_top;
+        configOption *m_last_display_option;
 
 };
 

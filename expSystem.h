@@ -4,7 +4,7 @@
 #include "defines.h"
 #include <Arduino.h>        // for intevalTimer
 
-#define MAX_EXP_PATCHES     5
+#define MAX_EXP_PATCHES     10
 
 class expSystem;
 

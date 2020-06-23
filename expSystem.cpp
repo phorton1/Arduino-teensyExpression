@@ -207,7 +207,7 @@ void expSystem::begin()
     if (patch_num >= m_num_patches)
         patch_num = m_num_patches - 1;
 
-    // patch_num = 0;
+    patch_num = 0;
         // override EEPROM setting 
         // for working on a particular patch
     

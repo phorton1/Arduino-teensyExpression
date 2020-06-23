@@ -37,15 +37,20 @@ void configOption::init_cold(configOption *parent, const char *tit, int typ, int
     max_value        = max;
 
     m_pSysConfig     = 0;
+
+    num_children     = 0;
+    option_num       = 0;
+    if (parent)
+        option_num = parent->num_children++;
     
     value            = 0;
     orig_value       = 0;
     display_value    = -1;
     selected         = 0;
     display_selected = 0;
-
     draw_needed      = 0;
     redraw_needed    = 0;
+    
     
     pPrevOption = 0;
     if (parent)
