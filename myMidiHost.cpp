@@ -2,7 +2,6 @@
 #include "myMidiHost.h"
 #include "defines.h"
 #include "midiQueue.h"
-#include <EEPROM.h>
 
 
 #define HOST_CABLE_BIT  0x80

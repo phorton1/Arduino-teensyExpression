@@ -9,7 +9,7 @@
 
 
 #define DEFAULT_CONFIG_NUM  1
-#define DEFAULT_BRIGHTNESS  60
+#define DEFAULT_BRIGHTNESS  30
 
     
 //----------------------------------------------------------------------
@@ -160,10 +160,10 @@
 
 
 #define EEPROM_BRIGHTNESS       0
-#define EEPROM_PATCH_NUM       1
-#define EEPROM_MIDI_HOST        2
-#define EEPROM_SERIAL_PORT      3
-#define EEPROM_SPOOF_FTP        4
+#define EEPROM_PATCH_NUM        1
+#define EEPROM_SPOOF_FTP        2
+
+#define NUM_EEPROM_USED         3
 
 
 // common buttons

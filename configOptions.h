@@ -4,12 +4,13 @@
 #include "configSystem.h"
 
 
-#define OPTION_TYPE_MENU         0x8000     // item represents a submenu
-#define OPTION_TYPE_TERMINAL     0x4000     // item is a terminal node (represents a window-function)
-#define OPTION_TYPE_IMMEDIATE    0x2000     // value is changed in place (i.e. enum) with SELECT
-#define OPTION_TYPE_VALUE        0x1000     // item has a value 
-#define OPTION_TYPE_BRIGHTNESS   0x0800
-#define OPTION_TYPE_CONFIG_NUM   0x0400
+#define OPTION_TYPE_MENU            0x8000     // item represents a submenu
+#define OPTION_TYPE_TERMINAL        0x4000     // item is a terminal node (represents a window-function)
+#define OPTION_TYPE_IMMEDIATE       0x2000     // value is changed in place (i.e. enum) with SELECT
+#define OPTION_TYPE_VALUE           0x1000     // item has a value 
+#define OPTION_TYPE_BRIGHTNESS      0x0800
+#define OPTION_TYPE_CONFIG_NUM      0x0400
+#define OPTION_TYPE_FACTORY_RESET   0x0200
 
 
 

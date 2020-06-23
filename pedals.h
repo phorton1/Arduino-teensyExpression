@@ -58,11 +58,7 @@ class expressionPedal
         
         int getCCChannel()              { return m_cc_channel; }
         int getCCNum()                  { return m_cc_num; }
-        
-        // void readFromEEPROM();
-        // void saveToEEPROM();
-        
-        
+       
     protected:
         
         friend class pedalManager;

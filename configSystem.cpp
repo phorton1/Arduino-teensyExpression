@@ -30,7 +30,7 @@ configOption     optPedals(&rootOption,"Pedals",OPTION_TYPE_MENU);
 configOption     optSystem(&rootOption,"System",OPTION_TYPE_MENU);
 spoofFTPOption   optSpoofFTP(&rootOption);
 
-configOption     testOption1(&rootOption,"Test1",  OPTION_TYPE_TERMINAL);
+configOption     factorReset(&rootOption,"Factory Reset",  OPTION_TYPE_IMMEDIATE | OPTION_TYPE_FACTORY_RESET);
 configOption     testOption2(&rootOption,"Test2",  OPTION_TYPE_TERMINAL);
 configOption     testOption3(&rootOption,"Test3",  OPTION_TYPE_TERMINAL);
 configOption     testOption4(&rootOption,"Test4",  OPTION_TYPE_TERMINAL);
@@ -235,6 +235,12 @@ void configSystem::onButtonEvent(int row, int col, int event)
 			
                 showLEDs();
             }
+			else if (cur_option->type & OPTION_TYPE_FACTORY_RESET)
+			{
+				for (int i=0; i<NUM_EEPROM_USED; i++)
+					EEPROM.write(i,255);
+				reboot(num);
+			}
         }
         else if (cur_option->type & OPTION_TYPE_TERMINAL)
         {
@@ -274,9 +280,10 @@ void configSystem::onButtonEvent(int row, int col, int event)
     {
         if (event == BUTTON_EVENT_LONG_CLICK)
         {
-            display(0,"write bright=%d and config=%d to EEPROM",
+            display(0,"write EEPROM bright=%d config=%d spoof_ftp=%d",
                 optBrightness.value,
-                optPatchNum.value);
+                optPatchNum.value,
+				optSpoofFTP.value);
   
             EEPROM.write(EEPROM_BRIGHTNESS,optBrightness.value);
             EEPROM.write(EEPROM_PATCH_NUM,optPatchNum.value);

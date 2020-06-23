@@ -257,3 +257,32 @@
 //     implement pedal calibration
 //     implement at least part of pedal configuration
 //          from curves.cpp and curves.h stuff
+
+
+
+// The config options work in one of two ways:
+//     type (A)
+//          take a copy of an actual system value,
+//          modify the original value, and restore it
+//          if the user cancels
+//
+//     type (B)
+//          modify a value in memory, and only set
+//          into the actual system value if the user
+//          accepts the changes.
+//
+//
+// At the current time, the only options written to EEPROM are
+//
+//      brightness - type A
+//      patch_num  - type B, but cancel uses the orig_value to return
+//      spoof_ftp  - type B, but only LONG_CLICK writes it to EEPROM
+//
+// And, at this time, nothing else is written to EEPROM
+//
+//     The EEPROM values are read at startup
+//          spoof_ftp - from teensyExpression.ino
+//          brightness - in expSystem::begin()
+//          patch_num - in expSystem::begin()
+
+
