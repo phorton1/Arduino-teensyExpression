@@ -24,6 +24,9 @@
 
 #define BATTERY_CHECK_TIME  30000
 
+#define HOOK_TUNER_TO_DEFAULT_BUTTON   1
+
+
 
 // Fishman TriplePlay MIDI HOST Spoof Notes
 //
@@ -51,7 +54,7 @@
 // HOST    myMidiHost : public USBHost_t36.h MIDIDevice
 //
 //      myMidiHost
-//      Variable Name:  midi1 
+//      Variable Name:  midi1
 //      Derivees from USBHost_t36.h MIDIDevice
 //      Which has been modified to expose protected vars
 //         and make a method rx_data() virtual
@@ -123,7 +126,7 @@
     // 5000 us = 5 ms == 200 times per second
 #define EXP_TIMER_PRIORITY  240                     // lowest priority
     // compared to default priority of 128
-    
+
 // 1. I have more or less determined that the timers don't start again
 //    until the handler has returned.
 // 2. At some point the timers use so much resources that the rest of
@@ -166,9 +169,9 @@ expSystem::expSystem()
     m_num_patches = 0;
     m_cur_patch_num = -1;
     m_prev_patch_num = 0;
-	
+
 	m_num_modals = 0;
-	
+
 	last_battery_level = 0;
 	battery_time = BATTERY_CHECK_TIME;
 	draw_needed	= 1;
@@ -176,7 +179,7 @@ expSystem::expSystem()
 
     for (int i=0; i<MAX_EXP_PATCHES; i++)
         m_patches[i] = 0;
-		
+
 	m_ftp_tuner = 0;
 	m_ftp_sensitivity = 0;
 }
@@ -195,21 +198,21 @@ void expSystem::begin()
     addPatch(new patchOldRig());
     addPatch(new patchTest());
     addPatch(new patchMidiHost());
-	
+
     m_ftp_tuner = new winFtpTuner();
     m_ftp_sensitivity = new winFtpSensitivity();
 
     theButtons.init();
-    
+
     // get the brightness from EEPROM
-    
+
     int brightness = EEPROM.read(EEPROM_BRIGHTNESS);
     if (brightness == 255)
         brightness = DEFAULT_BRIGHTNESS;
-    setLEDBrightness(brightness);        
+    setLEDBrightness(brightness);
 
     // get config_num from EEPROM and activate it
-    
+
     int patch_num = EEPROM.read(EEPROM_PATCH_NUM);
     if (patch_num == 255)
         patch_num = DEFAULT_CONFIG_NUM;
@@ -219,26 +222,26 @@ void expSystem::begin()
         patch_num = m_num_patches - 1;
 
     patch_num = 0;
-        // override EEPROM setting 
+        // override EEPROM setting
         // for working on a particular patch
-    
+
     m_timer.priority(EXP_TIMER_PRIORITY);
     m_timer.begin(timer_handler,EXP_TIMER_INTERVAL);
-    
+
     m_critical_timer.priority(EXP_CRITICAL_TIMER_PRIORITY);
     m_critical_timer.begin(critical_timer_handler,EXP_CRITICAL_TIMER_INTERVAL);
         // start the timer
 
     activatePatch(patch_num);
         // show the first windw
-    
+
 }
 
 
 //-------------------------------------------------
 // Patch management
 //-------------------------------------------------
-    
+
 void expSystem::addPatch(expWindow *pConfig)
 {
     if (m_num_patches >= MAX_EXP_PATCHES + 1)
@@ -257,35 +260,40 @@ void expSystem::activatePatch(int i)
         my_error("attempt to activate illegal patch number %d",i);
         return;
     }
-    
+
     // deactivate previous patch
-    
+
     if (m_cur_patch_num >= 0)
     {
         getCurPatch()->end();
         m_prev_patch_num = m_cur_patch_num;
     }
-    
+
     m_cur_patch_num = i;
 	expWindow *cur_patch = getCurPatch();
-    
+
     // clear the TFT and show the patch (window) title
-    
+
     if (m_cur_patch_num)
     {
         mylcd.Fill_Screen(0);
 		if (!(cur_patch->m_flags & WIN_FLAG_OWNER_TITLE))
 			setTitle(cur_patch->name());
     }
-    
+
     // start the patch (window) running
-    
+
     cur_patch->begin(false);
-    
+
     // add the system long click handler
-    
-    theButtons.getButton(0,4)->m_event_mask |= BUTTON_EVENT_LONG_CLICK;
-}    
+
+	#if HOOK_TUNER_TO_DEFAULT_BUTTON
+		theButtons.setButtonType(THE_SYSTEM_BUTTON,BUTTON_EVENT_CLICK | BUTTON_EVENT_LONG_CLICK, LED_PURPLE);
+		showLEDs();
+    #else
+		theButtons.getButton(0,THE_SYSTEM_BUTTON)->m_event_mask |= BUTTON_EVENT_LONG_CLICK;
+	#endif
+}
 
 
 //----------------------------------------
@@ -295,19 +303,19 @@ void expSystem::activatePatch(int i)
 void expSystem::startModal(expWindow *win)
 {
 	display(0,"startModa(%s)",win->name());
-	
+
 	if (m_num_modals >= MAX_MODAL_STACK)
 	{
 		my_error("NUMBER OF MODAL WINDOWS EXCEEDED",m_num_modals);
 		return;
 	}
-	
+
 	// ok, so the modal windows should start with a clean slate of
 	// no buttons, but how does the client restore them?
 	// by changing all the calls to expWindow::begin() to have
 	// a "warm" option that means they were called coming down
 	// the stack
-	
+
 	m_modal_stack[m_num_modals++] = win;
 
 	theButtons.clear();
@@ -316,6 +324,31 @@ void expSystem::startModal(expWindow *win)
 		setTitle(win->name());
 	win->begin(false);
 }
+
+
+
+void expSystem::swapModal(expWindow *win, uint32_t param)
+{
+	if (!m_num_modals)
+	{
+		startModal(win);
+		return;
+	}
+
+
+	// ok, so the modal windows should start with a clean slate of
+	// no buttons, but how does the client restore them?
+	// by changing all the calls to expWindow::begin() to have
+	// a "warm" option that means they were called coming down
+	// the stack
+
+	expWindow *old = getTopModalWindow();
+	m_modal_stack[m_num_modals-1] = win;
+	m_num_modals++;
+	endModal(old,param);
+}
+
+
 
 
 expWindow *expSystem::getTopModalWindow()
@@ -335,11 +368,25 @@ void expSystem::endModal(expWindow *win, uint32_t param)
 	expWindow *new_win = m_num_modals ?
 		getTopModalWindow() :
 		getCurPatch();
-	
+
 	mylcd.Fill_Screen(0);
 	if (!(new_win->m_flags & WIN_FLAG_OWNER_TITLE))
 		setTitle(new_win->name());
 	new_win->begin(true);
+
+	if (!m_num_modals && m_cur_patch_num)
+	{
+		// returning to a patch window
+		// reset the system button handler
+
+		#if HOOK_TUNER_TO_DEFAULT_BUTTON
+			theButtons.setButtonType(THE_SYSTEM_BUTTON,BUTTON_EVENT_CLICK | BUTTON_EVENT_LONG_CLICK, LED_PURPLE);
+			showLEDs();
+		#else
+			theButtons.getButton(0,THE_SYSTEM_BUTTON)->m_event_mask |= BUTTON_EVENT_LONG_CLICK;
+		#endif
+	}
+
 	new_win->onEndModal(win,param);
 	if (win->m_flags & WIN_FLAG_DELETE_ON_END)
 		delete win;
@@ -389,23 +436,34 @@ void expSystem::rotaryEvent(int num, int value)
 void expSystem::buttonEvent(int row, int col, int event)
 {
     // handle changes to configSystem
-	
+
 	if (m_num_modals)
 		getTopModalWindow()->onButtonEvent(row,col,event);
-	else
+
+	// handle the system button from within patches
+
+	else if (row == 0 &&
+		 	 col == THE_SYSTEM_BUTTON &&
+ 			 m_cur_patch_num && (
+			  HOOK_TUNER_TO_DEFAULT_BUTTON ||
+			  event == BUTTON_EVENT_LONG_CLICK))
 	{
-		if (row == 0 &&
-			col == 4 &&
-			m_cur_patch_num &&
-			event == BUTTON_EVENT_LONG_CLICK)
+		if (event == BUTTON_EVENT_LONG_CLICK)
 		{
 			setLED(0,4,LED_PURPLE);
 			activatePatch(0);
 		}
 		else
 		{
-			getCurPatch()->onButtonEvent(row,col,event);
+			startModal(m_ftp_tuner);
 		}
+	}
+
+	// else let the window have it
+
+	else
+	{
+		getCurPatch()->onButtonEvent(row,col,event);
 	}
 }
 
@@ -423,15 +481,15 @@ void expSystem::buttonEvent(int row, int col, int event)
 void expSystem::critical_timer_handler()
 {
     uint32_t msg = usb_midi_read_message();  // read from device
-    
+
     if (msg)
     {
 		// write it to the midi host
 
         midi_host.write_packed(msg);
-        
+
         // enqueue it for processing (display from device)
-        
+
         enqueueProcess(msg);
     }
 }
@@ -443,19 +501,19 @@ void expSystem::critical_timer_handler()
 void expSystem::timer_handler()
 {
 	// basics
-	
+
     theButtons.task();
 	thePedals.task();
     pollRotary();
 
     // process incoming and outgoing midi events
-    
+
     dequeueProcess();
-    
+
 	// call window handler
 	// for time being, modal windows absorb everything
 	// except for the above call to dequeueProcess()
-	
+
 	if (theSystem.m_num_modals)
 		theSystem.getTopModalWindow()->timer_handler();
 	else
@@ -488,21 +546,21 @@ void expSystem::updateUI()
 		getTopModalWindow()->updateUI();
 		// return;
 	}
-	
+
 	if (battery_time > BATTERY_CHECK_TIME)
 	{
 	    sendFTPCommandAndValue(FTP_CMD_BATTERY_LEVEL, 0);
 		battery_time = 0;
 	}
-	
+
 	bool full_draw = 0;
 	if (draw_needed)
 	{
 		draw_needed = 0;
 		full_draw = 1;
-		
+
 		// title
-		
+
         mylcd.setFont(Arial_16_Bold);
         mylcd.Set_Text_Cursor(10,10);
         mylcd.Set_Text_colour(TFT_YELLOW);
@@ -513,7 +571,7 @@ void expSystem::updateUI()
 		//----------------------------------
 		//  battery indicator
 		//----------------------------------
-		
+
 		mylcd.Fill_Rect(
 			BATTERY_X,
 			BATTERY_Y,
@@ -533,25 +591,25 @@ void expSystem::updateUI()
 			BATTERY_HEIGHT - 2*BATTERY_FRAME,
 			TFT_BLACK);
 	}
-	
+
 	//------------------------------
 	// battery indicator value
 	//------------------------------
-	
+
 	if (full_draw ||
 		last_battery_level != ftp_battery_level)
 	{
 		float pct = ftp_battery_level == -1 ? 1.0 : (((float)ftp_battery_level)-0x40) / 0x24;
 		int color = ftp_battery_level == -1 ? TFT_LIGHTGREY : (pct <= .15 ? TFT_RED : TFT_DARKGREEN);
 		if (pct > 1) pct = 1.0;
-		
+
 		display(0,"battery_level=%d   pct=%0.2f",ftp_battery_level,pct);
-		
+
 		float left_width = pct * ((float) BATTERY_WIDTH - 2*BATTERY_FRAME);
 		float right_width = (1-pct) * ((float) BATTERY_WIDTH - 2*BATTERY_FRAME);
 		int left_int = left_width;
 		int right_int = right_width;
-		
+
 		mylcd.Fill_Rect(
 			BATTERY_X + BATTERY_FRAME,
 			BATTERY_Y + BATTERY_FRAME,
@@ -566,21 +624,13 @@ void expSystem::updateUI()
 				right_int,
 				BATTERY_HEIGHT - 2*BATTERY_FRAME,
 				TFT_BLACK);
-		
+
 		last_battery_level = ftp_battery_level;
 	}
-		
-	
+
+
 	// current "process" function called from timer_handler()
 	// dequeueProcess();
-	
+
     getCurPatch()->updateUI();
 }
-
-
-
-
-
-            
-
-    

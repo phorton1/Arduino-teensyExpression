@@ -6,13 +6,17 @@
 #include "buttons.h"
 #include "ftp.h"
 #include "ftp_defs.h"
+#include "winFtpSensitivity.h"
 
-	
+
+#define BUTTON_SENSITIVITY   0
+
+
 //------------------------------------------------------------
 // life cycle
 //------------------------------------------------------------
 
-winFtpTuner::winFtpTuner() 
+winFtpTuner::winFtpTuner()
 {
 	init();
 }
@@ -21,7 +25,7 @@ void winFtpTuner::init()
 {
 	draw_needed = 1;
 	last_tuner_note = -1;
-	last_tuner_value = 0;	
+	last_tuner_value = 0;
 	for (int i=0; i<NUM_STRINGS; i++)
 		last_string_pressed[i] = -1;
 }
@@ -35,26 +39,28 @@ void winFtpTuner::begin(bool warm)
 		// as the only value that seems to work is the 2/0 bit
 
 	init();
-	expWindow::begin(warm);	
-	
-	//for (int i=0; i<5; i++)
-	//	last_tuner_box_color[i] = -1;
-    
-	#if 0
-		theButtons.setButtonEventMask(BUTTON_MOVE_UP,      BUTTON_EVENT_PRESS | BUTTON_EVENT_RELEASE);
-		theButtons.setButtonEventMask(BUTTON_MOVE_DOWN,    BUTTON_EVENT_PRESS | BUTTON_EVENT_RELEASE);
-		theButtons.setButtonEventMask(BUTTON_MOVE_LEFT,    BUTTON_EVENT_PRESS | BUTTON_EVENT_RELEASE);
-		theButtons.setButtonEventMask(BUTTON_MOVE_RIGHT,   BUTTON_EVENT_PRESS | BUTTON_EVENT_RELEASE);
-		theButtons.setButtonEventMask(BUTTON_SELECT,       BUTTON_EVENT_PRESS | BUTTON_EVENT_RELEASE);
-		
-		setLED(BUTTON_MOVE_UP,      LED_BLUE);
-		setLED(BUTTON_MOVE_DOWN,    LED_BLUE);
-		setLED(BUTTON_MOVE_LEFT,    LED_BLUE);
-		setLED(BUTTON_MOVE_RIGHT,   LED_BLUE);
-		setLED(BUTTON_SELECT,       LED_GREEN);
-	#endif
-	
+	expWindow::begin(warm);
+	theButtons.setButtonType(THE_SYSTEM_BUTTON,BUTTON_EVENT_CLICK,LED_GREEN);
+	theButtons.setButtonType(BUTTON_SENSITIVITY,BUTTON_EVENT_CLICK,LED_BLUE);
 	showLEDs();
+}
+
+
+// virtual
+void winFtpTuner::onButtonEvent(int row, int col, int event)
+{
+	int num = row * NUM_BUTTON_ROWS + col;
+	if (num == THE_SYSTEM_BUTTON)
+		endModal(0);
+	else if (num == BUTTON_SENSITIVITY)
+	{
+		// not so easy to swap modal windows
+		// and since we're in a button event,
+		// updateUI() gets called between these
+		// two calls.
+
+		theSystem.swapModal(theSystem.getFtpSensitivity(),0);
+	}
 }
 
 
@@ -64,7 +70,7 @@ void winFtpTuner::begin(bool warm)
 // updateUI (draw)
 //------------------------------------------------------------
 // fretboard
-		
+
 #define FRETBOARD_X     	10
 #define FRETBOARD_Y     	210
 #define FRETBOARD_WIDTH 	460
@@ -101,8 +107,8 @@ void winFtpTuner::begin(bool warm)
 #define TUNER_VALUE_X(v)	(TUNER_FRAME_X + TUNER_FRAME_MARGIN + ((float)(((float)(v) + 64)/128.0) * TUNER_RANGE))
 
 #define TUNER_DISABLED_COLOR  TFT_RGB_COLOR(0x50,0x50,0x50)
-	
-	
+
+
 //#define TUNER_BOX_OFFSET    ((TUNER_FRAME_WIDTH-TUNER_FRAME_MARGIN*2)/5)
 //#define TUNER_BOX_WIDTH     (TUNER_BOX_OFFSET - TUNER_FRAME_MARGIN)
 //#define TUNER_BOX_HEIGHT    (TUNER_FRAME_HEIGHT-2*TUNER_FRAME_MARGIN)
@@ -134,13 +140,13 @@ void winFtpTuner::fretsToInts(int *ints)
 }
 
 
-	
+
 
 void winFtpTuner::drawCircle(int string, int fret, bool pressed)
 {
 	if (fret > NUM_INTERVALS + 1)
 		return;
-	
+
 	int center_x = fret == 0 ?
 		BRIDGE_WIDTH/2 :
 		BRIDGE_WIDTH + (INTERVAL_WIDTH/2) + (fret-1)*INTERVAL_WIDTH;
@@ -155,7 +161,7 @@ void winFtpTuner::drawCircle(int string, int fret, bool pressed)
 	// display(0,"drawCircle(%d,%d,%d)",string,fret,pressed);
 	mylcd.Set_Draw_color(pressed ? PRESSED_COLOR : ((fret == 0 || fret > NUM_INTERVALS) ? FRET_COLOR : FRETBOARD_COLOR));
 	mylcd.Fill_Circle(center_x,center_y,CIRCLE_DIAMETER / 2);
-	
+
 	if (!pressed)
 	{
 		mylcd.Fill_Rect(
@@ -171,17 +177,17 @@ void winFtpTuner::drawCircle(int string, int fret, bool pressed)
 void winFtpTuner::drawTunerPointer(int tuner_x, int color)
 {
 	mylcd.Set_Draw_color(color);
-	
+
 	#define TRIANGLE_WIDTH 4
-	
+
 	// mylcd.Draw_Line(
 	// 	tuner_x,
 	// 	TUNER_FRAME_Y + TUNER_FRAME_MARGIN,
 	// 	TUNER_MID_X,
 	// 	TUNER_FRAME_Y + TUNER_FRAME_HEIGHT - 1 - TUNER_FRAME_MARGIN);
-	
+
 	int mid_x = tuner_x + (TUNER_MID_X - tuner_x) / 2;
-	
+
 	mylcd.Fill_Triangle(
 		tuner_x,
 		TUNER_FRAME_Y + TUNER_FRAME_MARGIN,
@@ -196,8 +202,8 @@ void winFtpTuner::drawTunerPointer(int tuner_x, int color)
 		TUNER_MID_Y,
 		mid_x + TRIANGLE_WIDTH,
 		TUNER_MID_Y);
-		
-	
+
+
 	#if 0
 		mylcd.Draw_Line(
 			tuner_x-1,
@@ -221,11 +227,11 @@ void winFtpTuner::updateUI()	// draw
 	{
 		full_draw = 1;
 		draw_needed = 0;
-		
+
 		//----------------------------------
 		// fretboard
 		//----------------------------------
-		
+
 		mylcd.Fill_Rect(		// board
 			FRETBOARD_X,
 			FRETBOARD_Y,
@@ -244,13 +250,13 @@ void winFtpTuner::updateUI()	// draw
 			BRIDGE_WIDTH,
 			FRETBOARD_HEIGHT,
 			FRET_COLOR);
-		
+
 		// frets
-		
+
 		int x = FRETBOARD_X + BRIDGE_WIDTH + INTERVAL_WIDTH - FRET_WIDTH/2;
 		for (int i=0; i<NUM_INTERVALS-1; i++)
 		{
-			mylcd.Fill_Rect(		
+			mylcd.Fill_Rect(
 				x,
 				FRETBOARD_Y,
 				FRET_WIDTH,
@@ -258,13 +264,13 @@ void winFtpTuner::updateUI()	// draw
 				FRET_COLOR);
 			x += INTERVAL_WIDTH;
 		}
-		
+
 		// strings
-		
+
 		int y = FRETBOARD_Y + (STRING_SPACING/2);
 		for (int i=0; i<NUM_STRINGS; i++)
 		{
-			mylcd.Fill_Rect(		
+			mylcd.Fill_Rect(
 				FRETBOARD_X,
 				y,
 				FRETBOARD_WIDTH,
@@ -272,9 +278,9 @@ void winFtpTuner::updateUI()	// draw
 				STRING_COLOR);
 			y += STRING_SPACING;
 		}
-		
+
 		// tuner frame
-		
+
 		mylcd.Set_Draw_color(TFT_WHITE);
 		mylcd.drawBorder(
 			TUNER_FRAME_X,
@@ -289,7 +295,7 @@ void winFtpTuner::updateUI()	// draw
 			TUNER_FRAME_Y,
 			TUNER_MID_X,
 			TUNER_FRAME_Y + TUNER_FRAME_MARGIN - 1);
-		
+
 		#define NUM_TICKS_PER_SIDE  5
 		#define TICK_SPACE   (((TUNER_FRAME_WIDTH-TUNER_FRAME_MARGIN*2)/2) / NUM_TICKS_PER_SIDE)
 		for (int i=0; i<NUM_TICKS_PER_SIDE; i++)
@@ -306,11 +312,11 @@ void winFtpTuner::updateUI()	// draw
 				TUNER_FRAME_Y + TUNER_FRAME_MARGIN - 1);
 		}
 	}
-	
+
 	//------------------------------
 	// fretboard pressed notes
 	//------------------------------
-	
+
 	int pressed[6];
 	fretsToInts(pressed);
 	for (int i=0; i<NUM_STRINGS; i++)
@@ -324,17 +330,17 @@ void winFtpTuner::updateUI()	// draw
 			last_string_pressed[i] = pressed[i];
 		}
 	}
-	
-	
+
+
 	//------------------------------
-	// tuner 
+	// tuner
 	//------------------------------
 	// note
-	
+
 	int t_note = tuning_note ? tuning_note->val : -1;
 	int t_value = tuning_note ? tuning_note->tuning : 0;
 	int l_note = last_tuner_note;
-	
+
 	if (full_draw || t_note != last_tuner_note)
 	{
 		if (last_tuner_note != -1)
@@ -348,32 +354,32 @@ void winFtpTuner::updateUI()	// draw
 		}
 		last_tuner_note = t_note;
 	}
-	
+
 	// tuner value (slow movement by only moving one per loop)
-	
+
 	if (t_value > last_tuner_value)
 		t_value = last_tuner_value + 1;
 	if (t_value < last_tuner_value)
 		t_value = last_tuner_value - 1;
-	
+
 	if (full_draw || t_note != l_note || t_value != last_tuner_value)
 	{
 		int tuner_value_x = TUNER_VALUE_X(t_value);
 		int last_tuner_value_x = TUNER_VALUE_X(last_tuner_value);
 		last_tuner_value = t_value;
-		
+
 		drawTunerPointer(last_tuner_value_x,0);
 		int color = tuning_note ? (abs(t_value)<=2) ? TFT_GREEN : TFT_WHITE : TUNER_DISABLED_COLOR;
 		drawTunerPointer(tuner_value_x,color);
 		last_tuner_value_x = tuner_value_x;
-		
+
 		// TUNER LEDS
-		
+
 		#define TUNER_LED_BASE 16
-		
+
 		float pct;
 		#define BRIGHT_PCT(p)   (((unsigned)(255.0*(p))) & 0xff)
-		
+
 		pct = (1-((float)-t_value)/32.0);	// pct good
 		setLED(TUNER_LED_BASE + 0,
 			tuning_note ?
@@ -390,7 +396,7 @@ void winFtpTuner::updateUI()	// draw
 			LED_RGB(0,0xff,0) : // BRIGHT_PCT(1.0-pct),0) :
 			LED_RGB(0,0,0xff) :
 			LED_RGB(0,0,0xff));
-			
+
 		pct = (1-((float)t_value)/32.0);	// pct good
 		setLED(TUNER_LED_BASE + 2,
 			tuning_note ?
@@ -401,8 +407,7 @@ void winFtpTuner::updateUI()	// draw
 					LED_RGB(0,0,0xff) :
 				LED_RGB(0,0,0xff));
 
-		showLEDs();		
+		showLEDs();
 	}
-	
-}
 
+}

@@ -4,67 +4,69 @@
 #define VERSION   "1.2"
 
 
-#define NUM_BUTTON_COLS   5
-#define NUM_BUTTON_ROWS   5
+#define NUM_BUTTON_COLS     5
+#define NUM_BUTTON_ROWS     5
 
+#define THE_SYSTEM_BUTTON   4
 
 #define DEFAULT_CONFIG_NUM  1
 #define DEFAULT_BRIGHTNESS  30
 
-    
+
+
 //----------------------------------------------------------------------
 // PIN USAGE
 //----------------------------------------------------------------------
-// left/right  main               alternate             
+// left/right  main               alternate
 //   pin
 //    GND
-// L  0        unused1 RX1 used by LEDS             
-// L  1        unused2 TX1 used by LEDS             
-// L  2        ROTARY_2A                        
+// L  0        unused1 RX1 used by LEDS
+// L  1        unused2 TX1 used by LEDS
+// L  2        ROTARY_2A
 // L  3        ROTARY_2B
-// L  4        ROTARY_1A                            
-// L  5        LEDS_OUT (Serial1)                   
-// L  6        ROTARY_1B                            
-// L  7        SERIAL_RX3    We are using Serial3 as our "second" SERIAL_IO_PORT      
-// L  8        SERIAL_TX3         
+// L  4        ROTARY_1A
+// L  5        LEDS_OUT (Serial1)
+// L  6        ROTARY_1B
+// L  7        SERIAL_RX3    We are using Serial3 as our "second" SERIAL_IO_PORT
+// L  8        SERIAL_TX3
 // L  9        ROTARY_3B
 // L 10        ROTARY_3A
 // L 11        ROTARY_4A
 // L 12        ROTARY_4B
 //   3.3V
-// L 24        BUTTON_OUT0           
-// L 25        BUTTON_OUT1           
-// L 26        BUTTON_OUT2           
-// L 27        BUTTON_OUT3           
-// L 28        BUTTON_OUT4           
-// L 29        BUTTON_IN0            
-// L 30        BUTTON_IN1            
-// L 31 A12    BUTTON_IN2            
-// L 32 A13    BUTTON_IN3            
+// L 24        BUTTON_OUT0
+// L 25        BUTTON_OUT1
+// L 26        BUTTON_OUT2
+// L 27        BUTTON_OUT3
+// L 28        BUTTON_OUT4
+// L 29        BUTTON_IN0
+// L 30        BUTTON_IN1
+// L 31 A12    BUTTON_IN2
+// L 32 A13    BUTTON_IN3
 //      5V
 //      AGND
 //      GND
-// R 23 A9     EXPR1                                           
-// R 22 A8     EXPR2                 
-// R 21 A7     EXPR3                 
-// R 20 A6     EXPR4                 
-// R 19 A5     CHEAP_TFT_DATA0                         
+// R 23 A9     EXPR1
+// R 22 A8     EXPR2
+// R 21 A7     EXPR3
+// R 20 A6     EXPR4
+// R 19 A5     CHEAP_TFT_DATA0
 // R 18 A4     CHEAP_TFT_RESET
-// R 17 A3     CHEAP_TFT_CS            
-// R 16 A2     CHEAP_TFT_CD(RS)          
-// R 15 A1     CHEAP_TFT_WR              
-// R 14 A0     CHEAP_TFT_RD                           
-// R 13        CHEAP_TFT_DATA1               
+// R 17 A3     CHEAP_TFT_CS
+// R 16 A2     CHEAP_TFT_CD(RS)
+// R 15 A1     CHEAP_TFT_WR
+// R 14 A0     CHEAP_TFT_RD
+// R 13        CHEAP_TFT_DATA1
 //      3,3V
-// R    A22    x - unused analog only                             
-// R    A21    x - unused analog only                             
-// R 39 A20    CHEAP_TFT_DATA7                              
-// R 38 A19    CHEAP_TFT_DATA6                                                       
-// R 37 A18    CHEAP_TFT_DATA5                                                                                   
-// R 36 A17    CHEAP_TFT_DATA4                                                          
-// R 35 A16    CHEAP_TFT_DATA3                                                          
-// R 34 A15    CHEAP_TFT_DATA2                                                          
-// R 33 A14    BUTTON_IN4                               
+// R    A22    x - unused analog only
+// R    A21    x - unused analog only
+// R 39 A20    CHEAP_TFT_DATA7
+// R 38 A19    CHEAP_TFT_DATA6
+// R 37 A18    CHEAP_TFT_DATA5
+// R 36 A17    CHEAP_TFT_DATA4
+// R 35 A16    CHEAP_TFT_DATA3
+// R 34 A15    CHEAP_TFT_DATA2
+// R 33 A14    BUTTON_IN4
 
 // The pins for the TFT were not well laid on in the circuit,
 // causing a twisted cable, and some late fixes (13 and 19 to
@@ -78,26 +80,26 @@
 // the insertion switch to ground them when not in use!
 
 
-#define PIN_BUTTON_OUT0         24  
-#define PIN_BUTTON_OUT1         25  
-#define PIN_BUTTON_OUT2         26  
-#define PIN_BUTTON_OUT3         27  
-#define PIN_BUTTON_OUT4         28  
-#define PIN_BUTTON_IN0          29  
-#define PIN_BUTTON_IN1          30  
-#define PIN_BUTTON_IN2          31  
-#define PIN_BUTTON_IN3          32  
+#define PIN_BUTTON_OUT0         24
+#define PIN_BUTTON_OUT1         25
+#define PIN_BUTTON_OUT2         26
+#define PIN_BUTTON_OUT3         27
+#define PIN_BUTTON_OUT4         28
+#define PIN_BUTTON_IN0          29
+#define PIN_BUTTON_IN1          30
+#define PIN_BUTTON_IN2          31
+#define PIN_BUTTON_IN3          32
 #define PIN_BUTTON_IN4          33
 
 
 #define ROTARY_1A   4     // mashed up pin assignments
-#define ROTARY_1B   6     
-#define ROTARY_2A   2                          
-#define ROTARY_2B   3                          
+#define ROTARY_1B   6
+#define ROTARY_2A   2
+#define ROTARY_2B   3
 #define ROTARY_3A   10    // this one is wired differently than the others
-#define ROTARY_3B   9     
-#define ROTARY_4A   11    
-#define ROTARY_4B   12    
+#define ROTARY_3B   9
+#define ROTARY_4A   11
+#define ROTARY_4B   12
 
 
 #define PIN_EXPR1    23  // A6

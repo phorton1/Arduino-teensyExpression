@@ -20,49 +20,49 @@ class expWindow
     // base class for patches, modal windows, and the configSystem
 {
     public:
-        
+
         expWindow()                 {m_flags = 0;}
         expWindow(uint32_t flags)   {m_flags = flags;}
         virtual ~expWindow()        {}
-        
+
         virtual const char *name() = 0;
         virtual const char *short_name() = 0;
         virtual uint32_t getId()    { return 0; }
-        
-        
+
+
     protected:
 
         friend class expSystem;
-        
+
         virtual void begin(bool warm);
             // warm means that we are coming down the modal window stack
             // as opposed to being invoked as a new window
-            
+
             // derived classes should call base class method FIRST
             // base class clears all button registrations.
         virtual void end()  {}
             // called when the window is taken out of focus, they
             // don't generally need to worry about buttons and LEDs,
             // but may want to unregister midi event handlers, etc
-            
+
         virtual bool onRotaryEvent(int num, int val)  { return false; }
         virtual bool onPedalEvent(int num, int val)   { return false; }
             // derived classes return true if they handled the event
             // otherwise default base class behavior takes place
         virtual void onButtonEvent(int row, int col, int event) {}
-        
+
         virtual void updateUI() {}
         virtual void timer_handler()  {}
-        
+
         virtual void onEndModal(expWindow *win, uint32_t param) {}
             // called by expSystem after modal windows close themselves
             // with calls to endModal();
-            
+
         virtual void endModal(uint32_t param);
             // called by modal windows when they end themselves
-            
+
         uint32_t m_flags;
-       
+
 };
 
 
@@ -74,13 +74,13 @@ class winFtpSensitivity;
 class expSystem
 {
     public:
-        
+
         expSystem();
         ~expSystem()  {}
-        
+
         void begin();
         void updateUI();
-        
+
         void activatePatch(int i);
 
         int getNumPatches()         { return m_num_patches; }
@@ -88,20 +88,21 @@ class expSystem
         int getPrevConfigNum()      { return m_prev_patch_num; }
         expWindow *getCurPatch()    { return m_patches[m_cur_patch_num]; }
         expWindow *getPatch(int i) { return m_patches[i]; }
-        
+
         void pedalEvent(int num, int val);
         void rotaryEvent(int num, int val);
         void buttonEvent(int row, int col, int event);
-        
+
         void setTitle(const char *title);
-        
+
         void startModal(expWindow *win);
-        void endModal(expWindow *win, uint32_t param);      
+        void swapModal(expWindow *win, uint32_t param);
+        void endModal(expWindow *win, uint32_t param);
         expWindow *getTopModalWindow();
-        
+
         winFtpTuner *getFtpTuner()  { return m_ftp_tuner; }
         winFtpSensitivity *getFtpSensitivity() { return m_ftp_sensitivity; }
-        
+
     private:
 
         int m_num_patches;
@@ -109,29 +110,29 @@ class expSystem
         int m_prev_patch_num;
 
         void addPatch(expWindow *pConfig);
-        
+
         int m_num_modals;
         expWindow *m_modal_stack[MAX_MODAL_STACK];
-        
+
         expWindow *m_patches[MAX_EXP_PATCHES + 1];
             // 1 extra for patch #0 which is overloaded
             // as the configSystem window.
-            
+
         IntervalTimer m_timer;
         IntervalTimer m_critical_timer;
-        
+
         static void timer_handler();
         static void critical_timer_handler();
-        
+
         int last_battery_level;
         elapsedMillis battery_time;
         bool draw_needed;
-        
+
         const char *m_title;
-        
+
         winFtpTuner *m_ftp_tuner;
-        winFtpSensitivity *m_ftp_sensitivity; 
-        
+        winFtpSensitivity *m_ftp_sensitivity;
+
 };
 
 

@@ -7,25 +7,27 @@
 #include "ftp.h"
 #include "ftp_defs.h"
 #include "myMidiHost.h"
+#include "winFtpTuner.h"
 
 
 #define KEYPAD_UP      7
 #define KEYPAD_DOWN    17
 #define KEYPAD_LEFT    11
 #define KEYPAD_RIGHT   13
-#define KEYPAD_SELECT  12
 
 #define ITEM_DYNAMIC_RANGE  6
 #define ITEM_DYNAMIC_OFFSET 7
 #define NUM_ITEMS 8
 
 
+#define BUTTON_TUNER  0
+
 
 //------------------------------------------------------------
 // life cycle
 //------------------------------------------------------------
 
-winFtpSensitivity::winFtpSensitivity() 
+winFtpSensitivity::winFtpSensitivity()
 {
 	init();
 	ftp_dynamic_range = 20;
@@ -43,7 +45,7 @@ void winFtpSensitivity::init()
 	}
 	for (int i=0; i<NUM_ITEMS; i++)
 		last_value[i] = 0;
-		
+
 	selected_item = 0;
 	last_selected_item = 0;
 }
@@ -55,26 +57,29 @@ void winFtpSensitivity::init()
 void winFtpSensitivity::begin(bool warm)
 {
 	// update the string sensitivity values
-	
+
     for (int i=0; i<NUM_STRINGS; i++)
     {
 	    sendFTPCommandAndValue(FTP_CMD_GET_SENSITIVITY, i);
     }
-	
+
 	sendFTPCommandAndValue(FTP_CMD_SPLIT_NUMBER,0x01);
 	sendFTPCommandAndValue(FTP_CMD_DYNAMICS_SENSITIVITY,ftp_dynamic_range);
 	sendFTPCommandAndValue(FTP_CMD_DYNAMICS_OFFSET,ftp_dynamic_offset);
-	
+
 	// normal initialization
-	
+
 	init();
-	expWindow::begin(warm);	
+	expWindow::begin(warm);
 
 	theButtons.setButtonType(KEYPAD_UP,   	BUTTON_TYPE_CLICK);
 	theButtons.setButtonType(KEYPAD_DOWN,	BUTTON_TYPE_CLICK);
 	theButtons.setButtonType(KEYPAD_LEFT,	BUTTON_TYPE_CLICK);
 	theButtons.setButtonType(KEYPAD_RIGHT,	BUTTON_TYPE_CLICK);
-	theButtons.setButtonType(KEYPAD_SELECT,	BUTTON_TYPE_CLICK, 	LED_GREEN);
+
+	theButtons.setButtonType(BUTTON_TUNER,		BUTTON_TYPE_CLICK);
+	theButtons.setButtonType(THE_SYSTEM_BUTTON,	BUTTON_TYPE_CLICK, 	LED_GREEN);
+
 	theButtons.setButtonType(20,			BUTTON_TYPE_CLICK, 	LED_GREEN);
 	theButtons.setButtonType(24,			BUTTON_TYPE_CLICK,	LED_PURPLE);
 
@@ -126,10 +131,15 @@ void winFtpSensitivity::onButtonEvent(int row, int col, int event)
 			}
 		}
 	}
-	else if (num == KEYPAD_SELECT)
+	else if (num == THE_SYSTEM_BUTTON)
 	{
 		endModal(237);
 	}
+	else if (num == BUTTON_TUNER)
+	{
+		theSystem.swapModal(theSystem.getFtpTuner(),0);
+	}
+
 
 	else if (num == 20)
 	{
@@ -145,9 +155,9 @@ void winFtpSensitivity::onButtonEvent(int row, int col, int event)
 		sendFTPCommandAndValue(FTP_CMD_DYNAMICS_OFFSET,ftp_dynamic_offset);
 	}
 }
-	
 
-	
+
+
 //------------------------------------------------------------
 // updateUI (draw)
 //------------------------------------------------------------
@@ -236,9 +246,9 @@ void winFtpSensitivity::updateUI()	// draw
 	{
 		full_draw = 1;
 		draw_needed = 0;
-		
+
 	}
-	
+
 	int vel[6];
 	int velocity[6];
 	vel2ToInts(vel,velocity);
@@ -258,11 +268,11 @@ void winFtpSensitivity::updateUI()	// draw
 					0);
 			}
 			last_velocity[i] = velocity[i];
-			
+
 			last_vel[i] = vel[i];
 			for (int j=0; j<SENS_DIVS; j++)
 				drawBox(i,j,vel[i]);
-				
+
 			if (velocity[i])
 			{
 				float pct = ((float)velocity[i]) / 127.0;
@@ -276,7 +286,7 @@ void winFtpSensitivity::updateUI()	// draw
 			}
 		}
 	}
-	
+
 	if (full_draw)
 	{
 		mylcd.setFont(Arial_16);
@@ -286,17 +296,17 @@ void winFtpSensitivity::updateUI()	// draw
 	    mylcd.Set_Text_Cursor(SENS_LEFT + 80,SENS_BOTTOM + 3 + SENS_ROW_Y_OFFSET);
 		mylcd.print("Dynamic Offset");
 	}
-	
+
 	bool selection_changed = last_selected_item != selected_item;
-	
+
 	for (int i=0; i<NUM_ITEMS; i++)
 	{
 		int value =
 			i == ITEM_DYNAMIC_RANGE ? ftp_dynamic_range :
 			i == ITEM_DYNAMIC_OFFSET ? ftp_dynamic_offset :
 			ftp_sensitivity[i];
-			
-		
+
+
         if (full_draw ||
 			last_value[i] != value ||
 			(selection_changed && (
@@ -306,7 +316,7 @@ void winFtpSensitivity::updateUI()	// draw
 			last_value[i] = value;
 			int color = i == selected_item ? TFT_BLUE : 0;
 			int y = SENS_TOP + i * SENS_ROW_Y_OFFSET - 3;
-			
+
 			mylcd.setFont(Arial_16_Bold);
 			mylcd.Fill_Rect(
 				NUMBER_X,
@@ -327,7 +337,6 @@ void winFtpSensitivity::updateUI()	// draw
 				last_value[i]);
 		}
 	}
-	
+
 	last_selected_item = selected_item;
 }
-
