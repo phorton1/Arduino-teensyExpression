@@ -72,7 +72,7 @@ void patchMidiHost::begin()
 	theButtons.setButtonType(PAD2_RIGHT,	BUTTON_EVENT_PRESS | BUTTON_MASK_REPEAT );
 	theButtons.setButtonType(PAD2_SELECT,	BUTTON_EVENT_CLICK,  LED_GREEN);
 	
-	theButtons.setButtonType(20,			BUTTON_TYPE_CLICK, 	LED_GREEN);
+	theButtons.setButtonType(20,			BUTTON_EVENT_PRESS | BUTTON_MASK_REPEAT, 	LED_GREEN);
 	theButtons.setButtonType(24,			BUTTON_TYPE_CLICK,	LED_PURPLE);
 
 	showLEDs();
@@ -153,22 +153,29 @@ void patchMidiHost::onButtonEvent(int row, int col, int event)
 	}
 	else if (num == 20)
 	{
-		if (showTuningMessages)
-		{
-			showTuningMessages = 0;
-			showNoteInfoMessages = 0;
-			showVolumeLevel = 0;
-			showBatteryLevel = 0;
-			showPerformanceCCs = 0;
-		}
-		else
-		{
-			showTuningMessages = 1;
-			showNoteInfoMessages = 1;
-			showVolumeLevel = 1;
-			showBatteryLevel = 1;
-			showPerformanceCCs = 1;
-		}
+		#if 1
+
+			// display(0,"lcd ID=%08x",mylcd.Read_ID());
+			mylcd.dim();
+
+		#else
+			if (showTuningMessages)
+			{
+				showTuningMessages = 0;
+				showNoteInfoMessages = 0;
+				showVolumeLevel = 0;
+				showBatteryLevel = 0;
+				showPerformanceCCs = 0;
+			}
+			else
+			{
+				showTuningMessages = 1;
+				showNoteInfoMessages = 1;
+				showVolumeLevel = 1;
+				showBatteryLevel = 1;
+				showPerformanceCCs = 1;
+			}
+		#endif
 	}
 }
 	
