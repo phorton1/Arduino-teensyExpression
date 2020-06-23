@@ -8,23 +8,16 @@ class yesNoDialog : public expWindow
 {
     public:
         
-        yesNoDialog(uint32_t id, const char *name, const char *text) :
-            expWindow(WIN_FLAG_DELETE_ON_END)
-        {
-            m_id = id;
-            m_name = name;
-            m_text = text;
-            m_draw_needed = 1;
-        }
-        
+        yesNoDialog(uint32_t id, const char *name, const char *format, ...);
         virtual uint32_t getId()    { return m_id; }
 
     private:
         
         uint32_t m_id;
         const char *m_name;
-        const char *m_text;
+        const char *m_format;
         bool m_draw_needed;
+    	va_list m_params;
         
         virtual const char *name()          { return m_name; }
         virtual const char *short_name()    { return m_name; }

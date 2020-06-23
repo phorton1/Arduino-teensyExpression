@@ -260,17 +260,10 @@ void configSystem::onButtonEvent(int row, int col, int event)
             }
 			else if (cur_option->type & OPTION_TYPE_FACTORY_RESET)
 			{
-				#if 1
-					theSystem.startModal(new yesNoDialog(
-						OPTION_TYPE_FACTORY_RESET,
-						"Confirm Factory Reset",
-						"Are you sure you want to do a\nfactory reset?"));
-										 
-				#else
-					for (int i=0; i<NUM_EEPROM_USED; i++)
-						EEPROM.write(i,255);
-					reboot(num);
-				#endif
+				theSystem.startModal(new yesNoDialog(
+					OPTION_TYPE_FACTORY_RESET,
+					"Confirm Factory Reset",
+					"Are you sure you want to do a\nfactory reset?"));
 			}
         }
         else if (cur_option->type & OPTION_TYPE_TERMINAL)

@@ -4,9 +4,25 @@
 #include "buttons.h"
 #include "myTFT.h"
 
+#define MAX_PRINTF_STRING  1024
 
 #define BUTTON_NO    16
 #define BUTTON_YES   18
+
+
+
+
+yesNoDialog::yesNoDialog(uint32_t id, const char *name, const char *format, ...) :
+    expWindow(WIN_FLAG_DELETE_ON_END)
+{
+    m_id = id;
+    m_name = name;
+    m_format = format;
+    m_draw_needed = 1;
+    va_start(m_params,format);
+}
+
+       
 
 
 // virtual
@@ -33,7 +49,7 @@ void yesNoDialog::updateUI()
     {
         m_draw_needed = 0;
         mylcd.setFont(Arial_16_Bold);
-        mylcd.printf_justified(
+        mylcd.printfv_justified(
             60,
             100,
             360,
@@ -42,8 +58,8 @@ void yesNoDialog::updateUI()
             TFT_WHITE,
             TFT_BLACK,
             false,
-            "%s",
-            m_text);
+            m_format,
+            m_params);
     }
 }
 
