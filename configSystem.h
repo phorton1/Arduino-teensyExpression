@@ -21,9 +21,11 @@ class configSystem : public expWindow
         virtual const char *name()          { return "SYSTEM CONFIGURATION"; }
         virtual const char *short_name()    { return "Sys Config"; }
         
-        virtual void begin();
+        virtual void begin(bool warm);
         virtual void updateUI();
         virtual void onButtonEvent(int row, int col, int event);
+        virtual void onEndModal(expWindow *win, uint32_t param);
+        
         
         int m_scroll_top;
         configOption *m_last_display_option;

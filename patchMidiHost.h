@@ -16,7 +16,7 @@ class patchMidiHost : public expWindow
         virtual const char *short_name()    { return "FTP Test"; }
 
         virtual void end();
-        virtual void begin();
+        virtual void begin(bool warm);
         virtual void updateUI();
         virtual void onButtonEvent(int row, int col, int event);
 

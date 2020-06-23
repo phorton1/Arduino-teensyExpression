@@ -54,11 +54,11 @@ void patchMidiHost::init()
 
 
 // virtual
-void patchMidiHost::begin()
+void patchMidiHost::begin(bool warm)
 {
 	init();
 	// initFTPifNeeded();
-	expWindow::begin();	
+	expWindow::begin(warm);	
 
 	theButtons.setButtonType(PAD1_UP,   	BUTTON_EVENT_PRESS | BUTTON_MASK_REPEAT );
 	theButtons.setButtonType(PAD1_DOWN,		BUTTON_EVENT_PRESS | BUTTON_MASK_REPEAT );

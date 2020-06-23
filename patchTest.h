@@ -15,7 +15,7 @@ class patchTest : public expWindow
         virtual const char *name() { return "My Midi Controller"; }
         virtual const char *short_name()    { return "Demo Config"; }
 
-        virtual void begin();
+        virtual void begin(bool warm);
         virtual void updateUI();
 };
 

@@ -99,9 +99,9 @@ patchOldRig::patchOldRig()
     
 
 // virtual
-void patchOldRig::begin()
+void patchOldRig::begin(bool warm)
 {
-    expWindow::begin();
+    expWindow::begin(warm);
     full_redraw = 1;
     last_displayed_patch_num = -1;
     
@@ -271,6 +271,7 @@ void patchOldRig::updateUI()
                 LCD_JUST_CENTER,
                 TFT_BLACK,
                 TFT_YELLOW,
+				false,
                 "%s",
                 thePedals.getPedal(i)->getName());
             
@@ -308,6 +309,7 @@ void patchOldRig::updateUI()
                 LCD_JUST_CENTER,
                 TFT_WHITE,
                 TFT_BLACK,
+				true,
                 "%d",
                 v);
         }
@@ -326,6 +328,7 @@ void patchOldRig::updateUI()
             LCD_JUST_CENTER,
             TFT_CYAN,
             TFT_BLACK,
+			true,
             "%s",
             synth_patch[m_cur_patch_num].short_name);
 
@@ -336,6 +339,7 @@ void patchOldRig::updateUI()
             LCD_JUST_CENTER,
             TFT_MAGENTA,
             TFT_BLACK,
+			true,
             "%s",
             synth_patch[m_cur_patch_num].long_name);
     }

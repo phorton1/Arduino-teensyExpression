@@ -16,7 +16,7 @@ class patchOldRig : public expWindow
         virtual const char *name() { return "Old Rig Configuration"; }
         virtual const char *short_name()    { return "Old Rig"; }
         
-        virtual void begin();
+        virtual void begin(bool warm);
         virtual void onButtonEvent(int row, int col, int event);
         virtual void updateUI();
         

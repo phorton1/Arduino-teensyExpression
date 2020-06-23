@@ -5,8 +5,15 @@
 #include <Arduino.h>        // for intevalTimer
 
 #define MAX_EXP_PATCHES     10
+#define MAX_MODAL_STACK     10
+
 
 class expSystem;
+
+#define WIN_FLAG_DELETE_ON_END      0x00010000
+    // window will be deleted after call to endModal
+#define WIN_FLAG_OWNER_TITLE        0x00001000
+    // window calls theSystem.setTitle() itself
 
 
 class expWindow
@@ -14,17 +21,23 @@ class expWindow
 {
     public:
         
-        expWindow();
-        ~expWindow() {}
+        expWindow()                 {m_flags = 0;}
+        expWindow(uint32_t flags)   {m_flags = flags;}
+        virtual ~expWindow()        {}
         
         virtual const char *name() = 0;
         virtual const char *short_name() = 0;
+        virtual uint32_t getId()    { return 0; }
+        
         
     protected:
 
         friend class expSystem;
         
-        virtual void begin();
+        virtual void begin(bool warm);
+            // warm means that we are coming down the modal window stack
+            // as opposed to being invoked as a new window
+            
             // derived classes should call base class method FIRST
             // base class clears all button registrations.
         virtual void end()  {}
@@ -40,9 +53,22 @@ class expWindow
         
         virtual void updateUI() {}
         virtual void timer_handler()  {}
+        
+        virtual void onEndModal(expWindow *win, uint32_t param) {}
+            // called by expSystem after modal windows close themselves
+            // with calls to endModal();
+            
+        virtual void endModal(uint32_t param);
+            // called by modal windows when they end themselves
+            
+        uint32_t m_flags;
        
 };
 
+
+
+class winFtpTuner;
+class winFtpSensitivity;
 
 
 class expSystem
@@ -69,6 +95,12 @@ class expSystem
         
         void setTitle(const char *title);
         
+        void startModal(expWindow *win);
+        void endModal(expWindow *win, uint32_t param);      
+        expWindow *getTopModalWindow();
+        
+        winFtpTuner *getFtpTuner()  { return m_ftp_tuner; }
+        winFtpSensitivity *getFtpSensitivity() { return m_ftp_sensitivity; }
         
     private:
 
@@ -76,8 +108,10 @@ class expSystem
         int m_cur_patch_num;
         int m_prev_patch_num;
 
-
         void addPatch(expWindow *pConfig);
+        
+        int m_num_modals;
+        expWindow *m_modal_stack[MAX_MODAL_STACK];
         
         expWindow *m_patches[MAX_EXP_PATCHES + 1];
             // 1 extra for patch #0 which is overloaded
@@ -89,13 +123,14 @@ class expSystem
         static void timer_handler();
         static void critical_timer_handler();
         
-        
         int last_battery_level;
         elapsedMillis battery_time;
         bool draw_needed;
         
         const char *m_title;
         
+        winFtpTuner *m_ftp_tuner;
+        winFtpSensitivity *m_ftp_sensitivity; 
         
 };
 

@@ -11,6 +11,9 @@
 #include "expSystem.h"
 #include "configOptions.h"
 
+#include "expDialogs.h"
+
+
 
 #define BUTTON_BRIGHTNESS_DOWN  0
 #define BUTTON_BRIGHTNESS_UP    1
@@ -85,6 +88,7 @@ void reboot(int num)
 
 
 configSystem::configSystem()
+	: expWindow(WIN_FLAG_OWNER_TITLE)
 {
 }
 
@@ -111,25 +115,29 @@ void configSystem::notifyTerminalModeEnd()
 
 
 // virtual
-void configSystem::begin()
+void configSystem::begin(bool warm)
 {
-    display(0,"configSystem::begin()",0);
-    expWindow::begin();
+    display(0,"configSystem::begin(%d)",warm);
+    expWindow::begin(warm);
 
     // setup option terminal nodes
     // calls init() on entire tree
     
-    rootOption.init(this);      
+	if (!warm)
+	{
+		rootOption.init(this);      
 
-    // initialize globals
-    
-    cur_menu = rootOption.pFirstChild;
-    cur_option = rootOption.pFirstChild;
-    cur_option->selected = 1;
-    display_menu = 0;
-    display_option = 0;
-    in_terminal_mode = false;
-	m_scroll_top = 0;
+		// initialize globals
+		
+		cur_menu = rootOption.pFirstChild;
+		cur_option = rootOption.pFirstChild;
+		cur_option->selected = 1;
+		in_terminal_mode = false;
+		m_scroll_top = 0;
+	}
+	
+	display_menu = 0;
+	display_option = 0;
 	m_last_display_option = 0;
 	
     // setup buttons and leds
@@ -162,6 +170,21 @@ void configSystem::begin()
     showLEDs();
     
 }   // configSystem::begin
+
+
+
+
+// virtual
+void configSystem::onEndModal(expWindow *win, uint32_t param)
+{
+	if (param && win->getId() == OPTION_TYPE_FACTORY_RESET)
+	{
+		for (int i=0; i<NUM_EEPROM_USED; i++)
+			EEPROM.write(i,255);
+		reboot(BUTTON_SELECT);
+	}
+}
+
 
 
 
@@ -237,9 +260,17 @@ void configSystem::onButtonEvent(int row, int col, int event)
             }
 			else if (cur_option->type & OPTION_TYPE_FACTORY_RESET)
 			{
-				for (int i=0; i<NUM_EEPROM_USED; i++)
-					EEPROM.write(i,255);
-				reboot(num);
+				#if 1
+					theSystem.startModal(new yesNoDialog(
+						OPTION_TYPE_FACTORY_RESET,
+						"Confirm Factory Reset",
+						"Are you sure you want to do a\nfactory reset?"));
+										 
+				#else
+					for (int i=0; i<NUM_EEPROM_USED; i++)
+						EEPROM.write(i,255);
+					reboot(num);
+				#endif
 			}
         }
         else if (cur_option->type & OPTION_TYPE_TERMINAL)

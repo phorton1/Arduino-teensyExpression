@@ -28,14 +28,14 @@ void winFtpTuner::init()
 
 
 // virtual
-void winFtpTuner::begin()
+void winFtpTuner::begin(bool warm)
 {
     sendFTPCommandAndValue(FTP_CMD_EDITOR_MODE, 0x02);
 		// I think this should be called FTP_COMMAND_TUNER
 		// as the only value that seems to work is the 2/0 bit
 
 	init();
-	expWindow::begin();	
+	expWindow::begin(warm);	
 	
 	//for (int i=0; i<5; i++)
 	//	last_tuner_box_color[i] = -1;
@@ -276,7 +276,7 @@ void winFtpTuner::updateUI()	// draw
 		// tuner frame
 		
 		mylcd.Set_Draw_color(TFT_WHITE);
-		mylcd.drawBorderedRectangle(
+		mylcd.drawBorder(
 			TUNER_FRAME_X,
 			TUNER_FRAME_Y,
 			TUNER_FRAME_WIDTH,

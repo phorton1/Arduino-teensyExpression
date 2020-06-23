@@ -137,16 +137,21 @@ expSystem theSystem;
 //----------------------------------------
 
 
-expWindow::expWindow()
-{}
-
-
 // virtual
-void expWindow::begin()
+void expWindow::begin(bool warm)
     // derived classes should call base class method FIRST
     // base class clears all button registrations.
 {
     theButtons.clear();
+}
+
+
+// virtual
+void expWindow::endModal(uint32_t param)
+	// currently
+{
+    // called by modal windows when they end themselves
+	theSystem.endModal(this,param);
 }
 
 
@@ -162,6 +167,8 @@ expSystem::expSystem()
     m_cur_patch_num = -1;
     m_prev_patch_num = 0;
 	
+	m_num_modals = 0;
+	
 	last_battery_level = 0;
 	battery_time = BATTERY_CHECK_TIME;
 	draw_needed	= 1;
@@ -169,8 +176,11 @@ expSystem::expSystem()
 
     for (int i=0; i<MAX_EXP_PATCHES; i++)
         m_patches[i] = 0;
-
+		
+	m_ftp_tuner = 0;
+	m_ftp_sensitivity = 0;
 }
+
 
 void expSystem::setTitle(const char *title)
 {
@@ -185,9 +195,10 @@ void expSystem::begin()
     addPatch(new patchOldRig());
     addPatch(new patchTest());
     addPatch(new patchMidiHost());
-    addPatch(new winFtpTuner());
-    addPatch(new winFtpSensitivity());
-			
+	
+    m_ftp_tuner = new winFtpTuner();
+    m_ftp_sensitivity = new winFtpSensitivity();
+
     theButtons.init();
     
     // get the brightness from EEPROM
@@ -225,7 +236,7 @@ void expSystem::begin()
 
 
 //-------------------------------------------------
-// Config management
+// Patch management
 //-------------------------------------------------
     
 void expSystem::addPatch(expWindow *pConfig)
@@ -256,24 +267,83 @@ void expSystem::activatePatch(int i)
     }
     
     m_cur_patch_num = i;
+	expWindow *cur_patch = getCurPatch();
     
     // clear the TFT and show the patch (window) title
     
     if (m_cur_patch_num)
     {
-		draw_needed = 1;
         mylcd.Fill_Screen(0);
-		setTitle(getCurPatch()->name());
+		if (!(cur_patch->m_flags & WIN_FLAG_OWNER_TITLE))
+			setTitle(cur_patch->name());
     }
     
     // start the patch (window) running
     
-    getCurPatch()->begin();
+    cur_patch->begin(false);
     
     // add the system long click handler
     
     theButtons.getButton(0,4)->m_event_mask |= BUTTON_EVENT_LONG_CLICK;
 }    
+
+
+//----------------------------------------
+// modal windows
+//----------------------------------------
+
+void expSystem::startModal(expWindow *win)
+{
+	display(0,"startModa(%s)",win->name());
+	
+	if (m_num_modals >= MAX_MODAL_STACK)
+	{
+		my_error("NUMBER OF MODAL WINDOWS EXCEEDED",m_num_modals);
+		return;
+	}
+	
+	// ok, so the modal windows should start with a clean slate of
+	// no buttons, but how does the client restore them?
+	// by changing all the calls to expWindow::begin() to have
+	// a "warm" option that means they were called coming down
+	// the stack
+	
+	m_modal_stack[m_num_modals++] = win;
+
+	theButtons.clear();
+	mylcd.Fill_Screen(0);
+	if (!(win->m_flags & WIN_FLAG_OWNER_TITLE))
+		setTitle(win->name());
+	win->begin(false);
+}
+
+
+expWindow *expSystem::getTopModalWindow()
+{
+	if (m_num_modals)
+		return m_modal_stack[m_num_modals-1];
+	return 0;
+}
+
+
+void expSystem::endModal(expWindow *win, uint32_t param)
+	// currently always acts on top of stack,
+	// api allows for closing a window in the middle,
+	// though it will not work at this time.
+{
+	m_num_modals--;
+	expWindow *new_win = m_num_modals ?
+		getTopModalWindow() :
+		getCurPatch();
+	
+	mylcd.Fill_Screen(0);
+	if (!(new_win->m_flags & WIN_FLAG_OWNER_TITLE))
+		setTitle(new_win->name());
+	new_win->begin(true);
+	new_win->onEndModal(win,param);
+	if (win->m_flags & WIN_FLAG_DELETE_ON_END)
+		delete win;
+}
 
 
 //-----------------------------------------
@@ -308,7 +378,10 @@ void expSystem::pedalEvent(int num, int value)
 
 void expSystem::rotaryEvent(int num, int value)
 {
-    getCurPatch()->onRotaryEvent(num,value);
+	if (m_num_modals)
+		getTopModalWindow()->onRotaryEvent(num,value);
+	else
+		getCurPatch()->onRotaryEvent(num,value);
 }
 
 
@@ -316,19 +389,24 @@ void expSystem::rotaryEvent(int num, int value)
 void expSystem::buttonEvent(int row, int col, int event)
 {
     // handle changes to configSystem
-    
-    if (row == 0 &&
-        col == 4 &&
-        m_cur_patch_num &&
-        event == BUTTON_EVENT_LONG_CLICK)
-    {
-        setLED(0,4,LED_PURPLE);
-        activatePatch(0);
-    }
-    else
-    {
-        getCurPatch()->onButtonEvent(row,col,event);
-    }
+	
+	if (m_num_modals)
+		getTopModalWindow()->onButtonEvent(row,col,event);
+	else
+	{
+		if (row == 0 &&
+			col == 4 &&
+			m_cur_patch_num &&
+			event == BUTTON_EVENT_LONG_CLICK)
+		{
+			setLED(0,4,LED_PURPLE);
+			activatePatch(0);
+		}
+		else
+		{
+			getCurPatch()->onButtonEvent(row,col,event);
+		}
+	}
 }
 
 
@@ -375,8 +453,13 @@ void expSystem::timer_handler()
     dequeueProcess();
     
 	// call window handler
+	// for time being, modal windows absorb everything
+	// except for the above call to dequeueProcess()
 	
-    theSystem.getCurPatch()->timer_handler();
+	if (theSystem.m_num_modals)
+		theSystem.getTopModalWindow()->timer_handler();
+	else
+	    theSystem.getCurPatch()->timer_handler();
 }
 
 
@@ -398,6 +481,14 @@ void expSystem::timer_handler()
 
 void expSystem::updateUI()
 {
+	// for time being, modal windows absorb everything
+
+	if (m_num_modals)
+	{
+		getTopModalWindow()->updateUI();
+		// return;
+	}
+	
 	if (battery_time > BATTERY_CHECK_TIME)
 	{
 	    sendFTPCommandAndValue(FTP_CMD_BATTERY_LEVEL, 0);

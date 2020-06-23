@@ -52,7 +52,7 @@ void winFtpSensitivity::init()
 
 
 // virtual
-void winFtpSensitivity::begin()
+void winFtpSensitivity::begin(bool warm)
 {
 	// update the string sensitivity values
 	
@@ -68,7 +68,7 @@ void winFtpSensitivity::begin()
 	// normal initialization
 	
 	init();
-	expWindow::begin();	
+	expWindow::begin(warm);	
 
 	theButtons.setButtonType(KEYPAD_UP,   	BUTTON_TYPE_CLICK);
 	theButtons.setButtonType(KEYPAD_DOWN,	BUTTON_TYPE_CLICK);
@@ -125,6 +125,10 @@ void winFtpSensitivity::onButtonEvent(int row, int col, int event)
 				sendFTPCommandAndValue(FTP_CMD_SET_SENSITIVITY,selected_item<<4 | value);
 			}
 		}
+	}
+	else if (num == KEYPAD_SELECT)
+	{
+		endModal(237);
 	}
 
 	else if (num == 20)
@@ -318,6 +322,7 @@ void winFtpSensitivity::updateUI()	// draw
 				LCD_JUST_RIGHT,
 				TFT_WHITE,
 				color,
+				false,
 				"%-2d",
 				last_value[i]);
 		}

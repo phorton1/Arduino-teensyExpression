@@ -15,7 +15,7 @@ class winFtpTuner : public expWindow
         
         virtual const char *name()          { return "FTP Tuner"; }
         virtual const char *short_name()    { return "FTP Tuner"; }
-        virtual void begin();
+        virtual void begin(bool warm);
         virtual void updateUI();
 
         // implementation

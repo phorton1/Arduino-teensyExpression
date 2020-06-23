@@ -7,9 +7,9 @@ bool draw_needed = false;
 
 
 // virtual
-void patchTest::begin()
+void patchTest::begin(bool warm)
 {
-    expWindow::begin();
+    expWindow::begin(warm);
     draw_needed = true;
     for (int row=0; row<NUM_BUTTON_ROWS; row++)
     {
@@ -53,6 +53,7 @@ void patchTest::updateUI()
             LCD_JUST_CENTER,
             TFT_YELLOW,
             TFT_BLACK,
+            false,
             "teensyExpression");
 
         mylcd.setFont(Arial_16);

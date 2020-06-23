@@ -17,7 +17,7 @@ class winFtpSensitivity : public expWindow
         virtual const char *name()          { return "FTP String Sensitivity"; }
         virtual const char *short_name()    { return "FTP Sens"; }
 
-        virtual void begin();
+        virtual void begin(bool warm);
         virtual void updateUI();
         virtual void onButtonEvent(int row, int col, int event);
 
