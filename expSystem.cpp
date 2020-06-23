@@ -203,6 +203,7 @@ void expSystem::begin()
     m_ftp_sensitivity = new winFtpSensitivity();
 
     theButtons.init();
+	thePedals.init();
 
     // get the brightness from EEPROM
 
@@ -221,7 +222,7 @@ void expSystem::begin()
     if (patch_num >= m_num_patches)
         patch_num = m_num_patches - 1;
 
-    patch_num = 0;
+    // patch_num = 0;
         // override EEPROM setting
         // for working on a particular patch
 
@@ -309,6 +310,9 @@ void expSystem::startModal(expWindow *win)
 		my_error("NUMBER OF MODAL WINDOWS EXCEEDED",m_num_modals);
 		return;
 	}
+
+	if (!m_num_modals)
+		getCurPatch()->end();
 
 	// ok, so the modal windows should start with a clean slate of
 	// no buttons, but how does the client restore them?

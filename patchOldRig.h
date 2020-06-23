@@ -7,20 +7,23 @@
 class patchOldRig : public expWindow
 {
     public:
-        
+
         patchOldRig();
-        
+
 
     private:
 
         virtual const char *name() { return "Old Rig Configuration"; }
         virtual const char *short_name()    { return "Old Rig"; }
-        
+
+        virtual void end();
         virtual void begin(bool warm);
         virtual void onButtonEvent(int row, int col, int event);
         virtual void updateUI();
-        
+
         int m_cur_patch_num;    // 0..14
+
+        int m_event_state[NUM_BUTTON_ROWS * NUM_BUTTON_COLS];
 };
 
 

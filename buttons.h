@@ -56,15 +56,15 @@
     // by the client during a button event.
     // if so, the final RELEASE or CLICK event
     // must not change the button state again.
-    
-    
+
+
 class arrayedButton
 {
     public:
-        
+
         arrayedButton();
         ~arrayedButton() {}
-        
+
         void initDefaults();
 
         int m_event_mask;
@@ -72,17 +72,17 @@ class arrayedButton
         unsigned m_press_time;
         unsigned m_debounce_time;
         elapsedMillis m_repeat_time;
-        
+
         int m_default_color;
         int m_selected_color;
         int m_touch_color;
-        
+
         bool isSelected()       { return m_event_state & BUTTON_STATE_SELECTED; }
-        
+
 };
 
 
-#define BUTTON_TYPE_CLICK       (BUTTON_EVENT_CLICK)  
+#define BUTTON_TYPE_CLICK       (BUTTON_EVENT_CLICK)
 #define BUTTON_TYPE_TOGGLE      (BUTTON_EVENT_CLICK | BUTTON_MASK_TOGGLE)
 #define BUTTON_TYPE_RADIO(n)    (BUTTON_EVENT_CLICK | BUTTON_MASK_RADIO | BUTTON_GROUP(n))
 
@@ -90,27 +90,28 @@ class arrayedButton
 class buttonArray
 {
     public:
-        
+
         buttonArray();
 
-        
+
         void init();        // called once
         void clear();       // called on new windows
         void task();
-        
-        static const char *buttonEventName(int event);
-        
-        void setButtonType(int num, int mask, int default_color=-1, int selected_color=-1, int touch_color=-1);
 
+        static const char *buttonEventName(int event);
+        arrayedButton *getButton(int num)            { return &m_buttons[num / NUM_BUTTON_COLS][num % NUM_BUTTON_COLS]; }
         arrayedButton *getButton(int row, int col)   { return &m_buttons[row][col]; }
-        
+
+        void setButtonType(int num, int mask, int default_color=-1, int selected_color=-1, int touch_color=-1);
+        void setEventState(int num, int state);
+
         void clearRadioGroup(int group);
         void select(int num, int value);
             //  -1 == pressed (internal use only)
             //  0 == deselect, 1 == select
 
     private:
-        
+
         int m_data[NUM_BUTTON_ROWS];
         arrayedButton m_buttons[NUM_BUTTON_ROWS][NUM_BUTTON_COLS];
 
