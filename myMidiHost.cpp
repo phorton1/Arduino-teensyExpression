@@ -10,18 +10,6 @@
 USBHost myusb;
 // MIDIDevice midi1(myusb);
 myMidiHostDevice midi_host(myusb);
-    
-
-#define SPOOF_FTP_BATTERY  0
-
-#if SPOOF_FTP_BATTERY
-    #define FTP_COMMAND_MASK 0x001Fb71b
-    #define FTP_VALUE_MASK   0x003Fb71b
-    uint8_t ftp_command = 0;
-    uint8_t battery_level = 0x4c;
-    int direction = -1;
-#endif
-
 
 
 void myMidiHostDevice::init()
@@ -48,30 +36,9 @@ void myMidiHostDevice::rx_data(const Transfer_t *transfer)
             // WRITE THE MESSAGE DIRECTLY TO THE TEENSY_DUINO MIDI DEVICE
             //===========================================================
 
-            #if SPOOF_FTP_BATTERY       // spoof the battery
-                if ((msg & 0x00ffffff) == FTP_COMMAND_MASK)
-                {
-                    ftp_command = (msg >> 24) & 0xff;
-                    // display(0,"cmd=%02x",ftp_command);
-                }
-                else if ( ((msg & 0x00ffffff) == FTP_VALUE_MASK) &&
-                      ftp_command == 0x07)
-                {
-                    display(0,"spoof battery %02x",battery_level);
-                    msg &= 0x00FFFFFF;
-                    msg |= battery_level << 24;
-                    
-                    battery_level += direction;
-                    if (battery_level == 0x3d || battery_level == 0x70)
-                    {
-                        direction = -direction;
-                    }
-                }
-            #endif
-            
             any = 1;
-            usb_midi_write_packed(msg);	
-            
+            usb_midi_write_packed(msg);
+
             // we just handle the mssages from the FTP controller cable 1
             // as it is the one that has the active sense messages and the
             // are completely duplicated on cable 0
@@ -80,11 +47,10 @@ void myMidiHostDevice::rx_data(const Transfer_t *transfer)
             {
                 // prh - set the high order bit of the "cable" to indicate
                 // this came from the host ...
-                
+
                 msg |= HOST_CABLE_BIT;
                 enqueueProcess(msg);
             }
-            
         }
     }
 
@@ -98,7 +64,7 @@ void myMidiHostDevice::rx_data(const Transfer_t *transfer)
 #if 0   // possible code
 
     int cur_buffer = 0;
-    
+
     void myMidiHostDevice::flush()
     {
         uint32_t tx_max = tx_size / 4;
@@ -106,7 +72,7 @@ void myMidiHostDevice::rx_data(const Transfer_t *transfer)
         {
             display(0,"flushing buffer1 tx1_count=%d",tx1_count);
             display_bytes(0,"bf1",(uint8_t *)tx_buffer1,tx_max*4);
-    
+
             tx1_count = tx_max;
             queue_Data_Transfer(txpipe, tx_buffer1, tx_max*4, this);
             cur_buffer = 1;
@@ -115,24 +81,24 @@ void myMidiHostDevice::rx_data(const Transfer_t *transfer)
         {
             display(0,"flushing buffer2 tx2_count=%d",tx2_count);
             display_bytes(0,"bf2",(uint8_t *)tx_buffer2,tx_max*4);
-    
+
             tx2_count = tx_max;
             queue_Data_Transfer(txpipe, tx_buffer2, tx_max*4, this);
             cur_buffer = 0;
         }
     }
-    
-    
+
+
     void myMidiHostDevice::write_packed(uint32_t data)
     {
         if (!txpipe) return;
         uint32_t tx_max = tx_size / 4;
-        
+
         uint32_t tx_count = cur_buffer ? tx2_count : tx1_count;
         uint32_t *tx_buffer = cur_buffer ? tx_buffer2 : tx_buffer1;
-        
+
         display(0,"my_write_packed(%08x) cur_buffer=%d tx_max=%d  tx_count=%d",data,cur_buffer,tx_max,tx_count);
-        
+
         if (tx_count >= tx_max)
         {
             display(0,"my_write_packed() calling flush()",0);
@@ -140,32 +106,32 @@ void myMidiHostDevice::rx_data(const Transfer_t *transfer)
             tx_count = cur_buffer ? tx2_count : tx1_count;
             tx_buffer = cur_buffer ? tx_buffer2 : tx_buffer1;
             display(0,"after flush my_write_packed(%08x) cur_buffer=%d tx_max=%d  tx_count=%d",data,cur_buffer,tx_max,tx_count);
-    
+
             if (tx_count >= tx_max)
             {
                 my_error("could not write midi cur_buffer=%d!!!",cur_buffer);
                 return;
             }
         }
-    
+
         tx_buffer[tx_count++] = data;
         if (cur_buffer)
             tx2_count = tx_count;
         else
             tx1_count = tx_count;
         return;
-    
-        
+
+
         while (1)
         {
             uint32_t tx1 = tx1_count;
             uint32_t tx2 = tx2_count;
-            
+
             display(0,"my_write_packed tx1=%d  tx2=%d",tx1,tx2);
             display_bytes(0,"bf1",(uint8_t *)tx_buffer1,tx_max*4);
             display_bytes(0,"bf2",(uint8_t *)tx_buffer2,tx_max*4);
-            
-            
+
+
             if (tx1 < tx_max && (tx2 == 0 || tx2 >= tx_max))
             {
                 // use tx_buffer1
@@ -184,7 +150,7 @@ void myMidiHostDevice::rx_data(const Transfer_t *transfer)
                 }
                 return;
             }
-            
+
             if (tx2 < tx_max)
             {
                 // use tx_buffer2
@@ -206,4 +172,3 @@ void myMidiHostDevice::rx_data(const Transfer_t *transfer)
         }
     }
 #endif  // disabled
-

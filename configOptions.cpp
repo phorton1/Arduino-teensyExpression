@@ -50,7 +50,7 @@ void configOption::init_cold(configOption *parent, const char *tit, int typ, int
     display_selected = 0;
     draw_needed      = 0;
     redraw_needed    = 0;
-
+    display_selected = -1;
 
     pPrevOption = 0;
     if (parent)
@@ -292,3 +292,9 @@ void spoofFTPOption::init()
     uint8_t v = EEPROM.read(PREF_SPOOF_FTP);
     orig_value = value = (v != 255) ? v : 0;
 }
+
+// virtual
+// bool spoofFTPOption::isEnabled()
+// {
+//     return getLEDBrightness() > 20;
+// }

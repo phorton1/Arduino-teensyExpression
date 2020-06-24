@@ -93,7 +93,7 @@ configSystem::configSystem()
 }
 
 
-bool config_changed()
+bool configSystem::config_changed()
 {
     return
         optBrightness.getValue() != optBrightness.getOrigValue() ||
@@ -231,60 +231,6 @@ void configSystem::onButtonEvent(int row, int col, int event)
             cur_option = option;
         }
     }
-    else if (num == BUTTON_SELECT)
-    {
-        if (cur_option->pFirstChild)
-        {
-            display_option = 0;
-            cur_menu = cur_option->pFirstChild;
-            cur_option = cur_option->pFirstChild;
-            cur_option->selected = 1;
-        }
-        else if (cur_option->type & OPTION_TYPE_IMMEDIATE)
-        {
-            cur_option->incValue(1);
-
-            if (cur_option->type & OPTION_TYPE_CONFIG_NUM)
-			{
-                if (optPatchNum.value &&
-					optPatchNum.value <= MAX_SHOWN_PATCHES)
-				{
-					theButtons.select(FIRST_PATCH_BUTTON+optPatchNum.value-1,1);
-				}
-				else
-				{
-					theButtons.clearRadioGroup(GROUP_PATCH_NUMS);
-				}
-
-                showLEDs();
-            }
-			else if (cur_option->type & OPTION_TYPE_FACTORY_RESET)
-			{
-				theSystem.startModal(new yesNoDialog(
-					OPTION_TYPE_FACTORY_RESET,
-					"Confirm Factory Reset",
-					"Are you sure you want to do a\nfactory reset?"));
-			}
-        }
-        else if (cur_option->type & OPTION_TYPE_TERMINAL)
-        {
-            // have the up and down keys start repeating for default terminal mode editors
-            theButtons.setButtonType(BUTTON_MOVE_UP,   	BUTTON_EVENT_PRESS | BUTTON_MASK_REPEAT );
-            theButtons.setButtonType(BUTTON_MOVE_DOWN,	BUTTON_EVENT_PRESS | BUTTON_MASK_REPEAT );
-            in_terminal_mode = cur_option->beginTerminalMode();
-        }
-    }
-
-    else if (num == BUTTON_BRIGHTNESS_UP ||
-             num == BUTTON_BRIGHTNESS_DOWN)
-    {
-        int inc = num == BUTTON_BRIGHTNESS_UP ? 5 : -5;
-        optBrightness.setValue(optBrightness.value + inc);
-}
-    else if (row == ROW_CONFIGS)
-    {
-        optPatchNum.setValue(col + 1);
-    }
 
     // exit / cancel
 
@@ -322,6 +268,67 @@ void configSystem::onButtonEvent(int row, int col, int event)
         theSystem.activatePatch(optPatchNum.value);
     }
 
+	// do something
+
+    else if (cur_option->isEnabled())
+	{
+		if (num == BUTTON_SELECT)
+		{
+			if (cur_option->pFirstChild)
+			{
+				display_option = 0;
+				cur_menu = cur_option->pFirstChild;
+				cur_option = cur_option->pFirstChild;
+				cur_option->selected = 1;
+			}
+			else if (cur_option->type & OPTION_TYPE_IMMEDIATE)
+			{
+				cur_option->incValue(1);
+
+				if (cur_option->type & OPTION_TYPE_CONFIG_NUM)
+				{
+					if (optPatchNum.value &&
+						optPatchNum.value <= MAX_SHOWN_PATCHES)
+					{
+						theButtons.select(FIRST_PATCH_BUTTON+optPatchNum.value-1,1);
+					}
+					else
+					{
+						theButtons.clearRadioGroup(GROUP_PATCH_NUMS);
+					}
+
+					showLEDs();
+				}
+				else if (cur_option->type & OPTION_TYPE_FACTORY_RESET)
+				{
+					theSystem.startModal(new yesNoDialog(
+						OPTION_TYPE_FACTORY_RESET,
+						"Confirm Factory Reset",
+						"Are you sure you want to do a\nfactory reset?"));
+				}
+			}
+			else if (cur_option->type & OPTION_TYPE_TERMINAL)
+			{
+				// have the up and down keys start repeating for default terminal mode editors
+				theButtons.setButtonType(BUTTON_MOVE_UP,   	BUTTON_EVENT_PRESS | BUTTON_MASK_REPEAT );
+				theButtons.setButtonType(BUTTON_MOVE_DOWN,	BUTTON_EVENT_PRESS | BUTTON_MASK_REPEAT );
+				in_terminal_mode = cur_option->beginTerminalMode();
+			}
+		}
+
+		else if (num == BUTTON_BRIGHTNESS_UP ||
+				 num == BUTTON_BRIGHTNESS_DOWN)
+		{
+			int inc = num == BUTTON_BRIGHTNESS_UP ? 5 : -5;
+			optBrightness.setValue(optBrightness.value + inc);
+		}
+
+		else if (row == ROW_CONFIGS)
+		{
+			optPatchNum.setValue(col + 1);
+		}
+
+	}	// enabled
 }
 
 
@@ -406,8 +413,14 @@ void configSystem::updateUI()
 		int num = opt->getNum();
 		if (num >= m_scroll_top && num < m_scroll_top + OPTIONS_PER_PAGE)
 		{
-			bool draw_selected = opt->display_selected != opt->selected;
 			bool draw_value = opt->display_value != opt->value;
+			bool enabled = opt->isEnabled();
+
+			bool draw_selected =
+				opt->display_selected != opt->selected ||
+				opt->display_enabled != enabled;
+
+			opt->display_enabled = enabled;
 			opt->display_selected = opt->selected;
 			opt->display_value = opt->value;
 
@@ -422,7 +435,9 @@ void configSystem::updateUI()
 				if (color != TFT_BLACK || !draw_all)
 					mylcd.Fill_Rect(0,y,TFT_WIDTH,LINE_HEIGHT-HIGHLIGHT_OFFSET,color);
 
-				mylcd.Set_Text_colour(TFT_YELLOW);
+				uint16_t fc = enabled ? TFT_YELLOW : TFT_DARKGREY;
+
+				mylcd.Set_Text_colour(fc);
 				mylcd.Set_Text_Cursor(LEFT_OFFSET,y + TEXT_OFFSET);
 				mylcd.print(num+1,DEC);
 				mylcd.print(". ");
@@ -432,13 +447,15 @@ void configSystem::updateUI()
 			if (opt->type & OPTION_TYPE_VALUE && (
 				draw_all || draw_selected || draw_value))
 			{
+				uint16_t fc = enabled ? TFT_WHITE : TFT_DARKGREY;
+
 				mylcd.printf_justified(
 					MID_OFFSET,
 					y + TEXT_OFFSET,
 					MID_OFFSET - RIGHT_OFFSET,
 					LINE_HEIGHT - TEXT_OFFSET - HIGHLIGHT_OFFSET,
 					LCD_JUST_RIGHT,
-					TFT_WHITE,
+					fc,
 					opt->selected ? TFT_BLUE : TFT_BLACK,
 					"%s",
 					opt->getValueString());

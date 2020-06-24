@@ -7,7 +7,7 @@
 #define OPTION_TYPE_MENU            0x8000     // item represents a submenu
 #define OPTION_TYPE_TERMINAL        0x4000     // item is a terminal node (represents a window-function)
 #define OPTION_TYPE_IMMEDIATE       0x2000     // value is changed in place (i.e. enum) with SELECT
-#define OPTION_TYPE_VALUE           0x1000     // item has a value 
+#define OPTION_TYPE_VALUE           0x1000     // item has a value
 #define OPTION_TYPE_BRIGHTNESS      0x0800
 #define OPTION_TYPE_CONFIG_NUM      0x0400
 #define OPTION_TYPE_FACTORY_RESET   0x0200
@@ -18,11 +18,11 @@
 // used in configEditors.cpp
 
 class configOption;
-        
+
 extern bool terminal_mode_draw_needed;
 extern bool in_terminal_mode;
 extern configOption *display_menu;
-extern configOption *display_option;        
+extern configOption *display_option;
 
 typedef void navButtonHandler(configOption *caller, int num);
 typedef void drawHandler(configOption *caller);
@@ -34,20 +34,21 @@ typedef void drawHandler(configOption *caller);
 class configOption
 {
     public:
-    
+
         configOption();
         configOption(configOption *parent, const char *title, int type);
         configOption(configOption *parent, const char *title, int type, int min, int max);
 
-    // protected:
-        // friend class configSystem;
-    
+    protected:
+
+        friend class configSystem;
+
         void init(configSystem *sysConfig);
             // non-virtual entry point for root node
         virtual void init();
             // called recursively during begin() on subclasses that
             // are linked to other objects to initialize the value, etc
-        
+
         virtual int   getNum()                { return option_num; }
         virtual int   getValue()              { return value; }
         virtual int   getOrigValue()          { return orig_value; }
@@ -56,18 +57,19 @@ class configOption
         virtual const char *getValueString()  { return ""; }
         virtual const char *getTitle()        { return title; }
 
-        virtual void  setValue(int i);      // enforces min/max
-        virtual void incValue(int inc_dec); // wraps
-        
-         
+        virtual void  setValue(int i);        // enforces min/max
+        virtual void  incValue(int inc_dec);  // wraps
+
+        virtual bool  isEnabled()             { return 1; }
+
     protected:
         friend class configSystem;
-        
+
         const char *title;
         int         type;
         int         option_num;
         int         num_children;
-        
+
         configOption *pParent;
         configOption *pNextOption;
         configOption *pPrevOption;
@@ -75,18 +77,19 @@ class configOption
         configOption *pLastChild;
 
         configSystem *m_pSysConfig;
-        
+
         int  value;
         int  orig_value;
         int  display_value;
         int  min_value;
         int  max_value;
-             
+
         int  selected;
         int  display_selected;
-    
+        int  display_enabled;
+
         // terminal mode support
-        
+
         virtual bool beginTerminalMode()  { return false; }
             // implemented classes should return true
             // and must call configSystem::notifyTerminalModeEnd() when finished
@@ -96,9 +99,9 @@ class configOption
 
         bool draw_needed;
         bool redraw_needed;
-        
+
     private:
-        
+
         void init_cold(configOption *parent, const char *tit, int typ, int min, int max);
             // ctor initialization
 };
@@ -115,7 +118,7 @@ class integerOption : public configOption
         virtual bool beginTerminalMode();
         virtual void terminalNav(int num);
         virtual void terminalDraw();
-        
+
         char buffer[10];        // biggest number!
 };
 
@@ -153,6 +156,7 @@ class spoofFTPOption : public onOffOption
     public:
         spoofFTPOption(configOption *parent);
         virtual void init();
+        // virtual bool isEnabled();
 };
 
 
