@@ -5,6 +5,10 @@
 #include "ftp_defs.h"
 #include "myMidiHost.h"
 
+bool FTP_ON_DEVICE = 1;
+#define ALLOW               (FTP_ON_DEVICE || hindex)
+
+
 
 #define MAX_PROCESS_QUEUE   8192
 #define MAX_SYSEX_BUFFER    1024
@@ -25,7 +29,7 @@ bool showBatteryLevel = 1;
     // useful to turn these off while trying to debug other messages
 bool showPerformanceCCs = 1;
 
-    
+
 bool showPatch(int hindex, uint8_t *buf, uint32_t buflen);
     // forward
 
@@ -69,8 +73,8 @@ uint8_t incoming_command[2]  = {0,0};
     // If coming from the host, this is used to set the state of certain
     // FTP variables (battery level, sensitivy etc) as well as to clear
     // any pending outGoing commands to the host.
-    
-    
+
+
 // outgoing command processing
 
 uint32_t pending_command        = 0;        // note that these are the full messages
@@ -82,7 +86,7 @@ elapsedMillis command_time      = 0;
     // a command (and value), we save them here, and in processing
     // (if and) when the host replies with the correct values, we
     // clear them, which allows for the next command to be sent.
-    
+
 #define GET_COMMAND_VALUE(w)    ((w)>>24)
     // outgoing pending commands are full 32bit midi messages
     // so we use this to compare them to the incomming_command,
@@ -120,33 +124,37 @@ uint32_t _dequeueOutgoing()
 }
 
 
-    
+
 void sendFTPCommandAndValue(uint8_t command, uint8_t value)
 {
     display(0,"sendFTPCommandAndValue(%02x,%02x)",command,value);
-    
+
     msgUnion msg(
         0x1B,
         0xB7,
         FTP_COMMAND_OR_REPLY,    // 0x1f
         command);
-    
+
     _enqueueOutgoing(msg.i);
     // midi_host.write_packed(msg.i);
 
     msg.b[2] = FTP_COMMAND_VALUE;       // 0x3f
     msg.b[3] = value;
-    
+
     _enqueueOutgoing(msg.i);
     // midi_host.write_packed(msg.i);
     // midi_host.flush();
 }
 
 
+
+
+
+
 void _processOutgoing()
 {
     // see if there's a command to dequue and send
-    
+
     if (!pending_command)
     {
         pending_command = _dequeueOutgoing();
@@ -154,10 +162,28 @@ void _processOutgoing()
         {
             pending_command_value = _dequeueOutgoing();
             command_retry_count = 0;
-            
+
             display(0,"--> sending(%d) command(%08x) value(%08x)",command_retry_count,pending_command,pending_command_value);
-            midi_host.write_packed(pending_command);
-            midi_host.write_packed(pending_command_value);
+
+            if (FTP_ON_DEVICE)
+            {
+                uint32_t cmd = (pending_command >> 24) & 0xFF;
+                uint32_t val = (pending_command_value >> 24) & 0xFF;
+                display(0,"SENDING cmd=%02x  val=%02x  TO TEENSYDUINO",cmd,val);
+                usbMIDI.sendControlChange(
+                    0x1F,
+                    cmd,
+                    8);
+                usbMIDI.sendControlChange(
+                    0x3F,
+                    val,
+                    8);
+            }
+            else
+            {
+                midi_host.write_packed(pending_command);
+                midi_host.write_packed(pending_command_value);
+            }
             command_time = 0;
         }
     }
@@ -167,17 +193,33 @@ void _processOutgoing()
         command_retry_count = 0;
         pending_command = 0;
     }
-    else if (command_time > 50)    // resend with timer
+    else if (command_time > 100)    // resend with timer
     {
         command_retry_count++;
-        display(0,"--> sending(%d) command(%08x) value(%08x)",command_retry_count,pending_command,pending_command_value);
-        midi_host.write_packed(pending_command);
-        midi_host.write_packed(pending_command_value);
+        display(0,"--> sending2(%d) command(%08x) value(%08x)",command_retry_count,pending_command,pending_command_value);
+        if (FTP_ON_DEVICE)
+        {
+            uint32_t cmd = (pending_command >> 24) & 0xFF;
+            uint32_t val = (pending_command_value >> 24) & 0xFF;
+            display(0,"SENDING2 cmd=%02x  val=%02x  TO TEENSYDUINO",cmd,val);
+            usbMIDI.sendControlChange(
+                0x1F,
+                cmd,
+                8);
+            usbMIDI.sendControlChange(
+                0x3F,
+                val,
+                8);
+        }
+        else
+        {
+            midi_host.write_packed(pending_command);
+            midi_host.write_packed(pending_command_value);
+        }
         command_time = 0;
     }
 }
 
-    
 
 
 
@@ -189,12 +231,12 @@ void _processOutgoing()
 void _processMessage(uint32_t i)
 {
     msgUnion msg(i);
-    
+
     // active sensing messed up the 1E asserts
-    
+
     if (msg.isActiveSense() && !showActiveSense)
         return;
-    
+
     bool show_it = 1;
     char buf2[100] = {0};
     const char *s = "unknown";
@@ -202,24 +244,24 @@ void _processMessage(uint32_t i)
     int hindex = msg.hostIndex();
     const char *who = hindex ? "host" : "dev ";
     int color = msg.isHost() ? ansi_color_light_cyan : ansi_color_light_magenta;
-    
+
     uint8_t p0 = msg.b[1];
     uint8_t p1 = msg.b[2];
     uint8_t p2 = msg.b[3];
-    
+
     //--------------------------------
     // buffer SYSEX
     //--------------------------------
     // FTP seems to start all sysex's with 0x15
     // and end them with 0x15, 0x16, or 0x17.
-    
+
     if (type >= 0x04 && type <= 0x07)
     {
         int len = 3;
         bool is_done = 0;
         int *buflen = &sysex_buflen[hindex];
         bool *ready = &sysex_buf_ready[hindex];
-            
+
         if (type == 0x04)        // start midi message
         {
             if (*ready)
@@ -233,10 +275,10 @@ void _processMessage(uint32_t i)
         else                    // end midi message
         {
             is_done = 1;
-            *ready = 1;    
+            *ready = 1;
             len = type - 0x4;
         }
-        
+
         uint8_t *ip = msg.b + 1;
         uint8_t *op = &sysex_buffer[hindex][*buflen];
         while (len--)
@@ -247,7 +289,7 @@ void _processMessage(uint32_t i)
 
         if (is_done  && sysex_buffer[hindex][*buflen-1] != 0xf7)
             warning(0,"sysex does not end with F7",0);
-        
+
         if (is_done && showSysex)
         {
             sprintf(buf2,"\033[%dm %s(%d,--)      sysex len=%d",
@@ -259,15 +301,15 @@ void _processMessage(uint32_t i)
             if (showPatch(hindex,sysex_buffer[hindex],sysex_buflen[hindex]) ||
                 showSysex == 2)
                 display_bytes_long(0,0,sysex_buffer[hindex],sysex_buflen[hindex]);
-                
+
             ;
         }
     }
-    
+
     // NON-SYSEX messages
-    
-    
-	else 
+
+
+	else
     {
         if (type == 0x08)
         {
@@ -308,25 +350,25 @@ void _processMessage(uint32_t i)
             s = "ActiveSense";
             color = ansi_color_light_gray;  // understood
         }
-        
-        
-        
+
+
+
         else if (type == 0x0b)
         {
             s = "ControlChange";
             show_it = showPerformanceCCs || msg.getChannel() == 8;
-            
+
             //===================================================
             // Messages from Controller ONLY
             //===================================================
             // These messages are never sent by the FTP editor.
             // They are sent by the controller and necessary to effect my UI.
-            
+
             //-----------------------------------------
             // NoteInfo - create/delete my note_t
             //-----------------------------------------
             // based on most_recent_note_vel from previous NoteOn NoteOff message
-            
+
             if (p1 == FTP_NOTE_INFO)    // 0x1e
             {
                 s = "NoteInfo";
@@ -344,7 +386,7 @@ void _processMessage(uint32_t i)
                         warning(0,"expected NoteInfo (B7 1E %02x) vel(%02x) to correspond to most_recent_note_vel(%02x)",
                             p2,vel,most_recent_note_vel);
                 #endif
-                
+
                 if (most_recent_note_vel)
                 {
                     note = addNote(most_recent_note_val,most_recent_note_vel,string,vel);
@@ -353,10 +395,10 @@ void _processMessage(uint32_t i)
                 {
                     deleteNote(string);
                 }
-                
+
                 // they've been used
                 // set them to zero in case there's a noteInfo without a Note message
-                
+
                 most_recent_note_vel = 0;
                 most_recent_note_val = 0;
                 sprintf(buf2,"string=%d fret=%d vel=%d",string,note?note->fret:0,vel);
@@ -365,15 +407,15 @@ void _processMessage(uint32_t i)
             //-----------------------
             // tuning
             //------------------------
-            
+
             else if (p1 == FTP_SET_TUNING || p1 == FTP_TUNING)  // 0x1d || 0x3d
             {
                 s = "Tuning";
-                
-                // hmm ... 
-                    
+
+                // hmm ...
+
                 show_it = showTuningMessages;
-                
+
                 if (p1 == FTP_SET_TUNING)   // 0x1D
                 {
                     s = "SetTuning";
@@ -388,14 +430,14 @@ void _processMessage(uint32_t i)
                         // yellow indicates a tuning message without a corresponding tuning note
                         // or even a most_recent one to inherit from
                 }
-                
+
                 // 0x00 = -40,  0x40 == 0, 0x80 == +40
                 int tuning = ((int) p2) - 0x40;      // 40 == 0,  0==-
                 sprintf(buf2,"tuning=%d",tuning);
                 if (tuning_note)
                     tuning_note->tuning = tuning;
             }
-            
+
             //================================================================
             // General FTP command and reply messages
             //================================================================
@@ -429,13 +471,13 @@ void _processMessage(uint32_t i)
             //
             // #define FTP_COMMAND_OR_REPLY    0x1F
             // #define FTP_COMMAND_VALUE       0x3F
-        
+
             else if (p1 == FTP_COMMAND_OR_REPLY)
             {
                 s = "ftpCmdOrReply";
                 incoming_command[hindex] = p2;
                 sprintf(buf2,"%s %s",hindex?"reply":"command",getFTPCommandName(p2));
-                
+
                 if (p2 == FTP_CMD_BATTERY_LEVEL)
                     show_it = showBatteryLevel;
                 else if (p2 == FTP_CMD_VOLUME_LEVEL)
@@ -444,41 +486,41 @@ void _processMessage(uint32_t i)
             else if (p1 == FTP_COMMAND_VALUE)
             {
                 s = "ftpCommandParam";
-                uint8_t command = incoming_command[hindex]; 
+                uint8_t command = incoming_command[hindex];
                 incoming_command[hindex] = 0;
                 const char *command_name = getFTPCommandName(command);
                 const char *what_name = hindex ? "reply" : "command";
                 uint8_t pending_command_byte = GET_COMMAND_VALUE(pending_command);
                 uint8_t pending_command_value_byte = GET_COMMAND_VALUE(pending_command_value);
-                
+
                     // get the 8bit "command" from the 32bit midi message
-                
+
                 // we used to sniff out the commands from the FTP Editor
                 // and make sense of certain replies from the host based
                 // on the commands the Editor was sending.
-                
+
                 // Now we ONLY take responses from the for certain things
                 // (i.e. getSensitivity message) if we have explicitly asked,
                 // and are waiting for them.
-                
+
                 if (command == FTP_CMD_BATTERY_LEVEL) // we can parse this one because it doesn't require extra knowledge
                 {
                     show_it = showBatteryLevel;
-                    if (hindex)     
+                    if (ALLOW)
                     {
                         sprintf(buf2,"%s %s setting battery_level=%02x",what_name,command_name,p2);
                         ftp_battery_level = p2;
                     }
                     else
                         sprintf(buf2,"%s %s ",what_name,command_name);
-                    
+
                 }
-                else if (command == FTP_CMD_GET_SENSITIVITY)  
+                else if (command == FTP_CMD_GET_SENSITIVITY)
                 {
                     // we only stuff the vaue if it matches what we're waiting for ...
                     // note that pending_command is a full 32 bits, but "command" is only 8
-                    
-                    if (hindex && pending_command_byte == FTP_CMD_GET_SENSITIVITY)
+
+                    if (ALLOW && pending_command_byte == FTP_CMD_GET_SENSITIVITY)
                     {
                         sprintf(buf2,"%s %s setting string_sensitivity[%d]=%02x",what_name,command_name,pending_command_value_byte,p2);
                         ftp_sensitivity[pending_command_value_byte] = p2;
@@ -498,7 +540,7 @@ void _processMessage(uint32_t i)
                     int string = p2 >> 4;
                     int level  = p2 & 0xf;
                     sprintf(buf2,"%s %s setting string_sensitivity[%d]=%d",what_name,command_name,string,level);
-                    if (hindex)
+                    if (ALLOW)
                     {
                         sprintf(buf2,"%s %s setting string_sensitivity[%d]=%d",what_name,command_name,string,level);
                         ftp_sensitivity[string] = level;
@@ -508,18 +550,18 @@ void _processMessage(uint32_t i)
                         sprintf(buf2,"%s %s string[%d]=%d",what_name,command_name,string,level);
                     }
                 }
-                
+
                 // now that we have the 2nd 3F message, if we matched the 1F message,
                 // clear the pending outgoing command
-                
-                if (hindex && command == pending_command_byte)
+
+                if (ALLOW && command == pending_command_byte)
                 {
                     display(0,"Clearing pending command(%02x)",pending_command_byte);
                     pending_command = 0;
                 }
             }
         }
-        
+
 
         if (show_it)
         {
@@ -535,13 +577,13 @@ void _processMessage(uint32_t i)
                 p2,
                 buf2);
             dbgSerial->println(buf);
-            
+
         }   // show_it
     }   // Not Sysext
-    
+
 }   // processMsg()
 
-    
+
 
 
 void enqueueProcess(uint32_t msg)
@@ -592,7 +634,7 @@ bool showPatch(int hindex, uint8_t *buf, uint32_t buflen)
             warning(0,"sysex of 142 that does not match patch_sig!!",0);
             return true;
         }
-    
+
     uint8_t bank_num = *p++;
     uint8_t patch_num = *p++;
     display(0,"    PATCH BANK(%d) PATCH(%d)",bank_num,patch_num);
@@ -603,12 +645,11 @@ bool showPatch(int hindex, uint8_t *buf, uint32_t buflen)
 
     p += 2;     // move to first split section
     p += 6;
-    
+
     uint8_t dyn_sense = *p++;
     uint8_t dyn_off  = *p++;
-    
+
     display(0,"        touch_sens=%d   dyn_sense=0x%02x  dyn_off=0x%02x",touch_sense,dyn_sense,dyn_off);
-    
+
     return false;
 }
-

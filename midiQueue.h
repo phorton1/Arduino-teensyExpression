@@ -1,27 +1,51 @@
 #ifndef _midiQueue_h_
 #define _midiQueue_h_
 
+// The FTP transmits on cables 0 and 1
+//     Cable 0 is the "Fishman Triple Play" device
+//         sends Active Sensing
+//     Cable 1 is the "MIDIIN2 (Fishman Triple Play Device)
+//
+// myMidiHost receives both
+//     - both must be echoed to the output device
+//       which must have 2 cables, to spoof the
+//       FTP editor.
+//
+// my TeensyDuino device has one cable
+// my SpoofFTPTeensyDuino device has two cables
+//
+// I currently transmit all all commands to the FTP
+//     on cable 0 of either port
+// I currently transmit all my outgoing midi also on cable 0
+//
+// The ipad CoreMidi mungs them all anyways and sends everything
+// from every input to every output.
+//
+//      - which means that in spoof midi mode
+//        my program should receive the commands
+//        I send as well.
+
 
 class msgUnion
 {
     public:
-        
+
         msgUnion()  { i = 0; }
         msgUnion(uint32_t msg)  { i = msg; }
         msgUnion(uint8_t b0, uint8_t b1, uint8_t b2, uint8_t b3) { b[0]=b0; b[1]=b1; b[2]=b2; b[3]=b3; }
-        
+
         bool isHost()           { return (i & 0x80); }
         int  hostIndex()        { return isHost() ? 1 : 0; }
         uint8_t getMsgType()    { return i & 0x0f; }
         uint8_t getCable()      { return (i>>4) & 0x7; }
         uint8_t getChannel()    { return (b[1] & 0xf) + 1; }
-        
+
         uint8_t type()       { return b[1]; }
         uint8_t param1()     { return b[2]; }
         uint8_t param2()     { return b[3]; }
-        
+
         bool isActiveSense()    { return (i & 0xff0f) == 0xfe0f; }
-        
+
     union {
         uint32_t i;
         uint8_t b[4];
@@ -42,7 +66,7 @@ extern bool showPerformanceCCs;
 extern void enqueueProcess(uint32_t msg);
     // called by myMidiHost::rx_data for messages from host and
     // expSystem::critical_timer_handler() for messages from device
-    
+
 extern void dequeueProcess();
     // called by expSystem::timer_handler() or updateUI()
     // this method is currently doing all the work
@@ -62,7 +86,7 @@ extern void dequeueProcess();
 //              B7 3F 00 - released
 //     FORWARD (towards sound hole)   .. the manual calls this "BACK" (from DPad days)
 //              B7 3F 11 - pressed    ... I uses this to "improve" playability
-//              B7 3F 01 - released   ... but I don't know what it really does, if anything 
+//              B7 3F 01 - released   ... but I don't know what it really does, if anything
 //     UP (towards me)
 //              B7 3F 12 - pressed
 //              B7 3F 02 - released
@@ -76,7 +100,7 @@ extern void dequeueProcess();
 //
 //      host( 8)  B7  ControlChange     1f  06  <-----
 //      host( 8)  B7  ControlChange     3f  13
-//      host( 8)  B7  ControlChange     3f  03    
+//      host( 8)  B7  ControlChange     3f  03
 //
 // Upon a fresh reboot without FTP editor running,
 //      DOWN = B7  3F  nn  where nn increments
@@ -85,7 +109,7 @@ extern void dequeueProcess();
 // And on another reboot, UP and DOWN send out
 //      "C0 nn" program changes with the controllers own internal counter from 0 .. 7F
 //     and holding it down repeats
-// The FORWARD and BACK buttons 
+// The FORWARD and BACK buttons
 //      send out a bunch of stuff, including a sysex patch
 //      and, apart form analyzing the sysex message, FORWARD and BACK send the same thing.
 //          host( 8)  B7  ControlChange     1f  0c
@@ -105,7 +129,7 @@ extern void dequeueProcess();
 //                              72 61 6d 20 31 06 06 01 f7
 //      which does not seem to change
 //      maybe I will figure this out one day.
-    
+
 //   Too bad, I liked the idea of context free controls ...
 //
 //  In this mode the FORWARD button seems to turn of Pitch Bend (though it still sends one zero per note)
@@ -120,7 +144,7 @@ extern void dequeueProcess();
 //  based on an internal counter that is initialized to 0, ao rhw DOWN button does nothing iniitaially
 //  on such a boot and MAYBE the BACK button merely "turns on" pitch bending and the FORWARD one turns
 //  it off (though it sends out a slew of messages)
-//                
+//
 //
 // HARDWARE MODE (hold down UP while booting) is even more complicated
 //
@@ -142,7 +166,7 @@ extern void dequeueProcess();
 //  I have not even really conclusively determined if any of these things have any effect in Basic Mode
 //  or hardware mode, or if the Controller is just a complicated memory device ... though the "poly mode"
 //  setting in the selected patch (bank) DOES have an effect on the output.
-    
-    
-    
+
+
+
 #endif // !_midiQueue_h_
