@@ -17,9 +17,9 @@
 #define TOUCH_DRAW_TEST  0
 #define WITH_SDCARD      0
     // test defines at this time
-    
 
-    
+
+
 //-------------------------------------
 // SD Card Test
 //-------------------------------------
@@ -49,12 +49,12 @@
         // UNCOMMENT THESE TWO LINES FOR TEENSY AUDIO BOARD:
         // SPI.setMOSI(7);  // Audio shield has MOSI on pin 7
         // SPI.setSCK(14);  // Audio shield has SCK on pin 14
-        
+
         Serial.print("\nInitializing SD card...");
-        
+
         // we'll use the initialization code from the utility libraries
         // since we're just testing if the card is working!
-        
+
         if (!card.init(SPI_HALF_SPEED, chipSelect))
         {
             Serial.println("initialization failed. Things to check:");
@@ -64,9 +64,9 @@
             return;
         } else
         {
-            Serial.println("Wiring is correct and a card is present."); 
+            Serial.println("Wiring is correct and a card is present.");
         }
-        
+
         // print the type of card
         Serial.print("\nCard type: ");
         switch(card.type())
@@ -83,20 +83,20 @@
             default:
                 Serial.println("Unknown");
         }
-        
+
         // Now we will try to open the 'volume'/'partition' - it should be FAT16 or FAT32
         if (!volume.init(card))
         {
             Serial.println("Could not find FAT16/FAT32 partition.\nMake sure you've formatted the card");
             return;
         }
-        
+
         // print the type and size of the first FAT-type volume
         uint32_t volumesize;
         Serial.print("\nVolume type is FAT");
         Serial.println(volume.fatType(), DEC);
         Serial.println();
-        
+
         volumesize = volume.blocksPerCluster();    // clusters are collections of blocks
         volumesize *= volume.clusterCount();       // we'll have a lot of clusters
         if (volumesize < 8388608ul)
@@ -110,10 +110,10 @@
         Serial.print("Volume size (Mbytes): ");
         volumesize /= 1024;
         Serial.println(volumesize);
-        
+
         Serial.println("\nFiles found on the card (name, date and size in bytes): ");
         root.openRoot(volume);
-        
+
         // list all files in the card with date and size
         root.ls(LS_R | LS_DATE | LS_SIZE);
     }
@@ -136,15 +136,15 @@ extern "C" {
 void setup()
 {
     // start the teensyDuino (self) USB device
-    
-    uint8_t start_as_ftp = EEPROM.read(EEPROM_SPOOF_FTP);
+
+    uint8_t start_as_ftp = EEPROM.read(PREF_SPOOF_FTP);
     if (start_as_ftp != 255 && start_as_ftp)
         setFishmanFTPDescriptor();
     my_usb_init();
     delay(1000);
 
     // initialize the main (debugging) serial port
-    
+
     Serial.begin(115200);
     elapsedMillis serial_started = 0;
     while (serial_started<1000 && !Serial) {}
@@ -155,7 +155,7 @@ void setup()
 
     initMyTFT();
 
-    mylcd.Set_Text_Back_colour(0); 
+    mylcd.Set_Text_Back_colour(0);
     mylcd.Set_Text_colour(TFT_WHITE);
     mylcd.setFont(Arial_16);
     mylcd.Set_Text_Cursor(5,5);
@@ -169,9 +169,9 @@ void setup()
     #endif
 
     midi_host.init();
-    
+
     // serial port
-    
+
     Serial3.begin(115200);
     // Serial3.println("teensy expression Serial3 to rPi started");
     #if 0
@@ -179,7 +179,7 @@ void setup()
         dbgSerial = &Serial3;
         display(0,"debugging output redirected to Serial3",0);
     #endif
-    
+
     display(0,"initializing system ...",0);
     mylcd.println("initializing system .");
 
@@ -189,13 +189,13 @@ void setup()
 
     // give a little time to see start up messages
     // before we erase the screen and start the system
-    
+
     delay(1200);
 
     theSystem.begin();
-        
+
     display(0,"system running ...",0);
-    
+
     #if WITH_SDCARD
         sdCardTest();
     #endif
@@ -216,12 +216,12 @@ void loop()
         // midiHostConfig is only person who calls myUSB.Task(),
         // midi1.read(), and usbMIDI.read() at this time.
 
-    
+
     #if TOUCH_DRAW_TEST
-    
+
         // if I don't assume a "release" for at least 350 or so ms
         // after a "press", then I can implement swipe gestures.
-    
+
         static bool cleared = 0;
         static elapsedMillis clear_it = 0;
         if (!cleared && clear_it > 350)
@@ -230,7 +230,7 @@ void loop()
             clear_it = 0;
             cleared = 1;
         }
-       
+
         int x,y,z;
         theTouchScreen.get(&z,&x,&y);
         if (z)
@@ -241,12 +241,7 @@ void loop()
             mylcd.Set_Text_Size(3);
             mylcd.Print_String("o",x,y);
         }
-        
+
     #endif
 
 }   // loop()
-
-
-
-
-

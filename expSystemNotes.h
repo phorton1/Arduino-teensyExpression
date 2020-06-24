@@ -31,7 +31,7 @@
 //
 //      the timer_handler also dequeues and prodesses midi messages
 //      that were enqueued during the midi host IRQ or critical_timer_handler.
-//      it *should* defer UI to the ui thread, but the midiQueue currently also 
+//      it *should* defer UI to the ui thread, but the midiQueue currently also
 //      acts as the midi event montior at this time.
 //
 //  UI_THREAD - loop() calls updateUI()
@@ -93,7 +93,7 @@
 //     The MIDI_HOST will always be "ON"
 //     The SERIAL_PORT will always be "ON"
 //     The midiMonitor (midiQueue) will get, and show my outgoing midi commands
-//    
+//
 //
 //      Brightness          nn
 //          has quick keys
@@ -205,14 +205,57 @@
 // ABREVIATED:
 //
 //      Brightness          nn                      default(50)
+//                  PREF_BRIGHTNESS
 //      Patch               name                    default(1=OldRig)
+//                  PREF_PATCH_NUM
 //      FTP
+//          Mode            DEFAULT/MONO/POLY       default(255=take whatever is found on device, 1=poly, 0=mono)
+//                  PREF_FTP_POLY_MODE
 //          Spoof FTP       ON/OFF
+//                  PREF_FTP_SPOOF
 //          FTP Port        None, Host, Remote
+//                  PREF_FTP_PORT
 //          Tuner           -> modal window
 //          Sensitivity     -> modal window
-//          Poly Mode       Mono, Poly              default(1=Poly)
+//                  PREF_FTP_TOUCH_SENS
+//                  PREF_FTP_DYN_RANGE
+//                  PREF_FTP_DYN_OFFSET
+//      Host
+//          Perf Filter     ON/OFF                  default=OFF (performance filter)
+//              removes anything from cable 1
+//              and all but note-on/off and pitch bend from cable 0
+//                  PREF_PERF_FILTER
+//          Split           None    whatever comes in, goes out
+//                          1+5     experimental splits
+//                          2+4
+//                          3+3
+//                          4+2
+//                          1+5
+//
 //      Pedals
+//          PREF_PEDAL0
+//          PREF_PEDAL1         PREF_PEDAL0 + PREF_BYTES_PER_PEDAL
+//          PREF_PEDAL2         PREF_PEDAL0 + 2*PREF_BYTES_PER_PEDAL
+//          PREF_PEDAL3         PREF_PEDAL0 + 3*PREF_BYTES_PER_PEDAL
+//
+//      Follows                 PREF_PEDAL0 + 4*PREF_BYTES_PER_PEDAL
+//                              PREF_PEDAL0 + 4 * 20 = PREF_PEDAL0 + 80
+
+//             PREF_BYTES_PER_PEDAL   8 + 2 * 6
+//
+//          PREF_PEDAL_CALIB_MIN_OFFSET     0
+//          PREF_PEDAL_CALIB_MAX_OFFSET     2
+//          PREF_PEDAL_VALUE_MIN_OFFSET     4
+//          PREF_PEDAL_VALUE_MAX_OFFSET     5
+//          PREF_PEDAL_CURVE_TYPE_OFFSET    6
+//
+//          PREF_PEDAL_POINTS_OFFSET        8       // = 8, and there are 2 of what follows
+//              PEDAL_POINTS_OFFSET_X       0
+//              PEDAL_POINTS_OFFSET_Y       2
+//              PEDAL_POINTS_OFFSET_WEIGHT  4
+//              PEDAL_POINT_PREF_SIZE       6
+//              MAX_PEDAL_CURVE_POINTS      2 (from pedals.h)
+
 //          Calibrate Pedals
 //               Pedal1  -> modal window
 //               Pedal2  -> modal window
@@ -224,33 +267,31 @@
 //               Pedal3  -> modal window
 //               Pedal4  -> modal window
 //      Calibrate Touch  -> modal window
+
 //      Midi Monitor (needs scollable config window)
+//          PREF_MONITOR_xx
 //              Midi Monitor        OFF, USB, Serial        default(USB)
+//              Show Filtered       OFF, ON                 default(ON)
 //              Sysex               OFF, ON, Detail         default(1==ON)
 //              ActiveSense         OFF, ON                 default(0==OFF)
 //              Performance CCs     OFF, ON,                default(1=ON)
 //              Tuning Msgs         OFF, ON                 default(1==ON)
 //              Note Info           OFF, ON                 default(1==ON)
+//            ftp only:
 //              Volume Level        OFF, ON                 default(1==ON)
 //              Battery Level       OFF, ON                 default(1==ON)
-//      System Debugging    Off, USB, Serial            default(USB)
-//            needs scrollable config window
+//      System Debugging            Off, USB, Serial        default(USB)
+//          PREF_DEBUG_PORT
 //      Factory Reset
-//
+
+
+
+
 // Maybe use the title bar as the "back/save/longpress=save to EEPROM"
 //      button for touch screen in configSystem?
 // Have to try drag scrolling, but don't have high hopes.
 
 
-// IMPLEMENT MODAL WINDOWS (perhaps configSystem becomes one)
-//
-// ALTERNATIVE 1
-//
-//      IMPLEMENT touch screen calibration in terms of modal window
-//      Work out configSystem with touch screen.
-//
-// ALTERNATIVE 2
-//
 //     IMPLEMENT scrolling configSystem
 //     implement remote FTP stuff
 //     implement all options above
@@ -284,5 +325,3 @@
 //          spoof_ftp - from teensyExpression.ino
 //          brightness - in expSystem::begin()
 //          patch_num - in expSystem::begin()
-
-

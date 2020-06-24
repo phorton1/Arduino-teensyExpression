@@ -207,14 +207,14 @@ void expSystem::begin()
 
     // get the brightness from EEPROM
 
-    int brightness = EEPROM.read(EEPROM_BRIGHTNESS);
+    int brightness = EEPROM.read(PREF_BRIGHTNESS);
     if (brightness == 255)
         brightness = DEFAULT_BRIGHTNESS;
     setLEDBrightness(brightness);
 
     // get config_num from EEPROM and activate it
 
-    int patch_num = EEPROM.read(EEPROM_PATCH_NUM);
+    int patch_num = EEPROM.read(PREF_PATCH_NUM);
     if (patch_num == 255)
         patch_num = DEFAULT_CONFIG_NUM;
     if (patch_num == 255)
@@ -459,7 +459,7 @@ void expSystem::buttonEvent(int row, int col, int event)
 		}
 		else
 		{
-			startModal(m_ftp_tuner);
+			startModal(m_ftp_sensitivity);	// m_ftp_tuner);
 		}
 	}
 

@@ -152,22 +152,6 @@
 #define XP  CHEAP_TFT_DATA1  // 13           // 9  maps to LCD_D1 on arduino    // can be a digital pin
 
 
-//-----------------------------------
-// SETTINGS (PREFERENCES) OPTIONS
-//-----------------------------------
-//
-// These are modifiable by the configSystem object.
-// They are used by the rest of the program, including patch
-// specific settings.
-
-
-#define EEPROM_BRIGHTNESS       0
-#define EEPROM_PATCH_NUM        1
-#define EEPROM_SPOOF_FTP        2
-
-#define NUM_EEPROM_USED         3
-
-
 // common buttons
 
 #define BUTTON_MOVE_UP          12
@@ -178,7 +162,6 @@
 
 
 // ansi colors
-
 
 #define ansi_color_black 	        30
 #define ansi_color_red 	     	    31
@@ -197,6 +180,87 @@
 #define ansi_color_light_cyan 	    96
 #define ansi_color_white  		    97
 
+
+//----------------------------------
+// Pedals
+//----------------------------------
+// for the time being there is one set of values for the pedals
+// across all patches.  An idea is then to have "pedal sets"
+// that can be shared between different patches while still
+// allowing for multiple definitions.
+
+#define NUM_PEDALS  4
+
+#define PEDAL_CURVE_TYPE_LINEAR         0       // default and only currently implemented one
+#define PEDAL_CURVE_TYPE_ASYMPTOTIC     1
+#define PEDAL_CURVE_TYPE_SCURVE         2
+
+#define MAX_PEDAL_CURVE_POINTS          2       // number of movable points (with weights)
+
+
+//-----------------------------------
+// SETTINGS (PREFERENCES) OPTIONS
+//-----------------------------------
+// These are the locations in EEPROM of these items
+
+
+// #define EEPROM_BRIGHTNESS       0
+// #define EEPROM_PATCH_NUM        1
+// #define EEPROM_SPOOF_FTP        2
+
+#define PREF_BRIGHTNESS         0           // 1..100 - default(40)
+#define PREF_PATCH_NUM          1           // 0..254 - default(1)
+#define PREF_DEBUG_PORT         2           // Off, USB, Serial - default(USB)
+
+
+#define PREF_SPOOF_FTP         10           // Off, On default(off)
+#define PREF_FTP_PORT          11           // None, Host, Remote, default(Host)
+#define PREF_FTP_POLY_MODE     12           // 255(dont send), 1=Poly, 0=Mono - default(255=take whatever is found on device)
+#define PREF_FTP_TOUCH_SENS    13           // 255(don't send), 0..9 - default(4)
+#define PREF_FTP_DYN_RANGE     14           // 255(don't send), 0x0A..0x14 (10..20) weird - default(20)
+#define PREF_FTP_DYN_OFFSET    15           // 255(don't send), 0..20 - default(10)
+
+
+#define PREF_PERF_FILTER       30           // off, on - default(off)
+#define PREF_PERF_SPLIT        60           // off, 1+5, 2+4, 3+3, 4+2, 5+1 - experimental - default(off)
+
+#define PREF_MONITOR_MIDI MONITOR   100     // OFF, USB, Serial        default(USB)
+#define PREF_MONITOR_SHOW_FILTERED  101     // OFF, ON                 default(ON)
+    // nice if filtered messges showed up as either dim of the same,
+    // or grey, or something
+
+#define PREF_MONITOR_SYSEX              110     // OFF, ON, Detail         default(1==ON)
+#define PREF_MONITOR_ACTIVESENSE        111     // OFF, ON                 default(0==OFF)
+#define PREF_MONITOR_PERFORMANCE CCS    112    //  OFF, ON,                default(1=ON)
+    // whatever happened to be there when I implmented this
+// ftp only
+#define PREF_MONITOR_TUNING MSGS         120    // OFF, ON                 default(1==ON)
+#define PREF_MONITOR_NOTE INFO           121    // OFF, ON                 default(1==ON)
+#define PREF_MONITOR_VOLUME LEVEL        122    // OFF, ON                 default(1==ON)
+#define PREF_MONITOR_BATTERY LEVEL       123    // OFF, ON                 default(1==ON)
+
+
+
+#define PREF_PEDAL_CALIB_MIN_OFFSET     0
+#define PREF_PEDAL_CALIB_MAX_OFFSET     2
+#define PREF_PEDAL_VALUE_MIN_OFFSET     4
+#define PREF_PEDAL_VALUE_MAX_OFFSET     5
+#define PREF_PEDAL_CURVE_TYPE_OFFSET    6
+#define PREF_PEDAL_POINTS_OFFSET        8       // = 8, and there are 2 of what follows
+
+#define PEDAL_POINTS_OFFSET_X           0
+#define PEDAL_POINTS_OFFSET_Y           2
+#define PEDAL_POINTS_OFFSET_WEIGHT      4
+#define PEDAL_POINT_PREF_SIZE           6
+
+#define    PREF_BYTES_PER_PEDAL   (PREF_PEDAL_POINTS_OFFSET + MAX_PEDAL_CURVE_POINTS * PEDAL_POINT_PREF_SIZE)
+
+#define PREF_PEDAL0         200
+#define PREF_PEDAL1         (PREF_PEDAL0 + PREF_BYTES_PER_PEDAL)
+#define PREF_PEDAL2         (PREF_PEDAL0 + 2*PREF_BYTES_PER_PEDAL)
+#define PREF_PEDAL3         (PREF_PEDAL0 + 3*PREF_BYTES_PER_PEDAL)
+
+#define NUM_EEPROM_USED         (PREF_PEDAL0 + 4*PREF_BYTES_PER_PEDAL)
 
 
 #endif  // !__defines_h__

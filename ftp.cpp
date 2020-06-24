@@ -11,7 +11,7 @@ note_t *most_recent_note = 0;
 note_t *tuning_note = 0;
 
 int ftp_battery_level = -1;
-int ftp_sensitivity[NUM_STRINGS] = {-1,-1,-1,-1,-1,-1};   
+int ftp_sensitivity[NUM_STRINGS] = {-1,-1,-1,-1,-1,-1};
 uint8_t ftp_get_sensitivy_command_string_number = 0;
 
 const int  string_base_notes[6] = {0x40, 0x3b, 0x37, 0x32, 0x2d, 0x28};
@@ -33,19 +33,19 @@ const char *getFTPCommandName(uint8_t p2)
     if (p2 == FTP_CMD_DYNAMICS_OFFSET       ) return "DYNAMICS_OFFSET";             // 0x30
     if (p2 == FTP_CMD_MIDI_REVERB           ) return "MIDI_REVERB";                 // 0x31
     if (p2 == FTP_CMD_GET_SENSITIVITY       ) return "GET_SENSITIVITY";             // 0x3C
-    if (p2 == FTP_CMD_POLYMODE              ) return "POLYMODE";                    // 0x3f
+    if (p2 == FTP_CMD_POLY_MODE             ) return "POLY_MODE";                   // 0x3f
     if (p2 == FTP_CMD_SET_SENSITIVITY       ) return "SET_SENSITIVITY";             // 0x42
     if (p2 == FTP_CMD_BLOCK_MIDI_NOTES      ) return "BLOCK_MIDI_NOTES";            // 0x46
     if (p2 == FTP_CMD_TOUCH_SENSITIVITY     ) return "TOUCH_SENSITIVITY";           // 0x4f
     if (p2 == FTP_CMD_SPLIT_NUMBER          ) return "SPLIT_NUMBER";                // 0x52
-    
+
     return "unknownFTPCommand";
 }
 
 
 
 const char *note_names[] = {"C","C#","D","D#","E","F","F#","G","G#","A","A#","B"};
-    
+
 
 const char *noteName(uint8_t note)
 {
@@ -58,14 +58,14 @@ note_t *addNote(uint8_t val, uint8_t vel, uint8_t string, uint8_t vel2)
     // zero is an invalid note
 {
     note_t *note = new note_t;
-    note->val = val;                
+    note->val = val;
     note->vel = vel;
     note->vel2 = vel2;
     note->fret = val ? ((int) val) - string_base_notes[string] : -1;
     note->string = string;
     note->tuning = 0;
     note->next = 0;
-    
+
     __disable_irq();
     if (!first_note)
         first_note = note;
@@ -104,10 +104,10 @@ void deleteNote(uint8_t string)
             first_note = note->next;
         if (note == last_note)
             last_note = note->prev;
-            
+
         if (note == most_recent_note)
             most_recent_note = 0;
-            
+
         if (note == tuning_note)
             tuning_note = 0;
     }
@@ -118,11 +118,3 @@ void deleteNote(uint8_t string)
     __enable_irq();
     delete note;
 }
-
-
-
-
-
-
-
-

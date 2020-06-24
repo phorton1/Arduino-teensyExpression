@@ -30,7 +30,7 @@
 // life cycle
 //------------------------------------------------------------
 
-patchMidiHost::patchMidiHost() 
+patchMidiHost::patchMidiHost()
 {
 	dbg_bank_num = 0;
 	dbg_patch_num = 0;
@@ -58,7 +58,7 @@ void patchMidiHost::begin(bool warm)
 {
 	init();
 	// initFTPifNeeded();
-	expWindow::begin(warm);	
+	expWindow::begin(warm);
 
 	theButtons.setButtonType(PAD1_UP,   	BUTTON_EVENT_PRESS | BUTTON_MASK_REPEAT );
 	theButtons.setButtonType(PAD1_DOWN,		BUTTON_EVENT_PRESS | BUTTON_MASK_REPEAT );
@@ -71,8 +71,8 @@ void patchMidiHost::begin(bool warm)
 	theButtons.setButtonType(PAD2_LEFT,		BUTTON_EVENT_PRESS | BUTTON_MASK_REPEAT );
 	theButtons.setButtonType(PAD2_RIGHT,	BUTTON_EVENT_PRESS | BUTTON_MASK_REPEAT );
 	theButtons.setButtonType(PAD2_SELECT,	BUTTON_EVENT_CLICK,  LED_GREEN);
-	
-	theButtons.setButtonType(20,			BUTTON_EVENT_PRESS | BUTTON_MASK_REPEAT, 	LED_GREEN);
+
+	theButtons.setButtonType(20,			BUTTON_TYPE_TOGGLE, LED_GREEN, LED_ORANGE);
 	theButtons.setButtonType(24,			BUTTON_TYPE_CLICK,	LED_PURPLE);
 
 	showLEDs();
@@ -127,7 +127,7 @@ void patchMidiHost::onButtonEvent(int row, int col, int event)
 	{
 		myIncDec(num==PAD2_UP ? 1 : -1, &dbg_command);
 		display(0,"setting dbg command to 0x%02x=%s",dbg_command,getFTPCommandName(dbg_command));
-		
+
 	}
 	else if (num == PAD2_LEFT || num == PAD2_RIGHT)
 	{
@@ -138,7 +138,7 @@ void patchMidiHost::onButtonEvent(int row, int col, int event)
 	{
 		display(0,"getting patch(%d,%d)",dbg_bank_num,dbg_patch_num);
 		uint8_t  ftpRequestPatch[]	= { 0xF0, 0x00, 0x01, 0x6E, 0x01, FTP_CODE_READ_PATCH, dbg_bank_num, dbg_patch_num, 0xf7 };
-		midi_host.sendSysEx(sizeof(ftpRequestPatch),ftpRequestPatch,true); 	
+		midi_host.sendSysEx(sizeof(ftpRequestPatch),ftpRequestPatch,true);
 	}
 	else if (num == PAD2_SELECT)
 	{
@@ -155,10 +155,15 @@ void patchMidiHost::onButtonEvent(int row, int col, int event)
 	{
 		#if 1
 
+			arrayedButton *pb = theButtons.getButton(row,col);
+			bool poly_mode = !pb->isSelected();
+			sendFTPCommandAndValue(FTP_CMD_POLY_MODE,poly_mode);
+
+		#else
+
 			// display(0,"lcd ID=%08x",mylcd.Read_ID());
 			mylcd.dim();
 
-		#else
 			if (showTuningMessages)
 			{
 				showTuningMessages = 0;
@@ -178,9 +183,9 @@ void patchMidiHost::onButtonEvent(int row, int col, int event)
 		#endif
 	}
 }
-	
-	
-	
+
+
+
 //------------------------------------------------------------
 // updateUI (draw)
 //------------------------------------------------------------
@@ -266,9 +271,9 @@ void patchMidiHost::updateUI()	// draw
 	{
 		full_draw = 1;
 		draw_needed = 0;
-		
+
 	}
-	
+
 	int vel[6];
 	int velocity[6];
 	vel2ToInts(vel,velocity);
@@ -288,11 +293,11 @@ void patchMidiHost::updateUI()	// draw
 					0);
 			}
 			last_velocity[i] = velocity[i];
-			
+
 			last_vel[i] = vel[i];
 			for (int j=0; j<SENS_DIVS; j++)
 				drawBox(i,j,vel[i]);
-				
+
 			if (velocity[i])
 			{
 				float pct = ((float)velocity[i]) / 127.0;
@@ -304,9 +309,7 @@ void patchMidiHost::updateUI()	// draw
 					SENS_BOX_HEIGHT+2,					  // one pixel below
 					SENS_COLOR_MIDI_VEL);
 			}
-				
+
 		}
 	}
 }
-
-

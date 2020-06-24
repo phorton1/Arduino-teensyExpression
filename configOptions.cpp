@@ -42,7 +42,7 @@ void configOption::init_cold(configOption *parent, const char *tit, int typ, int
     option_num       = 0;
     if (parent)
         option_num = parent->num_children++;
-    
+
     value            = 0;
     orig_value       = 0;
     display_value    = -1;
@@ -50,8 +50,8 @@ void configOption::init_cold(configOption *parent, const char *tit, int typ, int
     display_selected = 0;
     draw_needed      = 0;
     redraw_needed    = 0;
-    
-    
+
+
     pPrevOption = 0;
     if (parent)
         pPrevOption = parent->pLastChild;
@@ -61,7 +61,7 @@ void configOption::init_cold(configOption *parent, const char *tit, int typ, int
         parent->pFirstChild = this;
     if (parent)
         parent->pLastChild = this;
-        
+
 }
 
 
@@ -73,7 +73,7 @@ void configOption::init(configSystem *sysConfig)
     m_pSysConfig = sysConfig;
     init();
 }
-        
+
 
 // virtual
 void configOption::init()
@@ -85,14 +85,14 @@ void configOption::init()
     display_value    = -1;
     selected         = 0;
     display_selected = 0;
-    
+
     // terminal mode initialization
-    
+
     draw_needed      = 0;
     redraw_needed    = 0;
-    
+
     // recurse thru children
-    
+
     configOption *opt = pFirstChild;
     while (opt) { opt->init(); opt=opt->pNextOption; }
 }
@@ -101,7 +101,7 @@ void configOption::init()
 
 
 // virtual
-void  configOption::setValue(int i)   
+void  configOption::setValue(int i)
 {
     value = i;  // enforces min/max
     if (value > max_value) value = max_value;
@@ -148,7 +148,7 @@ bool integerOption::beginTerminalMode()
 void integerOption::terminalNav(int num)
 {
     // display(0,"integerOption::terminalNav(%d)",num);
-    
+
     if (num == BUTTON_MOVE_LEFT)
     {
         m_pSysConfig->notifyTerminalModeEnd();
@@ -159,7 +159,7 @@ void integerOption::terminalNav(int num)
         int inc = num == BUTTON_MOVE_UP ? 1 : -1;
         setValue(value + inc);
     }
-    
+
 }
 
 void integerOption::terminalDraw()
@@ -168,7 +168,7 @@ void integerOption::terminalDraw()
     {
         draw_needed = false;
         redraw_needed = true;
-        
+
         mylcd.Fill_Rect(0,0,TFT_WIDTH,TFT_HEIGHT,0);
         mylcd.setFont(Arial_32_Bold);
         mylcd.printf_justified(
@@ -183,7 +183,7 @@ void integerOption::terminalDraw()
             "%s",
             title);
     }
-    
+
     if (redraw_needed ||
         needsValueDisplay())
     {
@@ -220,7 +220,7 @@ brightnessOption::brightnessOption(configOption *parent) :
 void brightnessOption::init()
 {
     integerOption::init();
-    value = getLEDBrightness(); 
+    value = getLEDBrightness();
     orig_value = value;
     display_value = -1;
 }
@@ -232,7 +232,7 @@ void brightnessOption::setValue(int i)
     integerOption::setValue(i);
     setLEDBrightness(value);
 }
-    
+
 
 
 //--------------------------------------------
@@ -284,17 +284,11 @@ const char *onOffOption::getValueString()
 
 spoofFTPOption::spoofFTPOption(configOption *parent) :
     onOffOption(parent,"Spoof FTP") {}
-    
+
 // virtual
 void spoofFTPOption::init()
 {
     onOffOption::init();
-    uint8_t v = EEPROM.read(EEPROM_SPOOF_FTP);
+    uint8_t v = EEPROM.read(PREF_SPOOF_FTP);
     orig_value = value = (v != 255) ? v : 0;
 }
-
-
-
-
-
-

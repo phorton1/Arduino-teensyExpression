@@ -71,7 +71,7 @@ void reboot(int num)
         Serial.end();
     else
         Serial3.end();
-        
+
     for (int i=0; i<21; i++)
     {
         setLED(num,i & 1 ? LED_RED : 0);
@@ -122,26 +122,26 @@ void configSystem::begin(bool warm)
 
     // setup option terminal nodes
     // calls init() on entire tree
-    
+
 	if (!warm)
 	{
-		rootOption.init(this);      
+		rootOption.init(this);
 
 		// initialize globals
-		
+
 		cur_menu = rootOption.pFirstChild;
 		cur_option = rootOption.pFirstChild;
 		cur_option->selected = 1;
 		in_terminal_mode = false;
 		m_scroll_top = 0;
 	}
-	
+
 	display_menu = 0;
 	display_option = 0;
 	m_last_display_option = 0;
-	
+
     // setup buttons and leds
-    
+
     theButtons.setButtonType(BUTTON_BRIGHTNESS_DOWN, BUTTON_EVENT_PRESS | BUTTON_MASK_REPEAT, LED_RED);
     theButtons.setButtonType(BUTTON_BRIGHTNESS_UP,   BUTTON_EVENT_PRESS | BUTTON_MASK_REPEAT, LED_GREEN);
     theButtons.setButtonType(BUTTON_EXIT_DONE,       BUTTON_EVENT_CLICK | BUTTON_EVENT_LONG_CLICK, LED_PURPLE);
@@ -152,23 +152,23 @@ void configSystem::begin(bool warm)
 	theButtons.setButtonType(BUTTON_MOVE_LEFT,	BUTTON_EVENT_PRESS);
 	theButtons.setButtonType(BUTTON_MOVE_RIGHT,	BUTTON_EVENT_PRESS);
 	theButtons.setButtonType(BUTTON_SELECT,	    BUTTON_EVENT_CLICK, 	LED_GREEN);
-    
+
     // setup the patch_num button row
-    
+
     int num_show = theSystem.getNumPatches()-1;
     if (num_show >= MAX_SHOWN_PATCHES) num_show = MAX_SHOWN_PATCHES;
     for (int i=0; i<num_show; i++)
         theButtons.setButtonType(FIRST_PATCH_BUTTON+i,BUTTON_TYPE_RADIO(GROUP_PATCH_NUMS));
-        
+
     if (optPatchNum.value && optPatchNum.value<=MAX_SHOWN_PATCHES)
         theButtons.select(FIRST_PATCH_BUTTON+optPatchNum.value-1,1);
-        
+
     // finished
     // do not call draw() here!
     // only draw on the main thread ..
-    
+
     showLEDs();
-    
+
 }   // configSystem::begin
 
 
@@ -193,13 +193,13 @@ void configSystem::onButtonEvent(int row, int col, int event)
 {
     // display(0,"configSystem(%d,%d) event(%s)",row,col,buttonArray::buttonEventName(event));
     int num = row * NUM_BUTTON_COLS + col;
-    
+
     if (in_terminal_mode)
     {
         cur_option->terminalNav(num);
         return;
     }
-    
+
     if (num == BUTTON_MOVE_UP)
     {
         if (cur_option->pPrevOption)
@@ -225,7 +225,7 @@ void configSystem::onButtonEvent(int row, int col, int event)
         {
             cur_option->selected = 0;
             cur_option->display_selected = -1;
-            
+
             display_option = 0;
             cur_menu = option->pParent->pFirstChild;
             cur_option = option;
@@ -243,7 +243,7 @@ void configSystem::onButtonEvent(int row, int col, int event)
         else if (cur_option->type & OPTION_TYPE_IMMEDIATE)
         {
             cur_option->incValue(1);
-            
+
             if (cur_option->type & OPTION_TYPE_CONFIG_NUM)
 			{
                 if (optPatchNum.value &&
@@ -255,7 +255,7 @@ void configSystem::onButtonEvent(int row, int col, int event)
 				{
 					theButtons.clearRadioGroup(GROUP_PATCH_NUMS);
 				}
-			
+
                 showLEDs();
             }
 			else if (cur_option->type & OPTION_TYPE_FACTORY_RESET)
@@ -287,14 +287,14 @@ void configSystem::onButtonEvent(int row, int col, int event)
     }
 
     // exit / cancel
-    
+
     else if (num == BUTTON_EXIT_CANCEL)  // abort - don't bother with colors
     {
         if (event == BUTTON_EVENT_LONG_CLICK)
         {
             reboot(num);
         }
-        else 
+        else
         {
             setLEDBrightness(optBrightness.orig_value);
             theSystem.activatePatch(optPatchNum.orig_value);
@@ -308,20 +308,20 @@ void configSystem::onButtonEvent(int row, int col, int event)
                 optBrightness.value,
                 optPatchNum.value,
 				optSpoofFTP.value);
-  
-            EEPROM.write(EEPROM_BRIGHTNESS,optBrightness.value);
-            EEPROM.write(EEPROM_PATCH_NUM,optPatchNum.value);
-            EEPROM.write(EEPROM_SPOOF_FTP,optSpoofFTP.value);
-            
+
+            EEPROM.write(PREF_BRIGHTNESS,optBrightness.value);
+            EEPROM.write(PREF_PATCH_NUM,optPatchNum.value);
+            EEPROM.write(PREF_SPOOF_FTP,optSpoofFTP.value);
+
             if (optSpoofFTP.value != optSpoofFTP.orig_value)
             {
-                reboot(num);                
+                reboot(num);
             }
         }
 
         theSystem.activatePatch(optPatchNum.value);
     }
-    
+
 }
 
 
@@ -353,9 +353,9 @@ void configSystem::updateUI()
         cur_option->terminalDraw();
         return;
     }
-    
+
     bool draw_all = false;
-	
+
 	if (cur_option != m_last_display_option)
 	{
 		m_last_display_option = cur_option;
@@ -373,15 +373,15 @@ void configSystem::updateUI()
 			draw_all = true;
 			//display(0,"new m_scroll_top=%d",m_scroll_top);
 		}
-	}		
-    
+	}
+
     // title
-    
+
     if (display_menu != cur_menu)
     {
         display_menu = cur_menu;
         draw_all = true;
-        
+
         mylcd.Fill_Screen(0);
 
         if (cur_option->pParent == &rootOption)
@@ -398,11 +398,11 @@ void configSystem::updateUI()
     // int num = 0;
     int y = TOP_OFFSET;
     configOption *opt = cur_menu;
-    
+
     while (opt)
     {
         // num++;
-		
+
 		int num = opt->getNum();
 		if (num >= m_scroll_top && num < m_scroll_top + OPTIONS_PER_PAGE)
 		{
@@ -410,25 +410,25 @@ void configSystem::updateUI()
 			bool draw_value = opt->display_value != opt->value;
 			opt->display_selected = opt->selected;
 			opt->display_value = opt->value;
-			
+
 			if (draw_all || draw_selected)
 			{
 				int color = TFT_BLACK;
 				if (opt->selected)
 					color = TFT_BLUE;
-					
+
 				// don't need to draw black on a full redraw
-				
-				if (color != TFT_BLACK || !draw_all)            
+
+				if (color != TFT_BLACK || !draw_all)
 					mylcd.Fill_Rect(0,y,TFT_WIDTH,LINE_HEIGHT-HIGHLIGHT_OFFSET,color);
-		
+
 				mylcd.Set_Text_colour(TFT_YELLOW);
 				mylcd.Set_Text_Cursor(LEFT_OFFSET,y + TEXT_OFFSET);
 				mylcd.print(num+1,DEC);
 				mylcd.print(". ");
 				mylcd.print(opt->title);
 			}
-	
+
 			if (opt->type & OPTION_TYPE_VALUE && (
 				draw_all || draw_selected || draw_value))
 			{
@@ -448,9 +448,5 @@ void configSystem::updateUI()
 
         opt = opt->pNextOption;
     }
-	
+
 }
-
-
-
-

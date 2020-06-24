@@ -15,9 +15,10 @@
 #define KEYPAD_LEFT    11
 #define KEYPAD_RIGHT   13
 
-#define ITEM_DYNAMIC_RANGE  6
-#define ITEM_DYNAMIC_OFFSET 7
-#define NUM_ITEMS 8
+#define ITEM_DYNAMIC_RANGE     6
+#define ITEM_DYNAMIC_OFFSET    7
+#define ITEM_TOUCH_SENSITIVITY 8
+#define ITEM_POLY_MODE          9
 
 
 #define BUTTON_TUNER  0
@@ -32,6 +33,8 @@ winFtpSensitivity::winFtpSensitivity()
 	init();
 	ftp_dynamic_range = 20;
 	ftp_dynamic_offset = 10;
+	ftp_touch_sensitivity = 4;
+	ftp_poly_mode = 1;
 }
 
 
@@ -43,7 +46,7 @@ void winFtpSensitivity::init()
 		last_vel[i] = 0;
 		last_velocity[i] = 0;
 	}
-	for (int i=0; i<NUM_ITEMS; i++)
+	for (int i=0; i<NUM_SENSITIVITY_ITEMS; i++)
 		last_value[i] = 0;
 
 	selected_item = 0;
@@ -66,6 +69,8 @@ void winFtpSensitivity::begin(bool warm)
 	sendFTPCommandAndValue(FTP_CMD_SPLIT_NUMBER,0x01);
 	sendFTPCommandAndValue(FTP_CMD_DYNAMICS_SENSITIVITY,ftp_dynamic_range);
 	sendFTPCommandAndValue(FTP_CMD_DYNAMICS_OFFSET,ftp_dynamic_offset);
+	sendFTPCommandAndValue(FTP_CMD_TOUCH_SENSITIVITY,ftp_touch_sensitivity);
+	sendFTPCommandAndValue(FTP_CMD_POLY_MODE,ftp_poly_mode);
 
 	// normal initialization
 
@@ -80,8 +85,11 @@ void winFtpSensitivity::begin(bool warm)
 	theButtons.setButtonType(BUTTON_TUNER,		BUTTON_TYPE_CLICK);
 	theButtons.setButtonType(THE_SYSTEM_BUTTON,	BUTTON_TYPE_CLICK, 	LED_GREEN);
 
-	theButtons.setButtonType(20,			BUTTON_TYPE_CLICK, 	LED_GREEN);
+	theButtons.setButtonType(20,			BUTTON_TYPE_TOGGLE, LED_GREEN, LED_ORANGE);
 	theButtons.setButtonType(24,			BUTTON_TYPE_CLICK,	LED_PURPLE);
+
+	if (!ftp_poly_mode)
+		theButtons.select(20,1);
 
 	showLEDs();
 }
@@ -100,8 +108,8 @@ void winFtpSensitivity::onButtonEvent(int row, int col, int event)
 	if (num == KEYPAD_UP || num == KEYPAD_DOWN)
 	{
 		selected_item += (num == KEYPAD_DOWN)? 1 : -1;
-		if (selected_item < 0) selected_item = NUM_ITEMS;
-		if (selected_item >= NUM_ITEMS) selected_item = 0;
+		if (selected_item < 0) selected_item = NUM_SENSITIVITY_ITEMS-1;
+		if (selected_item >= NUM_SENSITIVITY_ITEMS) selected_item = 0;
 	}
 	else if (num == KEYPAD_LEFT || num == KEYPAD_RIGHT)
 	{
@@ -110,6 +118,7 @@ void winFtpSensitivity::onButtonEvent(int row, int col, int event)
 			ftp_dynamic_range += (num == KEYPAD_RIGHT) ? 1 : -1;
 			if (ftp_dynamic_range < 10) ftp_dynamic_range = 10;
 			if (ftp_dynamic_range > 20) ftp_dynamic_range = 20;
+			sendFTPCommandAndValue(FTP_CMD_SPLIT_NUMBER,0x01);
 			sendFTPCommandAndValue(FTP_CMD_DYNAMICS_SENSITIVITY,ftp_dynamic_range);
 		}
 		else if (selected_item == ITEM_DYNAMIC_OFFSET)
@@ -117,7 +126,22 @@ void winFtpSensitivity::onButtonEvent(int row, int col, int event)
 			ftp_dynamic_offset += (num == KEYPAD_RIGHT) ? 1 : -1;
 			if (ftp_dynamic_offset < 0)  ftp_dynamic_offset = 0;
 			if (ftp_dynamic_offset > 20) ftp_dynamic_offset = 20;
+			sendFTPCommandAndValue(FTP_CMD_SPLIT_NUMBER,0x01);
 			sendFTPCommandAndValue(FTP_CMD_DYNAMICS_OFFSET,ftp_dynamic_offset);
+		}
+		else if (selected_item == ITEM_TOUCH_SENSITIVITY)
+		{
+			ftp_touch_sensitivity += (num == KEYPAD_RIGHT) ? 1 : -1;
+			if (ftp_touch_sensitivity < 0) ftp_touch_sensitivity = 0;
+			if (ftp_touch_sensitivity > 9) ftp_touch_sensitivity = 9;
+			sendFTPCommandAndValue(FTP_CMD_TOUCH_SENSITIVITY,ftp_touch_sensitivity);
+		}
+		else if (selected_item == ITEM_POLY_MODE)
+		{
+			ftp_poly_mode = ftp_poly_mode ? 0 : 1;
+			sendFTPCommandAndValue(FTP_CMD_POLY_MODE,ftp_poly_mode);
+			theButtons.select(20,!ftp_poly_mode);
+			showLEDs();
 		}
 		else
 		{
@@ -143,16 +167,22 @@ void winFtpSensitivity::onButtonEvent(int row, int col, int event)
 
 	else if (num == 20)
 	{
-		for (int i=0; i<NUM_STRINGS; i++)
-		{
-			sendFTPCommandAndValue(FTP_CMD_GET_SENSITIVITY, i);
-		}
+		arrayedButton *pb = theButtons.getButton(row,col);
+		ftp_poly_mode = !pb->isSelected();
+		sendFTPCommandAndValue(FTP_CMD_POLY_MODE,ftp_poly_mode);
 	}
 	else if (num == 24)
 	{
-		sendFTPCommandAndValue(FTP_CMD_SPLIT_NUMBER,0x01);
-		sendFTPCommandAndValue(FTP_CMD_DYNAMICS_SENSITIVITY,ftp_dynamic_range);
-		sendFTPCommandAndValue(FTP_CMD_DYNAMICS_OFFSET,ftp_dynamic_offset);
+		#if 1
+			for (int i=0; i<NUM_STRINGS; i++)
+			{
+				sendFTPCommandAndValue(FTP_CMD_GET_SENSITIVITY, i);
+			}
+		#else
+			sendFTPCommandAndValue(FTP_CMD_SPLIT_NUMBER,0x01);
+			sendFTPCommandAndValue(FTP_CMD_DYNAMICS_SENSITIVITY,ftp_dynamic_range);
+			sendFTPCommandAndValue(FTP_CMD_DYNAMICS_OFFSET,ftp_dynamic_offset);
+		#endif
 	}
 }
 
@@ -291,19 +321,26 @@ void winFtpSensitivity::updateUI()	// draw
 	{
 		mylcd.setFont(Arial_16);
         mylcd.Set_Text_colour(TFT_YELLOW);
-	    mylcd.Set_Text_Cursor(SENS_LEFT + 80,SENS_BOTTOM + 8);
-		mylcd.print("Dynamic Range");
-	    mylcd.Set_Text_Cursor(SENS_LEFT + 80,SENS_BOTTOM + 3 + SENS_ROW_Y_OFFSET);
-		mylcd.print("Dynamic Offset");
+	    mylcd.Set_Text_Cursor(SENS_LEFT + 190,SENS_BOTTOM + 8);
+		mylcd.print("Dyn Range");
+	    mylcd.Set_Text_Cursor(SENS_LEFT + 190,SENS_BOTTOM + 3 + SENS_ROW_Y_OFFSET);
+		mylcd.print("Dyn Offset");
+
+	    mylcd.Set_Text_Cursor(SENS_LEFT,SENS_BOTTOM + 8);
+		mylcd.print("Touch Sens");
+	    mylcd.Set_Text_Cursor(SENS_LEFT,SENS_BOTTOM + 3 + SENS_ROW_Y_OFFSET);
+		mylcd.print("Poly Mode");
 	}
 
 	bool selection_changed = last_selected_item != selected_item;
 
-	for (int i=0; i<NUM_ITEMS; i++)
+	for (int i=0; i<NUM_SENSITIVITY_ITEMS; i++)
 	{
 		int value =
 			i == ITEM_DYNAMIC_RANGE ? ftp_dynamic_range :
 			i == ITEM_DYNAMIC_OFFSET ? ftp_dynamic_offset :
+			i == ITEM_TOUCH_SENSITIVITY ? ftp_touch_sensitivity :
+			i == ITEM_POLY_MODE ? ftp_poly_mode :
 			ftp_sensitivity[i];
 
 
@@ -315,17 +352,23 @@ void winFtpSensitivity::updateUI()	// draw
 		{
 			last_value[i] = value;
 			int color = i == selected_item ? TFT_BLUE : 0;
-			int y = SENS_TOP + i * SENS_ROW_Y_OFFSET - 3;
+
+			int x = i >= ITEM_TOUCH_SENSITIVITY ?
+				SENS_LEFT + 120 :
+				NUMBER_X;
+			int y = i >= ITEM_TOUCH_SENSITIVITY ?
+				SENS_TOP + (i-2) * SENS_ROW_Y_OFFSET - 3 :
+				SENS_TOP + i * SENS_ROW_Y_OFFSET - 3;
 
 			mylcd.setFont(Arial_16_Bold);
 			mylcd.Fill_Rect(
-				NUMBER_X,
+				x,
 				y,
 				NUMBER_WIDTH,
 				SENS_BOX_HEIGHT,
 				color);
 			mylcd.printf_justified(
-				NUMBER_X + 5,
+				x + 5,
 				y + 7,
 				NUMBER_WIDTH-10,
 				SENS_BOX_HEIGHT-6,
