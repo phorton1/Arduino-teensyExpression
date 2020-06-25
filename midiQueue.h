@@ -1,29 +1,73 @@
 #ifndef _midiQueue_h_
 #define _midiQueue_h_
 
+// ORIGINAL MESSAGES
+//
+// The "cable" number is communicated in the high order
+//      nibble of the first byte in the USB midi message
 // The FTP transmits on cables 0 and 1
 //     Cable 0 is the "Fishman Triple Play" device
 //         sends Active Sensing
 //     Cable 1 is the "MIDIIN2 (Fishman Triple Play Device)
-//
 // myMidiHost receives both
-//     - both must be echoed to the output device
-//       which must have 2 cables, to spoof the
-//       FTP editor.
-//
-// my TeensyDuino device has one cable
+//     if spoofing the FTP editor, both must be echoed to
+//     the output device which must have 2 cables
+// my TeensyDuino device now has two cables
 // my SpoofFTPTeensyDuino device has two cables
+// Henceforth, all communications with the FTP take place
+//     on cable1 of either port
+// Cable 0 is reserved for messags that MY program sends
+//     like patch changes, pedals, etc
+// The ipad CoreMidi mungs them all anyways.
 //
-// I currently transmit all all commands to the FTP
-//     on cable 0 of either port
-// I currently transmit all my outgoing midi also on cable 0
+// MAPPED MESSAGES
 //
-// The ipad CoreMidi mungs them all anyways and sends everything
-// from every input to every output.
+// For display and processing purposes, we map the cables thusly:
 //
-//      - which means that in spoof midi mode
-//        my program should receive the commands
-//        I send as well.
+//      0x0n = input from teensyDuino on cable 0
+//      0x1n = input from teensyDuino on cable 1
+//      0x2n = output to teensyDuino on cable 0
+//      0x3n = output to teensyDuino on cable 1
+//      0x4n = input from midi host on cable 0
+//      0x5n = input from midi host on cable 1
+//      0x6n = output to host on cable 0
+//      0x7n = output to host on cable 1
+//
+// thus the bottom bit of the high nibble is the original cable number
+// and the high two bits are the "port" number, furhter bitwise identifiable
+// as input or output ports
+//
+//      x 0 0 0      unused
+//      0 1 0 0      host bit
+//      0 0 1 0      output bit
+//      0 0 0 1      original cable bit
+
+
+#define PORT_MASK           0xF0
+#define PORT_MASK_HOST      0x40
+#define PORT_MASK_OUTPUT    0x20
+#define PORT_MASK_CABLE     0x10
+
+#define NUM_MIDI_PORTS              8
+
+#define PORT_INDEX_MASK             0x7
+#define PORT_INDEX_DUINO_INPUT0     0x0   // input from teensyDuino on cable 0
+#define PORT_INDEX_DUINO_INPUT1     0x1   // input from teensyDuino on cable 1
+#define PORT_INDEX_DUINO_OUTPUT0    0x2   // output to teensyDuino on cable 0
+#define PORT_INDEX_DUINO_OUTPUT1    0x3   // output to teensyDuino on cable 1
+#define PORT_INDEX_HOST_INPUT0      0x4   // input from midi host on cable 0
+#define PORT_INDEX_HOST_INPUT1      0x5   // input from midi host on cable 1
+#define PORT_INDEX_HOST_OUTPUT0     0x6   // output to host on cable 0
+#define PORT_INDEX_HOST_OUTPUT1     0x7   // output to host on cable 1
+
+#define INDEX_MASK_HOST     0x04
+#define INDEX_MASK_OUTPUT   0x02
+#define INDEX_MASK_CABLE    0x01
+
+#define INDEX_HOST(i)       (i & INDEX_MASK_HOST)
+#define INDEX_OUTPUT(i)     (i & INDEX_MASK_OUTPUT)
+#define INDEX_CABLE(i)      (i & INDEX_MASK_CABLE)
+
 
 
 class msgUnion
@@ -34,11 +78,24 @@ class msgUnion
         msgUnion(uint32_t msg)  { i = msg; }
         msgUnion(uint8_t b0, uint8_t b1, uint8_t b2, uint8_t b3) { b[0]=b0; b[1]=b1; b[2]=b2; b[3]=b3; }
 
-        bool isHost()           { return (i & 0x80); }
-        int  hostIndex()        { return isHost() ? 1 : 0; }
-        uint8_t getMsgType()    { return i & 0x0f; }
-        uint8_t getCable()      { return (i>>4) & 0x7; }
-        uint8_t getChannel()    { return (b[1] & 0xf) + 1; }
+        // "port" numbers are dealt with in their shifted state for performance
+
+        void    setPort(uint8_t p)  { i |= p; }
+        uint8_t getPort()           { return i & PORT_MASK; }
+
+        bool    isHost()            { return i & PORT_MASK_HOST; }
+        bool    isOutput()          { return i & PORT_MASK_OUTPUT; }
+        bool    isCable1()          { return i & PORT_MASK_CABLE; }
+
+        // for certain purposes, like processing sysex messages
+        // into an array of buffers, we want an index
+        // 0..7 for the eight possible port/cable numbers.
+        // portIndex() is shifted for client use and has
+        // macros for the bits
+
+        uint8_t portIndex()  { return (i>>4) & PORT_INDEX_MASK; }
+        uint8_t getMsgType() { return i & 0x0f; }
+        uint8_t getChannel() { return (b[1] & 0xf) + 1; }
 
         uint8_t type()       { return b[1]; }
         uint8_t param1()     { return b[2]; }

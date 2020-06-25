@@ -45,7 +45,7 @@
 #define ENDPOINT_RECEIVE_ISOCHRONOUS	0x18
 #define ENDPOINT_TRANSMIT_ISOCHRONOUS	0x14
 
-// The configuration is MIDI+SERIAL and the number of cables can vary.
+// The configuration is MIDI4+SERIAL and the number of cables can vary.
 
 // extern uint16_t MIDI_NUM_CABLES;
 // prh - doesnt work

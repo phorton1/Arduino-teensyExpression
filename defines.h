@@ -198,11 +198,10 @@
 #define MAX_PEDAL_CURVE_POINTS          2       // number of movable points (with weights)
 
 
-//-----------------------------------
+//--------------------------------------------------------------------------------
 // SETTINGS (PREFERENCES) OPTIONS
-//-----------------------------------
-// These are the locations in EEPROM of these items
-
+//--------------------------------------------------------------------------------
+// These define are also the locations in EEPROM of these items
 
 // #define EEPROM_BRIGHTNESS       0
 // #define EEPROM_PATCH_NUM        1
@@ -211,18 +210,28 @@
 #define PREF_BRIGHTNESS         0           // 1..100 - default(40)
 #define PREF_PATCH_NUM          1           // 0..254 - default(1)
 #define PREF_DEBUG_PORT         2           // Off, USB, Serial - default(USB)
-
-
 #define PREF_SPOOF_FTP         10           // Off, On default(off)
 #define PREF_FTP_PORT          11           // None, Host, Remote, default(Host)
-#define PREF_FTP_POLY_MODE     12           // 255(dont send), 1=Poly, 0=Mono - default(255=take whatever is found on device)
-#define PREF_FTP_TOUCH_SENS    13           // 255(don't send), 0..9 - default(4)
-#define PREF_FTP_DYN_RANGE     14           // 255(don't send), 0x0A..0x14 (10..20) weird - default(20)
-#define PREF_FTP_DYN_OFFSET    15           // 255(don't send), 0..20 - default(10)
 
+//-----------------------------
+// default patch settings
+//-----------------------------
+// these are the default settings for patches that don't use patchSettings
+// every patch change must at least calls setPatchSettings(0)
 
-#define PREF_PERF_FILTER       30           // off, on - default(off)
+#define PREF_FTP_POLY_MODE     12           // 1=Poly, 0=Mono - default(255=take whatever is found on device)
+#define PREF_FTP_TOUCH_SENS    13           // 0..9 - default(4)
+#define PREF_FTP_DYN_RANGE     14           // 0x0A..0x14 (10..20) weird - default(20), we map to 0..10, default(10)
+#define PREF_FTP_DYN_OFFSET    15           // 0..20 - default(10)
+
+#define PREF_PERF_FILTER       30           // off, on - default(off), filters all but notes and bends from channel 0
+#define PREF_PERF_FILTER_BENDS 31           // off, on - default(off), filters bends too.
 #define PREF_PERF_SPLIT        60           // off, 1+5, 2+4, 3+3, 4+2, 5+1 - experimental - default(off)
+
+
+//-----------------------------
+// midi monitor settings
+//-----------------------------
 
 #define PREF_MONITOR_MIDI MONITOR   100     // OFF, USB, Serial        default(USB)
 #define PREF_MONITOR_SHOW_FILTERED  101     // OFF, ON                 default(ON)

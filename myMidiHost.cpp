@@ -4,7 +4,7 @@
 #include "midiQueue.h"
 
 
-#define HOST_CABLE_BIT  0x80
+// #define HOST_CABLE_BIT  0x80
 
 
 USBHost myusb;
@@ -48,7 +48,8 @@ void myMidiHostDevice::rx_data(const Transfer_t *transfer)
                 // prh - set the high order bit of the "cable" to indicate
                 // this came from the host ...
 
-                msg |= HOST_CABLE_BIT;
+                // msg |= HOST_CABLE_BIT;
+                msg |= PORT_MASK_HOST;
                 enqueueProcess(msg);
             }
         }

@@ -116,7 +116,7 @@ static uint8_t device_descriptor[] = {
 
 #define MIDI_INTERFACE_DESC_POS		CDC_DATA_INTERFACE_DESC_POS+CDC_DATA_INTERFACE_DESC_SIZE
 
-#define CONFIG1_NUM_CABLES  1
+#define CONFIG1_NUM_CABLES  2
 #define CONFIG2_NUM_CABLES  2
 
 #define MIDI_INTERFACE1_DESC_SIZE	9+7+((6+6+9+9)* CONFIG1_NUM_CABLES)+(9+4+CONFIG1_NUM_CABLES)*2
@@ -124,6 +124,14 @@ static uint8_t device_descriptor[] = {
 
 #define CONFIG1_DESC_SIZE		MIDI_INTERFACE_DESC_POS+MIDI_INTERFACE1_DESC_SIZE
 #define CONFIG2_DESC_SIZE		MIDI_INTERFACE_DESC_POS+MIDI_INTERFACE2_DESC_SIZE
+
+
+#define MIDI_INTERFACE_JACK_PAIR(a, b, c, d, ij, oj) \
+    6, 0x24, 0x02, 0x01, (a), (ij), \
+    6, 0x24, 0x02, 0x02, (b), (ij), \
+    9, 0x24, 0x03, 0x01, (c), 1, (b), 1, (oj), \
+    9, 0x24, 0x03, 0x02, (d), 1, (a), 1, (oj),
+
 
 // prh - doesnt work
 // uint16_t MIDI_NUM_CABLES = CONFIG1_NUM_CABLES;
@@ -244,7 +252,7 @@ static uint8_t config1_descriptor[CONFIG1_DESC_SIZE] =            // ONE MIDI CA
         0x00, 0x01,                             // bcdMSC = revision 01.00
         LSB(7+(6+6+9+9)*CONFIG1_NUM_CABLES),    // wTotalLength
         MSB(7+(6+6+9+9)*CONFIG1_NUM_CABLES),
-    
+
         // MIDI IN Jack Descriptor, B.4.3, Table B-7 (embedded), page 40
         6,                                      // bLength
         0x24,                                   // bDescriptorType = CS_INTERFACE
@@ -279,11 +287,10 @@ static uint8_t config1_descriptor[CONFIG1_DESC_SIZE] =            // ONE MIDI CA
         1,                                      // BaSourceID(1) = 1
         1,                                      // BaSourcePin(1) = first pin
         5,                                      // prh - iJack
-        
-        //------------------------
-        // no extra cables
-        //------------------------
-        
+
+        MIDI_INTERFACE_JACK_PAIR(5, 6, 7, 8, 6, 7)
+            // one extra cable
+
         // Standard Bulk OUT Endpoint Descriptor, B.5.1, Table B-11, pae 42
         9,                                      // bLength
         5,                                      // bDescriptorType = ENDPOINT
@@ -300,9 +307,7 @@ static uint8_t config1_descriptor[CONFIG1_DESC_SIZE] =            // ONE MIDI CA
         CONFIG1_NUM_CABLES,                        // bNumEmbMIDIJack = number of jacks
         1,                                      // BaAssocJackID(1) = jack ID #1
 
-        //------------------------
-        // no extra cables
-        //------------------------
+        5,  // prh - one extra byte here for one extra cable
 
         // Standard Bulk IN Endpoint Descriptor, B.5.1, Table B-11, pae 42
         9,                                      // bLength
@@ -319,8 +324,8 @@ static uint8_t config1_descriptor[CONFIG1_DESC_SIZE] =            // ONE MIDI CA
         0x01,                                   // bJackType = MS_GENERAL
         CONFIG1_NUM_CABLES,                        // bNumEmbMIDIJack = number of jacks
         3,                                      // BaAssocJackID(1) = jack ID #3
-        
-        // no extra cables
+
+        7,      // prh - one extra byte here for one extra cable
 
 // #endif // MIDI_INTERFACE
 
@@ -441,21 +446,21 @@ static uint8_t config2_descriptor[CONFIG2_DESC_SIZE] =   // TWO MIDI_CABLES
         0x00, 0x01,                             // bcdMSC = revision 01.00
         LSB(7+(6+6+9+9)*CONFIG2_NUM_CABLES),    // wTotalLength
         MSB(7+(6+6+9+9)*CONFIG2_NUM_CABLES),
-    
+
         // MIDI IN Jack Descriptor, B.4.3, Table B-7 (embedded), page 40
         6,                                      // bLength
         0x24,                                   // bDescriptorType = CS_INTERFACE
         0x02,                                   // bDescriptorSubtype = MIDI_IN_JACK
         0x01,                                   // bJackType = EMBEDDED
         1,                                      // bJackID, ID = 1
-        6,                                      // prh - iJack
+        8,                                      // prh - iJack
         // MIDI IN Jack Descriptor, B.4.3, Table B-8 (external), page 40
         6,                                      // bLength
         0x24,                                   // bDescriptorType = CS_INTERFACE
         0x02,                                   // bDescriptorSubtype = MIDI_IN_JACK
         0x02,                                   // bJackType = EXTERNAL
         2,                                      // bJackID, ID = 2
-        6,                                      // prh - iJack
+        8,                                      // prh - iJack
         // MIDI OUT Jack Descriptor, B.4.4, Table B-9, page 41
         9,
         0x24,                                   // bDescriptorType = CS_INTERFACE
@@ -465,7 +470,7 @@ static uint8_t config2_descriptor[CONFIG2_DESC_SIZE] =   // TWO MIDI_CABLES
         1,                                      // bNrInputPins = 1 pin
         2,                                      // BaSourceID(1) = 2
         1,                                      // BaSourcePin(1) = first pin
-        7,                                      // prh - iJack
+        9,                                      // prh - iJack
         // MIDI OUT Jack Descriptor, B.4.4, Table B-10, page 41
         9,
         0x24,                                   // bDescriptorType = CS_INTERFACE
@@ -475,22 +480,11 @@ static uint8_t config2_descriptor[CONFIG2_DESC_SIZE] =   // TWO MIDI_CABLES
         1,                                      // bNrInputPins = 1 pin
         1,                                      // BaSourceID(1) = 1
         1,                                      // BaSourcePin(1) = first pin
-        7,                                      // prh - iJack
-        
-        //-----------------------------
-        // one extra cable
-        //-----------------------------
-  
-            #define MIDI_INTERFACE_JACK_PAIR(a, b, c, d, ij, oj) \
-                6, 0x24, 0x02, 0x01, (a), (ij), \
-                6, 0x24, 0x02, 0x02, (b), (ij), \
-                9, 0x24, 0x03, 0x01, (c), 1, (b), 1, (oj), \
-                9, 0x24, 0x03, 0x02, (d), 1, (a), 1, (oj),
-            MIDI_INTERFACE_JACK_PAIR(5, 6, 7, 8, 8, 9)
-            
-            // continued ...
-            
-        
+        9,                                      // prh - iJack
+
+        MIDI_INTERFACE_JACK_PAIR(5, 6, 7, 8, 0xA, 0xB)
+            // one extra cable
+
         // Standard Bulk OUT Endpoint Descriptor, B.5.1, Table B-11, pae 42
         9,                                      // bLength
         5,                                      // bDescriptorType = ENDPOINT
@@ -506,15 +500,9 @@ static uint8_t config2_descriptor[CONFIG2_DESC_SIZE] =   // TWO MIDI_CABLES
         0x01,                                   // bJackType = MS_GENERAL
         CONFIG2_NUM_CABLES,                        // bNumEmbMIDIJack = number of jacks
         1,                                      // BaAssocJackID(1) = jack ID #1
-        
-        //-----------------------------
-        // one extra cable
-        //-----------------------------
 
-            5,      // prh - one extra byte here for one cable
-            
-            // continued ....
-  
+        5,  // prh - one extra byte here for one extra cable
+
         // Standard Bulk IN Endpoint Descriptor, B.5.1, Table B-11, pae 42
         9,                                      // bLength
         5,                                      // bDescriptorType = ENDPOINT
@@ -530,11 +518,9 @@ static uint8_t config2_descriptor[CONFIG2_DESC_SIZE] =   // TWO MIDI_CABLES
         0x01,                                   // bJackType = MS_GENERAL
         CONFIG2_NUM_CABLES,                        // bNumEmbMIDIJack = number of jacks
         3,                                      // BaAssocJackID(1) = jack ID #3
-        
-        // one extea cable
-        
-            7,      // prh - one extra byte here for one cable
-            
+
+         7,      // prh - one extra byte here for one extra cable
+
             // finished
 
 // #endif // MIDI_INTERFACE
@@ -565,7 +551,7 @@ extern struct usb_string_descriptor_struct usb_string_product_name
         __attribute__ ((weak, alias("usb_string_product_name_default")));
 extern struct usb_string_descriptor_struct usb_string_serial_number
         __attribute__ ((weak, alias("usb_string_serial_number_default")));
-        
+
 
 struct usb_string_descriptor_struct string0 = {
         4,
@@ -645,19 +631,32 @@ struct usb_string_descriptor_struct   jack01_name = {
 struct usb_string_descriptor_struct   jack10_name = {
         2 + 18 * 2,
         3,
-        {'F','i','s','h','m','a','n',' ','T','r','i','p','l','e','P','l','a','y'}
+        {'t','e','e','n','s','y','C','o','n','t','r','o','l',' ','(','i','n',')'}
 };
 struct usb_string_descriptor_struct   jack11_name = {
+        2 + 19 * 2,
+        3,
+        {'t','e','e','n','s','y','C','o','n','t','r','o','l',' ','(','o','u','t',')'}
+};
+
+
+
+struct usb_string_descriptor_struct   jack20_name = {
         2 + 18 * 2,
         3,
         {'F','i','s','h','m','a','n',' ','T','r','i','p','l','e','P','l','a','y'}
 };
-struct usb_string_descriptor_struct   jack20_name = {
+struct usb_string_descriptor_struct   jack21_name = {
+        2 + 18 * 2,
+        3,
+        {'F','i','s','h','m','a','n',' ','T','r','i','p','l','e','P','l','a','y'}
+};
+struct usb_string_descriptor_struct   jack30_name = {
         2 + 28 * 2,
         3,
         {'M','I','D','I','I','N','2',' ','(','F','i','s','h','m','a','n',' ','T','r','i','p','l','e','P','l','a','y',')'}
 };
-struct usb_string_descriptor_struct   jack21_name = {
+struct usb_string_descriptor_struct   jack31_name = {
         2 + 29 * 2,
         3,
         {'M','I','D','I','O','U','T','2',' ','(','F','i','s','h','m','a','n',' ','T','r','i','p','l','e','P','l','a','y',')'}
@@ -684,20 +683,22 @@ usb_descriptor_list_t usb_descriptor_list[] = {
 	//wValue, wIndex, address,          length
 	{0x0100, 0x0000, device_descriptor,  sizeof(device_descriptor)},
 	{0x0200, 0x0000, config1_descriptor, CONFIG1_DESC_SIZE},
-    
+
     {0x0300, 0x0000, (const uint8_t *)&string0, 0},
     {0x0301, 0x0409, (const uint8_t *)&usb_string_manufacturer_name, 0},
     {0x0302, 0x0409, (const uint8_t *)&usb_string_product_name, 0},
     {0x0303, 0x0409, (const uint8_t *)&usb_string_serial_number, 0},
-    
+
     {0x0304, 0x0409, (const uint8_t *)&jack00_name, 0},
     {0x0305, 0x0409, (const uint8_t *)&jack01_name, 0},
     {0x0306, 0x0409, (const uint8_t *)&jack10_name, 0},
     {0x0307, 0x0409, (const uint8_t *)&jack11_name, 0},
     {0x0308, 0x0409, (const uint8_t *)&jack20_name, 0},
     {0x0309, 0x0409, (const uint8_t *)&jack21_name, 0},
-    {0x030A, 0x0409, (const uint8_t *)&FTP_product_name, 0},
-    
+    {0x030A, 0x0409, (const uint8_t *)&jack30_name, 0},
+    {0x030B, 0x0409, (const uint8_t *)&jack31_name, 0},
+    {0x030C, 0x0409, (const uint8_t *)&FTP_product_name, 0},
+
 	{0, 0, NULL, 0}
 };
 
@@ -708,17 +709,17 @@ void setFishmanFTPDescriptor()
 {
     // prh - doesnt work
     // MIDI_NUM_CABLES = CONFIG2_NUM_CABLES;
-    
+
     // bump the product vid so you don't have to uninstall
-    
+
     device_descriptor[uniqueIDOffset]++;
-    
+
     // set the stringId into the device descriptor
-    
-    device_descriptor[iProductOffset] = 10;     // 0A string index
-    
+
+    device_descriptor[iProductOffset] = 0x0c;     // FTP_product_name string index
+
     // set the pointer and size of the config desxcriptor
-    
+
     usb_descriptor_list[1].addr = config2_descriptor;
     usb_descriptor_list[1].length = CONFIG2_DESC_SIZE;
 }
