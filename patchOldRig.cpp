@@ -5,10 +5,9 @@
 #include "myTFT.h"
 #include "pedals.h"
 #include "buttons.h"
+#include "midiQueue.h"
 #include "oldRig_defs.h"
 
-
-#define SHOW_SENT_MIDI  1
 
 #define GROUP_LOOPER 	7
 #define GROUP_SYNTH		1
@@ -23,7 +22,7 @@
 
 
 
-#define BUTTON_TYPE_LOOPER      (BUTTON_EVENT_PRESS | BUTTON_MASK_TOUCH | BUTTON_MASK_RADIO | BUTTON_GROUP(GROUP_LOOPER) )
+#define BUTTON_TYPE_LOOPER      (BUTTON_EVENT_PRESS | BUTTON_EVENT_RELEASE | BUTTON_MASK_TOUCH | BUTTON_MASK_RADIO | BUTTON_GROUP(GROUP_LOOPER) )
 #define BUTTON_TYPE_LOOP_CLEAR  (BUTTON_EVENT_CLICK | BUTTON_EVENT_LONG_CLICK | BUTTON_MASK_TOUCH | BUTTON_MASK_RADIO | BUTTON_GROUP(GROUP_LOOPER) )
 
 
@@ -168,14 +167,9 @@ void patchOldRig::onButtonEvent(int row, int col, int event)
 
     if (row < 3)
     {
-        m_cur_patch_num = num;
-        usbMIDI.sendProgramChange(synth_patch[m_cur_patch_num].prog_num, SYNTH_PROGRAM_CHANNEL);
-        #if SHOW_SENT_MIDI
-            display(0,"sent MIDI PC(%d,%d)",
-                SYNTH_PROGRAM_CHANNEL,
-                synth_patch[m_cur_patch_num].prog_num);
-        #endif
-
+        m_cur_patch_num = num;	// my patch number
+		int prog_num = synth_patch[m_cur_patch_num].prog_num;	// device patch numbr
+        mySendDeviceProgramChange(prog_num, SYNTH_PROGRAM_CHANNEL);
     }
     else if (row == 3)
     {
@@ -184,33 +178,20 @@ void patchOldRig::onButtonEvent(int row, int col, int event)
             theButtons.clearRadioGroup(GROUP_GUITAR);
             for (int c=0; c<NUM_BUTTON_COLS; c++)
             {
-                usbMIDI.sendControlChange(
+                mySendDeviceControlChange(
                     guitar_effect_ccs[c],
                     0x00,
                     GUITAR_EFFECTS_CHANNEL);
-                #if SHOW_SENT_MIDI
-                    display(0,"sent MIDI CC(%d,%d,%d)",
-                        GUITAR_EFFECTS_CHANNEL,
-                        guitar_effect_ccs[c],
-                        0x00);
-                #endif
             }
         }
         else
         {
 			arrayedButton *pb = theButtons.getButton(row,col);
 			int value = pb->isSelected() ? 0x7f : 0;
-
-            usbMIDI.sendControlChange(
+            mySendDeviceControlChange(
                 guitar_effect_ccs[col],
                 value,
                 GUITAR_EFFECTS_CHANNEL);
-            #if SHOW_SENT_MIDI
-                display(0,"sent MIDI CC(%d,%d,%d)",
-                    GUITAR_EFFECTS_CHANNEL,
-                    guitar_effect_ccs[col],
-                    value);
-            #endif
         }
     }
     else // (row == 4)
@@ -218,67 +199,35 @@ void patchOldRig::onButtonEvent(int row, int col, int event)
         if (event == BUTTON_EVENT_LONG_CLICK)
         {
             theButtons.clearRadioGroup(GROUP_LOOPER);
-            usbMIDI.sendControlChange(
+            mySendDeviceControlChange(
                 LOOP_CONTROL_CLEAR_ALL,
                 0x7f,
                 LOOP_CONTROL_CHANNEL);
-            #if SHOW_SENT_MIDI
-                display(0,"sent MIDI CC(%d,%d,%d)",
-                    LOOP_CONTROL_CHANNEL,
-                    LOOP_CONTROL_CLEAR_ALL,
-                    0x7f);
-            #endif
 
-            usbMIDI.sendControlChange(
+            mySendDeviceControlChange(
                 LOOP_CONTROL_CLEAR_ALL,
                 0x00,
                 LOOP_CONTROL_CHANNEL);
-            #if SHOW_SENT_MIDI
-                display(0,"sent MIDI CC(%d,%d,%d)",
-                    LOOP_CONTROL_CHANNEL,
-                    LOOP_CONTROL_CLEAR_ALL,
-                    0x00);
-            #endif
         }
         else if (event == BUTTON_EVENT_PRESS)
         {
-            usbMIDI.sendControlChange(
+            mySendDeviceControlChange(
                 loop_ccs[col],
                 0x7f,
                 LOOP_CONTROL_CHANNEL);
-            #if SHOW_SENT_MIDI
-                display(0,"sent MIDI CC(%d,%d,%d)",
-                    LOOP_CONTROL_CHANNEL,
-                    loop_ccs[col],
-                    0x7f);
-            #endif
         }
         else // RELEASE or CLICK
         {
             if (event == BUTTON_EVENT_CLICK)
-            {
-                usbMIDI.sendControlChange(
+	            mySendDeviceControlChange(
                     loop_ccs[col],
                     0x7f,
                     LOOP_CONTROL_CHANNEL);
-                #if SHOW_SENT_MIDI
-                    display(0,"sent MIDI CC(%d,%d,%d)",
-                        LOOP_CONTROL_CHANNEL,
-                        loop_ccs[col],
-                        0x7f);
-                #endif
-            }
 
-            usbMIDI.sendControlChange(
+            mySendDeviceControlChange(
                 loop_ccs[col],
                 0x00,
                 LOOP_CONTROL_CHANNEL);
-            #if SHOW_SENT_MIDI
-                display(0,"sent MIDI CC(%d,%d,%d)",
-                    LOOP_CONTROL_CHANNEL,
-                    loop_ccs[col],
-                    0);
-            #endif
         }
     }
 }
@@ -327,10 +276,8 @@ void patchOldRig::updateUI()
             pedal->clearDisplayValueChanged();
             int v = pedal->getValue();
 
-            #if SHOW_SENT_MIDI
-                // shows the frequency of UI vs MIDI messages on pedals
-                display(0,"updateUI pedal(%d) changed to %d",i,v);
-            #endif
+			// shows the frequency of UI vs MIDI messages on pedals
+			// display(0,"updateUI pedal(%d) changed to %d",i,v);
 
             if (!font_set)
             {

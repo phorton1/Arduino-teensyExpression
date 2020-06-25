@@ -20,8 +20,6 @@
 #include "winFtpSensitivity.h"
 
 
-#define SHOW_SENT_MIDI  1
-
 #define BATTERY_CHECK_TIME  30000
 
 #define HOOK_TUNER_TO_DEFAULT_BUTTON   1
@@ -401,18 +399,10 @@ void expSystem::pedalEvent(int num, int value)
 	{
 		expressionPedal *pedal = thePedals.getPedal(num);
 		if (pedal->getCCChannel() && pedal->getCCNum())
-		usbMIDI.sendControlChange(
-			pedal->getCCNum(),
-			value,
-			pedal->getCCChannel());
-		#if SHOW_SENT_MIDI
-			display(0,"pedal(%d,%s) sent MIDI CC(%d,%d,%d)",
-				num,
+            mySendDeviceControlChange(
 				pedal->getCCNum(),
 				value,
-				pedal->getCCChannel(),
-				value);
-		#endif
+				pedal->getCCChannel());
 	}
 }
 

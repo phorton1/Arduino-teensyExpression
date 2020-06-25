@@ -104,6 +104,34 @@ elapsedMillis command_time      = 0;
 #define IS_CONTROLLER  (pindex == ftp_controller_index)
 
 
+//-------------------------------------
+// immediate sends as device (cable0)
+//-------------------------------------
+
+void mySendDeviceProgramChange(uint8_t prog_num, uint8_t channel)
+{
+    usbMIDI.sendProgramChange(prog_num, channel);
+    msgUnion msg(
+        0x0C | PORT_MASK_OUTPUT,
+        0xC0 | (channel-1),
+        prog_num,
+        0);
+    enqueueProcess(msg.i);
+}
+
+void mySendDeviceControlChange(uint8_t cc_num, uint8_t value, uint8_t channel)
+{
+    usbMIDI.sendProgramChange(cc_num, value, channel);
+    msgUnion msg(
+        0x0B | PORT_MASK_OUTPUT,
+        0xB0 | (channel-1),
+        cc_num,
+        value);
+    enqueueProcess(msg.i);
+}
+
+
+
 
 //-------------------------------------
 // outGoingMessage Processing
