@@ -42,49 +42,41 @@
 //
 // PATCHES vs WINDOWS vs the configSystem object
 //
-//
-//     Patches are "top levell" expWindows that use 1 based numbering
+//     "Patches" are "top levell" expWindows that use 1 based numbering
 //     The configSystem object overuses patch #0 in current implementation.
-//     The intention is that there can then be modal dialog "windows" that
-//     can be called from either.
 //
-//     The design and implementation are in flux.
+//     "Windows" are modal dialog windows with a return value mechanism
+//     that can be invoked in a stack-like manner.
 
 
-
-
-
-// configSystem  as-is currently
+//------------------------------------------------------------------------
+// UI GUIDELINES
+//------------------------------------------------------------------------
 //
-//      Brightness          nn
-//          has quick keys
-//          is only implement "integerOption" with a terminal mode
-//      Patch               name
-//          has quick keys for patches 1-5
-//          and system is currently overusing patch0 for the configSystem
-//      Pedals
-//          Calibrate Pedals
-//               Pedal1
-//               Pedal2
-//               Pedal3
-//               Pedal4
-//          Configure Pedals
-//               Pedal1
-//               Pedal2
-//               Pedal3
-//               Pedal4
-//      System
-//          MidiHost        ON/OFF
-//          Serial Port     ON/OFF
-//          Calibrate Touch
-//      Spoof FTP       ON/OFF
-
-// NEW
+// THE_SYSTEM_BUTTON
 //
-//     Rotaries are considered to be available to patches and
-//         are not used in the sysConfig or other 'built-in' UI.
-//         The whole notion of "curves" on rotaries may need to be
-//         addressed.
+//     The top right button has been delegated to the system and should be used
+//     consistently.  It is always "purple" in patches and the system configuration.
+//
+//     In a patch, a long press means "go to the system configuration
+//     window" (settings) and a short click, if using an FTP controller, goes to
+//     ftp tuner/sensitivity window pair.
+//
+//     In the system configuration window, a long press means "save the settings
+//     persistently" and a short click means "return to the patch".  The button
+//     next to it is used as cancel on a short click, and reboot system on a
+//     long click.
+//
+//     In a dialog window the system_button should generally be implemented to
+//     mean "ok" and should be green.
+
+
+// MANAGEMENT OF PREFS VS CONFIGURATION-save_global_prefs AND cancel
+// VS THE OBJECTS THAT BEHAVE BASED UPON THEM.
+//
+// There is currently almost a hodgepodge of how things are affected
+// and saved in the configuration window.
+
 //
 //     If and when I implement "serial midi to the rPi looper"
 //         I may need to make that exclusive of sending debugging
@@ -309,3 +301,9 @@
 //          accepts the changes.
 //
 //
+
+
+//     Rotaries are considered to be available to patches and
+//         are not used in the sysConfig or other 'built-in' UI.
+//         The whole notion of "curves" on rotaries may need to be
+//         addressed.
