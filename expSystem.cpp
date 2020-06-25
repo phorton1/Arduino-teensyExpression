@@ -1,7 +1,7 @@
 
-#include <EEPROM.h>
 #include <myDebug.h>
 #include "expSystem.h"
+#include "prefs.h"
 #include "myTFT.h"
 #include "myLeds.h"
 #include "buttons.h"
@@ -33,7 +33,7 @@
 // This version WORKS as a midi host to the FTP dongle, appears in
 // windows as a "Fishman TriplePlay" with similarly named
 // midi ports, and successfully runs within the Windows FTP Editor,
-// based on an EEPROM/configuration setting "SPOOF_FTP"
+// based on an pref setting "SPOOF_FTP"
 //
 // REQUIRES setting MIDI4+SERIAL in Arduino IDE, as I did not want
 // to muck around with Paul's midi.h file where it checks MIDI_NUM_CABLES
@@ -205,25 +205,18 @@ void expSystem::begin()
     theButtons.init();
 	thePedals.init();
 
-    // get the brightness from EEPROM
+    // set the brightness from prefs
 
-    int brightness = EEPROM.read(PREF_BRIGHTNESS);
-    if (brightness == 255)
-        brightness = DEFAULT_BRIGHTNESS;
-    setLEDBrightness(brightness);
+    setLEDBrightness(getPref8(PREF_BRIGHTNESS));
 
-    // get config_num from EEPROM and activate it
+    // get config_num from prefs and activate it
 
-    int patch_num = EEPROM.read(PREF_PATCH_NUM);
-    if (patch_num == 255)
-        patch_num = DEFAULT_CONFIG_NUM;
-    if (patch_num == 255)
-        patch_num = DEFAULT_CONFIG_NUM;
+    int patch_num = getPref8(PREF_PATCH_NUM);
     if (patch_num >= m_num_patches)
         patch_num = m_num_patches - 1;
 
     // patch_num = 0;
-        // override EEPROM setting
+        // override prefs setting
         // for working on a particular patch
 
     m_timer.priority(EXP_TIMER_PRIORITY);

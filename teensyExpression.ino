@@ -1,7 +1,6 @@
 
-#include <EEPROM.h>
 #include <myDebug.h>
-#include "defines.h"
+#include "prefs.h"
 #include "myTFT.h"
 #include "myLeds.h"
 #include "pedals.h"
@@ -10,7 +9,6 @@
 #include "expSystem.h"
 #include "myMidiHost.h"
 #include "myTouchScreen.h"
-#include <EEPROM.h>
 
 
 
@@ -135,10 +133,11 @@ extern "C" {
 
 void setup()
 {
+    init_global_prefs();
+
     // start the teensyDuino (self) USB device
 
-    uint8_t start_as_ftp = EEPROM.read(PREF_SPOOF_FTP);
-    if (start_as_ftp != 255 && start_as_ftp)
+    if (getPref8(PREF_SPOOF_FTP))
         setFishmanFTPDescriptor();
     my_usb_init();
     delay(1000);

@@ -1,9 +1,9 @@
-#include "configOptions.h"
 #include <myDebug.h>
+#include "configOptions.h"
+#include "prefs.h"
 #include "myTFT.h"
 #include "myLeds.h"
 #include "myMidiHost.h"
-#include <EEPROM.h>
 
 
 
@@ -289,9 +289,9 @@ spoofFTPOption::spoofFTPOption(configOption *parent) :
 void spoofFTPOption::init()
 {
     onOffOption::init();
-    uint8_t v = EEPROM.read(PREF_SPOOF_FTP);
-    orig_value = value = (v != 255) ? v : 0;
+    orig_value = getPref8(PREF_SPOOF_FTP);
 }
+
 
 // virtual
 // bool spoofFTPOption::isEnabled()

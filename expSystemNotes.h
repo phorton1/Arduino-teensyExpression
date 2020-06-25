@@ -143,7 +143,7 @@
 //
 //             the string sensitivity is stored on the FTP controller,
 //                  but the dynamic range, dynamic offset, and touch sensitivity,
-//                  need to be stored in the EEPROM
+//                  need to be stored in the prefs
 //
 //                  Same with POLY MODE.
 //
@@ -199,7 +199,7 @@
 //
 //      System Debugging    Off, USB, Serial            default(USB)
 //      Factory Reset based on --> modal OK/Cancel dialog and result
-//              Reset all EEPROM values to 255
+//              Reset all pref values to 255
 //
 //
 // ABREVIATED:
@@ -285,10 +285,6 @@
 //      Factory Reset
 
 
-
-
-// Maybe use the title bar as the "back/save/longpress=save to EEPROM"
-//      button for touch screen in configSystem?
 // Have to try drag scrolling, but don't have high hopes.
 
 
@@ -313,15 +309,3 @@
 //          accepts the changes.
 //
 //
-// At the current time, the only options written to EEPROM are
-//
-//      brightness - type A
-//      patch_num  - type B, but cancel uses the orig_value to return
-//      spoof_ftp  - type B, but only LONG_CLICK writes it to EEPROM
-//
-// And, at this time, nothing else is written to EEPROM
-//
-//     The EEPROM values are read at startup
-//          spoof_ftp - from teensyExpression.ino
-//          brightness - in expSystem::begin()
-//          patch_num - in expSystem::begin()

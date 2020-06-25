@@ -108,7 +108,7 @@ class pedalManager
         pedalManager() {}
 
         void init();
-            // called at runtime to setup pedals from EEPROM
+            // called at runtime to setup pedals from prefs
 
         void task();
             // polls pedals, may call expSystem::onPedalEvent()

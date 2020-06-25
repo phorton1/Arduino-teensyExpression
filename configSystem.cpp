@@ -1,8 +1,7 @@
 
-#include <EEPROM.h>
 #include <myDebug.h>
 #include "configSystem.h"
-#include "defines.h"
+#include "prefs.h"
 #include "myTFT.h"
 #include "myLeds.h"
 #include "buttons.h"
@@ -180,7 +179,8 @@ void configSystem::onEndModal(expWindow *win, uint32_t param)
 	if (param && win->getId() == OPTION_TYPE_FACTORY_RESET)
 	{
 		for (int i=0; i<NUM_EEPROM_USED; i++)
-			EEPROM.write(i,255);
+			setPref8(i,255);
+		save_global_prefs();
 		reboot(BUTTON_SELECT);
 	}
 }
@@ -250,14 +250,15 @@ void configSystem::onButtonEvent(int row, int col, int event)
     {
         if (event == BUTTON_EVENT_LONG_CLICK)
         {
-            display(0,"write EEPROM bright=%d config=%d spoof_ftp=%d",
+            display(0,"setPrefs bright=%d config=%d spoof_ftp=%d",
                 optBrightness.value,
                 optPatchNum.value,
 				optSpoofFTP.value);
 
-            EEPROM.write(PREF_BRIGHTNESS,optBrightness.value);
-            EEPROM.write(PREF_PATCH_NUM,optPatchNum.value);
-            EEPROM.write(PREF_SPOOF_FTP,optSpoofFTP.value);
+            setPref8(PREF_BRIGHTNESS,optBrightness.value);
+            setPref8(PREF_PATCH_NUM,optPatchNum.value);
+            setPref8(PREF_SPOOF_FTP,optSpoofFTP.value);
+			save_global_prefs();
 
             if (optSpoofFTP.value != optSpoofFTP.orig_value)
             {

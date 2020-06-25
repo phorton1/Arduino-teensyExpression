@@ -1,6 +1,8 @@
 #ifndef _midiQueue_h_
 #define _midiQueue_h_
 
+#include "defines.h"
+
 // ORIGINAL MESSAGES
 //
 // The "cable" number is communicated in the high order
@@ -47,8 +49,6 @@
 #define PORT_MASK_HOST      0x40
 #define PORT_MASK_OUTPUT    0x20
 #define PORT_MASK_CABLE     0x10
-
-#define NUM_MIDI_PORTS              8
 
 #define PORT_INDEX_MASK             0x7
 #define PORT_INDEX_DUINO_INPUT0     0x0   // input from teensyDuino on cable 0
