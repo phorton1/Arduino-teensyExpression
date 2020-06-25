@@ -14,6 +14,7 @@
 #define KEYPAD_DOWN    17
 #define KEYPAD_LEFT    11
 #define KEYPAD_RIGHT   13
+#define KEYPAD_SELECT  12
 
 #define ITEM_DYNAMIC_RANGE     6
 #define ITEM_DYNAMIC_OFFSET    7
@@ -81,11 +82,13 @@ void winFtpSensitivity::begin(bool warm)
 	theButtons.setButtonType(KEYPAD_DOWN,	BUTTON_TYPE_CLICK);
 	theButtons.setButtonType(KEYPAD_LEFT,	BUTTON_TYPE_CLICK);
 	theButtons.setButtonType(KEYPAD_RIGHT,	BUTTON_TYPE_CLICK);
+	theButtons.setButtonType(KEYPAD_SELECT,	BUTTON_TYPE_CLICK, 	LED_GREEN);
+
 
 	theButtons.setButtonType(BUTTON_TUNER,		BUTTON_TYPE_CLICK);
 	theButtons.setButtonType(THE_SYSTEM_BUTTON,	BUTTON_TYPE_CLICK, 	LED_GREEN);
 
-	theButtons.setButtonType(20,			BUTTON_TYPE_TOGGLE, LED_GREEN, LED_ORANGE);
+	theButtons.setButtonType(20,			BUTTON_TYPE_TOGGLE, LED_CYAN, LED_ORANGE);
 	theButtons.setButtonType(24,			BUTTON_TYPE_CLICK,	LED_PURPLE);
 
 	if (!ftp_poly_mode)
@@ -155,7 +158,8 @@ void winFtpSensitivity::onButtonEvent(int row, int col, int event)
 			}
 		}
 	}
-	else if (num == THE_SYSTEM_BUTTON)
+	else if (num == THE_SYSTEM_BUTTON ||
+			 num == KEYPAD_SELECT)
 	{
 		endModal(237);
 	}

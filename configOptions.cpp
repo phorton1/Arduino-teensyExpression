@@ -122,6 +122,13 @@ void configOption::incValue(int inc_dec)  // wraps
 //--------------------------------------------
 // integerOption
 //--------------------------------------------
+// has the odd behavior of allowing you to modify
+// the brightness option in a pseudo modal dialog,
+// while also displaying, and reacting to the
+// configuration "quick" buttons ..
+//
+// the use of the left arrow to go back also feels
+// weird, as the green "select" button does nothing
 
 integerOption::integerOption(configOption *parent, const char *title, int type, int min, int max) :
     configOption(parent,title,type | OPTION_TYPE_VALUE,min,max)
@@ -149,7 +156,8 @@ void integerOption::terminalNav(int num)
 {
     // display(0,"integerOption::terminalNav(%d)",num);
 
-    if (num == BUTTON_MOVE_LEFT)
+    if (num == BUTTON_MOVE_LEFT ||
+        num == BUTTON_SELECT)
     {
         m_pSysConfig->notifyTerminalModeEnd();
     }
