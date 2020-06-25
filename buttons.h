@@ -51,11 +51,6 @@
 #define BUTTON_STATE_SELECTED      0x4000
     // used for buttons that can be toggled on and off
     // as well as for buttons in radio groups
-#define BUTTON_STATE_HANDLED       0x2000
-    // the button event has been handled by a call
-    // by the client during a button event.
-    // if so, the final RELEASE or CLICK event
-    // must not change the button state again.
 
 
 class arrayedButton
@@ -70,6 +65,7 @@ class arrayedButton
         int m_event_mask;
         int m_event_state;
         unsigned m_press_time;
+            // == 0 is used as "event handled"
         unsigned m_debounce_time;
         elapsedMillis m_repeat_time;
 

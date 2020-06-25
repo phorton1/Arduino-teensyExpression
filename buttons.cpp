@@ -94,10 +94,6 @@ void buttonArray::clear()
         for (int col=0; col<NUM_BUTTON_COLS; col++)
         {
             m_buttons[row][col].initDefaults();
-            m_buttons[row][col].m_event_state |= BUTTON_STATE_HANDLED;
-                // so we set the "handled" bit to prevent task()
-                // from redisplaying the button that might be prssed
-                // at this time.
             setLED(row,col,0);
         }
     }
@@ -120,18 +116,22 @@ const char *buttonArray::buttonEventName(int event)
 
 
 void buttonArray::setEventState(int num, int state)
-    // not to be called from a button event handler!
+    // retains the state of the pressed bit,
+    // but clears the m_press_time (handled)
 {
     display(0,"setEventState num=%d state=%04x",num,state);
 
     arrayedButton *button = &m_buttons[num / NUM_BUTTON_COLS][num % NUM_BUTTON_COLS];
-    int mask = button->m_event_mask;
+    state &= ~BUTTON_STATE_PRESSED;
+    state |= (button->m_event_state & BUTTON_STATE_PRESSED);
     button->m_event_state = state;
+    button->m_press_time = 0;
 
     int color =
         state & BUTTON_STATE_SELECTED ?
             button->m_selected_color :
-        (mask & BUTTON_MASK_TOUCH && state & BUTTON_STATE_TOUCHED) ?
+        (button->m_event_mask & BUTTON_MASK_TOUCH) &&
+        (state & BUTTON_STATE_TOUCHED) ?
             button->m_touch_color :
             button->m_default_color;
 
@@ -144,7 +144,7 @@ void buttonArray::setEventState(int num, int state)
 
 
 void buttonArray::select(int num, int value)
-    // -1 == pressed    (this method is NOT called if already handled)
+    // -1 == pressed    (this method is NOT called if m_press_time==0)
     //  0 == deselect
     //  1 == select
 {
@@ -216,7 +216,7 @@ void buttonArray::select(int num, int value)
     // the rest of the task() code for that button to run ...
 
     if (value != -1)
-        button->m_event_state |= BUTTON_STATE_HANDLED;
+        button->m_press_time = 0;
 
     setLED(num,color);
 }
@@ -265,10 +265,6 @@ void buttonArray::task()
 
                 if (is_pressed)     // button pressed
                 {
-                    // we always clear the handled bit to start
-                    // things off on any button press ...
-
-                    pButton->m_event_state &= ~BUTTON_STATE_HANDLED;
                     pButton->m_event_state |= BUTTON_STATE_PRESSED | BUTTON_STATE_TOUCHED;
 
                     if (mask & BUTTON_EVENT_PRESS)
@@ -290,14 +286,14 @@ void buttonArray::task()
                 //---------------------------
                 // released
                 //---------------------------
-                // only do something if not handled
+                // only do something if not handled (m_press_time != 0)
 
                 else    // button released
                 {
                     pButton->m_event_state &= ~BUTTON_STATE_PRESSED;
-                    if (!(mask & BUTTON_EVENT_PRESS) &&
-                        !(pButton->m_event_state & BUTTON_STATE_HANDLED))
+                    if (pButton->m_press_time)  // && !(mask & BUTTON_EVENT_PRESS))
                     {
+                        pButton->m_press_time = 0;
                         select(num,-1);
                         showLEDs();
                         if (mask & BUTTON_EVENT_RELEASE)
@@ -318,8 +314,7 @@ void buttonArray::task()
             // state did not change
             //--------------------------------
             //
-            else if (is_pressed &&
-                   !(pButton->m_event_state & BUTTON_STATE_HANDLED))
+            else if (is_pressed && pButton->m_press_time)
             {
                 // repeat generates PRESS events
 
@@ -347,7 +342,7 @@ void buttonArray::task()
                 else if ((mask & BUTTON_EVENT_LONG_CLICK) && dif > LONG_PRESS_TIME)
                 {
                     display(dbg_btn,"BUTTON_EVENT_LONG_CLICK(%d,%d)",row,col);
-                    pButton->m_event_state |= BUTTON_STATE_HANDLED;
+                    pButton->m_press_time = 0;
                     theSystem.buttonEvent(row, col, BUTTON_EVENT_LONG_CLICK);
                 }
 
