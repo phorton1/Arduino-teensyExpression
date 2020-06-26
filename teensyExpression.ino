@@ -134,13 +134,19 @@ extern "C" {
 void setup()
 {
     init_global_prefs();
-    uint8_t serial_debug_pref = getPref8(PREF_DEBUG_PORT);
 
     // start the hardware serial port
 
     Serial3.begin(115200);
     elapsedMillis serial_started = 0;
     while (serial_started<1000 && !Serial3) {}
+
+    // Turn off display() and the like
+    // The ports will still be opened even if nothing goes
+    // to them.  This may add to startup time if nobody is
+    // there to open them ..
+
+    uint8_t serial_debug_pref = getPref8(PREF_DEBUG_PORT);
     if (serial_debug_pref == 2)
     {
         dbgSerial = &Serial3;
@@ -179,31 +185,38 @@ void setup()
     mylcd.print(VERSION);
     mylcd.println(" started ...");
 
+    int do_delay = 0;
+
     if (!dbgSerial)
     {
         mylcd.Set_Text_colour(TFT_YELLOW);
         mylcd.println("    NO SERIAL PORT IS ACTIVE!!");
+        do_delay = 3000;
+    }
+    else if (serial_debug_pref == 2)
+    {
+        mylcd.Set_Text_colour(TFT_YELLOW);
+        mylcd.println("    DEBUG_OUTPUT to hardware Serial3!");
+        if (!do_delay) do_delay = 1200;
     }
 
     #if !defined(USB_MIDI4_SERIAL)
-        warning(0,"PROGRAM IS NOT COMPILED UNDER USB_MIDI4_SERIAL teensyDuino type!! Things may not work correctly!!!",0);
+        error("PROGRAM IS NOT COMPILED UNDER USB_MIDI4_SERIAL teensyDuino type!! Things may not work correctly!!!",0);
         mylcd.Set_Text_colour(TFT_YELLOW);
-        mylcd.println("    !! NOT USB_MIDI4_SERIAL !!");
+        mylcd.println("    NOT COMPILED WITH USB_MIDI4_SERIAL !!");
+        do_delay = 5000;
     #endif
+
+    if (do_delay)
+        delay(do_delay);
+
+    // start myMidihost
 
     midi_host.init();
 
-    // serial port
-
-    // Serial3.println("teensy expression Serial3 to rPi started");
-    #if 0
-         // divert myDebug output to Serial 3
-        dbgSerial = &Serial3;
-        display(0,"debugging output redirected to Serial3",0);
-    #endif
+    // and the rest of the stuff
 
     display(0,"initializing system ...",0);
-    mylcd.println("initializing system .");
 
     initLEDs();
     clearLEDs();
@@ -212,10 +225,7 @@ void setup()
     // give a little time to see start up messages
     // before we erase the screen and start the system
 
-    delay(1200);
-
     theSystem.begin();
-
     display(0,"system running ...",0);
 
     #if WITH_SDCARD

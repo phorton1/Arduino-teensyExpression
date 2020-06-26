@@ -131,7 +131,7 @@
 //    the system is non functional
 
 expSystem theSystem;
-
+const char *patch_names[MAX_EXP_PATCHES];
 
 //----------------------------------------
 // expWindow (base class)
@@ -196,6 +196,14 @@ void expSystem::begin()
     addPatch(new patchOldRig());
     addPatch(new patchTest());
     addPatch(new patchMidiHost());
+
+	for (int i=0; i<m_num_patches; i++)
+		patch_names[i] = m_patches[i]->short_name();
+
+	setPrefMax(PREF_PATCH_NUM,m_num_patches-1);
+	setPrefStrings(PREF_PATCH_NUM,patch_names);
+
+
 
     m_ftp_tuner = new winFtpTuner();
     m_ftp_sensitivity = new winFtpSensitivity();

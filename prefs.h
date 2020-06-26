@@ -31,4 +31,12 @@ extern uint8_t portMonitorPref(int p, int off);
     // defering to the default settings if the port
     // has it's main pref set to "default"
 
+extern int16_t getPrefMin(int pref);
+extern int16_t getPrefMax(int pref);
+extern void    setPrefMax(int pref, int16_t max);
+
+extern const char **getPrefStrings(int pref);
+extern void setPrefStrings(int pref, const char *strings[]=0);
+
+
 #endif
