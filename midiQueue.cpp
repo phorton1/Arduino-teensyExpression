@@ -351,7 +351,7 @@ void _processMessage(uint32_t i)
         if (is_done  && sysex_buffer[pindex][*buflen-1] != 0xf7)
             warning(0,"sysex does not end with F7",0);
 
-        if (is_done && showSysex)
+        if (is_done && showSysex && dbgSerial)
         {
             sprintf(buf2,"\033[%dm %s(%d,--)      sysex len=%d",
                 color,
@@ -619,7 +619,7 @@ void _processMessage(uint32_t i)
         }
 
 
-        if (show_it)
+        if (show_it && dbgSerial)
         {
             char buf[200];
             sprintf(buf,"\033[%dm %s(%d,%2d)  %02X  %-16s  %02x  %02x  %s",

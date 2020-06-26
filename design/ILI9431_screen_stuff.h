@@ -2,7 +2,7 @@
 #define WITH_LIQUID      0       // Small 2x16 LCD with I2C port
 #define WITH_TFT         0       // Teensy 320x400 ILI9341/XPT2046 touch screen
 
-    
+
 
 //----------------------------------
 // FUTURE
@@ -10,66 +10,66 @@
 
 #if WITH_TFT
     // The pins with their "standard" and alternate mappings are as follows
-    
+
     //  1. VCC	      VIN	      VIN	   Power: 3.6 to 5.5 volts
-    //  2. GND	      GND	      GND	
+    //  2. GND	      GND	      GND
     //  3. CS	      10	      21	   Alternate Pins: 9, 15, 20, 21
-    //  4. RESET	      +3.3V	      +3.3V	
+    //  4. RESET	      +3.3V	      +3.3V
     //  5. D/C	      9	          20	   Alternate Pins: 10, 15, 20, 21
-    //  6. SDI(MOSI)	  11 (DOUT)	  7	
-    //  7. SCK	      13 (SCK)	  14	
+    //  6. SDI(MOSI)	  11 (DOUT)	  7
+    //  7. SCK	      13 (SCK)	  14
     //  8. LED	      VIN	      VIN	   Use 100 ohm resistor
-    //  9. SDO(MISO)	  12 (DIN)	  12	
-    // 10. T_CLK	      13 (SCK)	  14	
+    //  9. SDO(MISO)	  12 (DIN)	  12
+    // 10. T_CLK	      13 (SCK)	  14
     // 11. T_CS	      8	          8	       Alternate: any digital pin
-    // 12. T_DIN	      11 (DOUT)	  7	
-    // 13. T_DO	      12 (DIN)	  12	
-    // 14. T_IRQ	      2	          2	       Optional: can use any digital pin   
-    
+    // 12. T_DIN	      11 (DOUT)	  7
+    // 13. T_DO	      12 (DIN)	  12
+    // 14. T_IRQ	      2	          2	       Optional: can use any digital pin
+
     #include "SPI.h"
     #include "ILI9341_t3.h"
-   
+
     // We Connect
     // CS to 10
     // DC to 9
     // SDI to 11
     // SCK to 13
     // SDO to 12
-    
-    // only named pins in program 
-    
+
+    // only named pins in program
+
     #define TFT_CS 10
     #define TFT_DC  9
-    
+
     ILI9341_t3 tft = ILI9341_t3(TFT_CS, TFT_DC);
-    
+
 #endif
 
 #if WITH_LIQUID
-    #include <Wire.h>                 
+    #include <Wire.h>
     #include <LiquidCrystal_I2C.h>
-    
+
     // default pins for Wire library output
     //
     //   18    SDA0
     //   18    SCL0
-    
-    
+
+
     #define LCD_ADDRESS  0x27
-    // #define LCD_ADDRESS  (B0100<3)        // PCF8574/PCF8574T 
+    // #define LCD_ADDRESS  (B0100<3)        // PCF8574/PCF8574T
     // #define LCD_ADDRESS  (B0111<3)       // PCF8574A
        // address minus low three bits set by jumper
-       
+
     // the example had 0x27, which works!!
     // b00101 110  which does not match either of the above
-    
+
     LiquidCrystal_I2C lcd(LCD_ADDRESS, 16, 2);
        // Configure LiquidCrystal_I2C library with 0x27 address,
        // 16 columns and 2 rows
-    
+
     #if 1
         // can be 0..7 custom characters ... these are the 5 bits per row
-    
+
         #if 1
             byte temp_char[8] = {B11111, B11111, B11111, B11111, B11111, B11111, B11111, B11111};
         #else
@@ -90,7 +90,7 @@
 // setup
 //=========================================================
 
-    
+
     #if WITH_LIQUID
         lcd.init();                        // Initialize I2C LCD module
         #if 1
@@ -112,7 +112,7 @@
             lcd.print("Arduino I2C LCD");
         #endif
     #endif
-    
+
     #if WITH_TFT
         tft.begin();
         tft.fillScreen(ILI9341_BLACK);
@@ -120,7 +120,7 @@
         tft.setTextSize(2);
         tftDiagnostics();
     #endif
-    
+
 
 
 //--------------
@@ -132,7 +132,7 @@
             tft.setRotation(rotation);
             testText();
             delay(1000);
-        }      
+        }
     #endif
 
 
@@ -144,8 +144,9 @@
 
 void tftDiagnostics()
 {
-   dbgSerial->println("ILI9341 Test!"); 
-   
+   if (!dbg_serial) return;
+   dbgSerial->println("ILI9341 Test!");
+
    // read diagnostics (optional but can help debug problems)
    uint8_t x = tft.readcommand8(ILI9341_RDMODE);
    dbgSerial->print("Display Power Mode: 0x"); dbgSerial->println(x, HEX);
@@ -156,57 +157,57 @@ void tftDiagnostics()
    x = tft.readcommand8(ILI9341_RDIMGFMT);
    dbgSerial->print("Image Format: 0x"); dbgSerial->println(x, HEX);
    x = tft.readcommand8(ILI9341_RDSELFDIAG);
-   dbgSerial->print("Self Diagnostic: 0x"); dbgSerial->println(x, HEX); 
-   
+   dbgSerial->print("Self Diagnostic: 0x"); dbgSerial->println(x, HEX);
+
    dbgSerial->println(F("Benchmark                Time (microseconds)"));
-   
+
    dbgSerial->print(F("Screen fill              "));
    dbgSerial->println(testFillScreen());
    delay(200);
-   
+
    dbgSerial->print(F("Text                     "));
    dbgSerial->println(testText());
    delay(600);
-   
+
    dbgSerial->print(F("Lines                    "));
    dbgSerial->println(testLines(ILI9341_CYAN));
    delay(200);
-   
+
    dbgSerial->print(F("Horiz/Vert Lines         "));
    dbgSerial->println(testFastLines(ILI9341_RED, ILI9341_BLUE));
    delay(200);
-   
+
    dbgSerial->print(F("Rectangles (outline)     "));
    dbgSerial->println(testRects(ILI9341_GREEN));
    delay(200);
-   
+
    dbgSerial->print(F("Rectangles (filled)      "));
    dbgSerial->println(testFilledRects(ILI9341_YELLOW, ILI9341_MAGENTA));
    delay(200);
-   
+
    dbgSerial->print(F("Circles (filled)         "));
    dbgSerial->println(testFilledCircles(10, ILI9341_MAGENTA));
-   
+
    dbgSerial->print(F("Circles (outline)        "));
    dbgSerial->println(testCircles(10, ILI9341_WHITE));
    delay(200);
-   
+
    dbgSerial->print(F("Triangles (outline)      "));
    dbgSerial->println(testTriangles());
    delay(200);
-   
+
    dbgSerial->print(F("Triangles (filled)       "));
    dbgSerial->println(testFilledTriangles());
    delay(200);
-   
+
    dbgSerial->print(F("Rounded rects (outline)  "));
    dbgSerial->println(testRoundRects());
    delay(200);
-   
+
    dbgSerial->print(F("Rounded rects (filled)   "));
    dbgSerial->println(testFilledRoundRects());
    delay(200);
-   
+
    dbgSerial->println(F("Done!"));
 }
 
@@ -256,9 +257,9 @@ unsigned long testLines(uint16_t color)
     int           x1, y1, x2, y2,
                   w = tft.width(),
                   h = tft.height();
-    
+
     tft.fillScreen(ILI9341_BLACK);
-    
+
     x1 = y1 = 0;
     y2    = h - 1;
     start = micros();
@@ -266,9 +267,9 @@ unsigned long testLines(uint16_t color)
     x2    = w - 1;
     for(y2=0; y2<h; y2+=6) tft.drawLine(x1, y1, x2, y2, color);
     t     = micros() - start; // fillScreen doesn't count against timing
-    
+
     tft.fillScreen(ILI9341_BLACK);
-    
+
     x1    = w - 1;
     y1    = 0;
     y2    = h - 1;
@@ -277,9 +278,9 @@ unsigned long testLines(uint16_t color)
     x2    = 0;
     for(y2=0; y2<h; y2+=6) tft.drawLine(x1, y1, x2, y2, color);
     t    += micros() - start;
-    
+
     tft.fillScreen(ILI9341_BLACK);
-    
+
     x1    = 0;
     y1    = h - 1;
     y2    = 0;
@@ -288,9 +289,9 @@ unsigned long testLines(uint16_t color)
     x2    = w - 1;
     for(y2=0; y2<h; y2+=6) tft.drawLine(x1, y1, x2, y2, color);
     t    += micros() - start;
-    
+
     tft.fillScreen(ILI9341_BLACK);
-    
+
     x1    = w - 1;
     y1    = h - 1;
     y2    = 0;
@@ -298,7 +299,7 @@ unsigned long testLines(uint16_t color)
     for(x2=0; x2<w; x2+=6) tft.drawLine(x1, y1, x2, y2, color);
     x2    = 0;
     for(y2=0; y2<h; y2+=6) tft.drawLine(x1, y1, x2, y2, color);
-    
+
     return micros() - start;
 }
 
@@ -306,12 +307,12 @@ unsigned long testFastLines(uint16_t color1, uint16_t color2)
 {
     unsigned long start;
     int           x, y, w = tft.width(), h = tft.height();
-    
+
     tft.fillScreen(ILI9341_BLACK);
     start = micros();
     for(y=0; y<h; y+=5) tft.drawFastHLine(0, y, w, color1);
     for(x=0; x<w; x+=5) tft.drawFastVLine(x, 0, h, color2);
-    
+
     return micros() - start;
 }
 
@@ -321,7 +322,7 @@ unsigned long testRects(uint16_t color)
     int n, i, i2,
         cx = tft.width()  / 2,
         cy = tft.height() / 2;
-    
+
     tft.fillScreen(ILI9341_BLACK);
     n     = min(tft.width(), tft.height());
     start = micros();
@@ -330,7 +331,7 @@ unsigned long testRects(uint16_t color)
         i2 = i / 2;
         tft.drawRect(cx-i2, cy-i2, i, i, color);
     }
-    
+
     return micros() - start;
 }
 
@@ -341,7 +342,7 @@ unsigned long testFilledRects(uint16_t color1, uint16_t color2)
     int n, i, i2,
         cx = tft.width()  / 2 - 1,
         cy = tft.height() / 2 - 1;
-    
+
     tft.fillScreen(ILI9341_BLACK);
     n = min(tft.width(), tft.height());
     for(i=n; i>0; i-=6)
@@ -360,7 +361,7 @@ unsigned long testFilledCircles(uint8_t radius, uint16_t color)
 {
     unsigned long start;
     int x, y, w = tft.width(), h = tft.height(), r2 = radius * 2;
-    
+
     tft.fillScreen(ILI9341_BLACK);
     start = micros();
     for(x=radius; x<w; x+=r2)
@@ -370,7 +371,7 @@ unsigned long testFilledCircles(uint8_t radius, uint16_t color)
             tft.fillCircle(x, y, radius, color);
         }
     }
-    
+
     return micros() - start;
 }
 
@@ -381,7 +382,7 @@ unsigned long testCircles(uint8_t radius, uint16_t color)
     int x, y, r2 = radius * 2,
         w = tft.width()  + radius,
         h = tft.height() + radius;
-    
+
     // Screen is not cleared for this one -- this is
     // intentional and does not affect the reported time.
     start = micros();
@@ -403,7 +404,7 @@ unsigned long testTriangles()
     int n, i,
         cx = tft.width()  / 2 - 1,
         cy = tft.height() / 2 - 1;
-    
+
     tft.fillScreen(ILI9341_BLACK);
     n     = min(cx, cy);
     start = micros();
@@ -425,7 +426,7 @@ unsigned long testFilledTriangles()
     int i,
         cx = tft.width()  / 2 - 1,
         cy = tft.height() / 2 - 1;
-    
+
     tft.fillScreen(ILI9341_BLACK);
     start = micros();
     for(i=min(cx,cy); i>10; i-=5)
@@ -448,7 +449,7 @@ unsigned long testRoundRects()
     int w, i, i2,
         cx = tft.width()  / 2 - 1,
         cy = tft.height() / 2 - 1;
-    
+
     tft.fillScreen(ILI9341_BLACK);
     w     = min(tft.width(), tft.height());
     start = micros();
@@ -467,7 +468,7 @@ unsigned long testFilledRoundRects()
     int i, i2,
         cx = tft.width()  / 2 - 1,
         cy = tft.height() / 2 - 1;
-        
+
     tft.fillScreen(ILI9341_BLACK);
     start = micros();
     for(i=min(tft.width(), tft.height()); i>20; i-=6)
@@ -475,7 +476,7 @@ unsigned long testFilledRoundRects()
         i2 = i / 2;
         tft.fillRoundRect(cx-i2, cy-i2, i, i, i/8, tft.color565(0, i, 0));
     }
-    
+
     return micros() - start;
 }
 
