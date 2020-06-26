@@ -134,6 +134,22 @@ extern "C" {
 void setup()
 {
     init_global_prefs();
+    uint8_t serial_debug_pref = getPref8(PREF_DEBUG_PORT);
+
+    // start the hardware serial port
+
+    Serial3.begin(115200);
+    elapsedMillis serial_started = 0;
+    while (serial_started<1000 && !Serial3) {}
+    if (serial_debug_pref == 2)
+    {
+        dbgSerial = &Serial3;
+        display(0,"debugging output redirected to Serial3",0);
+    }
+    else if (!serial_debug_pref)
+    {
+        dbgSerial = 0;      // yikes!
+    }
 
     // start the teensyDuino (self) USB device
 
@@ -145,8 +161,9 @@ void setup()
     // initialize the main (debugging) serial port
 
     Serial.begin(115200);
-    elapsedMillis serial_started = 0;
+    serial_started = 0;
     while (serial_started<1000 && !Serial) {}
+
     delay(400);
     display(0,"teensyExpression version %s started",VERSION);
 
@@ -162,8 +179,15 @@ void setup()
     mylcd.print(VERSION);
     mylcd.println(" started ...");
 
+    if (!dbgSerial)
+    {
+        mylcd.Set_Text_colour(TFT_YELLOW);
+        mylcd.println("    NO SERIAL PORT IS ACTIVE!!");
+    }
+
     #if !defined(USB_MIDI4_SERIAL)
         warning(0,"PROGRAM IS NOT COMPILED UNDER USB_MIDI4_SERIAL teensyDuino type!! Things may not work correctly!!!",0);
+        mylcd.Set_Text_colour(TFT_YELLOW);
         mylcd.println("    !! NOT USB_MIDI4_SERIAL !!");
     #endif
 
@@ -171,7 +195,6 @@ void setup()
 
     // serial port
 
-    Serial3.begin(115200);
     // Serial3.println("teensy expression Serial3 to rPi started");
     #if 0
          // divert myDebug output to Serial 3

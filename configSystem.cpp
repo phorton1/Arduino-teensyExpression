@@ -30,6 +30,8 @@ brightnessOption optBrightness(&rootOption);
 patchNumOption   optPatchNum(&rootOption);
 configOption     optPedals(&rootOption,"Pedals",OPTION_TYPE_MENU);
 configOption     optSystem(&rootOption,"System",OPTION_TYPE_MENU);
+serialPortOption optSerialPort(&rootOption);
+
 spoofFTPOption   optSpoofFTP(&rootOption);
 
 configOption     factorReset(&rootOption,"Factory Reset",  OPTION_TYPE_IMMEDIATE | OPTION_TYPE_FACTORY_RESET);

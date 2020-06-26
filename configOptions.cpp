@@ -46,6 +46,7 @@ void configOption::init_cold(configOption *parent, const char *tit, int typ, int
 
     value            = 0;
     orig_value       = 0;
+
     display_value    = -1;
     selected         = 0;
     display_selected = 0;
@@ -81,8 +82,19 @@ void configOption::init()
     // called recursively during begin() on subclasses that
     // are linked to other objects to initialize the value, etc
 {
-    value            = 0;
-    orig_value       = 0;
+    if (m_pref_num > 0)
+    {
+        if (max_value > 254)
+            value = orig_value = getPref16(m_pref_num);
+        else
+            value = orig_value = getPref8(m_pref_num);
+    }
+    else
+    {
+        value            = 0;
+        orig_value       = 0;
+    }
+
     display_value    = -1;
     selected         = 0;
     display_selected = 0;
@@ -299,6 +311,27 @@ const char *patchNumOption::getValueString()
 {
     return theSystem.getPatch(value)->short_name();
 }
+
+
+
+serialPortOption::serialPortOption(configOption *parent) :
+    integerOption(
+        parent,
+        "DebugPort",
+        OPTION_TYPE_IMMEDIATE | OPTION_TYPE_NEEDS_REBOOT,
+        0,2,
+        PREF_DEBUG_PORT)
+{}
+
+// virtual
+const char *serialPortOption::getValueString()
+{
+    return
+        value==2 ? "Serial" :
+        value==1 ? "USB" :
+        "Off";
+}
+
 
 
 

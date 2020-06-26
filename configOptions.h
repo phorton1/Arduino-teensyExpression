@@ -12,6 +12,8 @@
 #define OPTION_TYPE_CONFIG_NUM      0x0400
 #define OPTION_TYPE_FACTORY_RESET   0x0200
 
+#define OPTION_TYPE_NEEDS_REBOOT    0x0001
+
 
 
 // externs for interface to terminal node editors
@@ -161,6 +163,15 @@ class spoofFTPOption : public onOffOption
         virtual void init();
 
         // virtual bool isEnabled();
+};
+
+
+class serialPortOption : public integerOption
+{
+    public:
+
+        serialPortOption(configOption *parent);
+        virtual const char *getValueString();
 };
 
 
