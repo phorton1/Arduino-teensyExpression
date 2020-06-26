@@ -11,23 +11,22 @@ static bool s_reboot_needed = 0;
 
 configOption::configOption()
 {
-    init_cold(0,"",0,-1);
+    init_cold(0,"",0,-1,0);
 }
 
-configOption::configOption(configOption *parent, const char *title, int type, int pref_num)
+configOption::configOption(configOption *parent, const char *title, int type, int pref_num, setterFxn setter)
 {
-    init_cold(parent,title,type,pref_num);
+    init_cold(parent,title,type,pref_num,setter);
 }
 
 
-void configOption::init_cold(configOption *parent, const char *tit, int typ, int pref_num)
+void configOption::init_cold(configOption *parent, const char *tit, int typ, int pref_num, setterFxn setter)
 {
-    display(0,"init_cold(%s)",tit);
-
     title            = tit;
     type             = typ;
     pParent          = parent;
     m_pref_num       = pref_num;
+    m_setter_fxn     = setter;
 
     display_value    = -1;
     selected         = 0;
@@ -37,8 +36,6 @@ void configOption::init_cold(configOption *parent, const char *tit, int typ, int
     option_num       = 0;
     if (parent)
         option_num = parent->num_children++;
-
-    display(0,"option_num=%d",option_num);
 
     pFirstChild = 0;
     pLastChild = 0;
@@ -53,10 +50,8 @@ void configOption::init_cold(configOption *parent, const char *tit, int typ, int
         parent->pFirstChild = this;
     if (parent)
         parent->pLastChild = this;
-
-    display(0,"init_cold(%s) finished",tit);
-
 }
+
 
 // static
 bool configOption::reboot_needed()
@@ -87,10 +82,13 @@ void  configOption::setValue(int i)
     {
         if (i > getPrefMax(m_pref_num)) i = getPrefMax(m_pref_num);
         if (i < getPrefMin(m_pref_num)) i = getPrefMin(m_pref_num);
+
         if (getPrefMax(m_pref_num) > 254)
             setPref16(m_pref_num,i);
         else
             setPref8(m_pref_num,i);
+        if (m_setter_fxn)
+            m_setter_fxn(i);
         if (type & OPTION_TYPE_NEEDS_REBOOT)
             s_reboot_needed = 1;
     }
@@ -109,14 +107,7 @@ void configOption::incValue(int inc_dec)
         i += inc_dec;
         if (i > getPrefMax(m_pref_num)) i = getPrefMin(m_pref_num);
         if (i < getPrefMin(m_pref_num)) i = getPrefMax(m_pref_num);
-
-        if (getPrefMax(m_pref_num) > 254)
-            setPref16(m_pref_num,i);
-        else
-            setPref8(m_pref_num,i);
-
-        if (type & OPTION_TYPE_NEEDS_REBOOT)
-            s_reboot_needed = 1;
+        setValue(i);
     }
 }
 
@@ -124,7 +115,7 @@ void configOption::incValue(int inc_dec)
 
 int configOption::getValue()
 {
-    if (m_pref_num > 0)
+    if (m_pref_num >= 0)
         return getPrefMax(m_pref_num) > 254 ?
             getPref16(m_pref_num) :
             getPref8(m_pref_num);
@@ -134,7 +125,7 @@ int configOption::getValue()
 
 const char *configOption::getValueString()
 {
-    if (m_pref_num > 0)
+    if (m_pref_num >= 0)
     {
         int val = getValue();
         const char **strings = getPrefStrings(m_pref_num);

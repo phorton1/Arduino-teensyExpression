@@ -30,12 +30,34 @@ configOption *display_menu = 0;
 configOption *display_option = 0;
 configOption *optBrightness = 0;
 
+// terminal node modal dialog functions
+// will be called with the menu number
+
+#include "winFtpTuner.h"
+#include "winFtpSensitivity.h"
+void startFtpTuner(int i)
+	{ theSystem.startModal(theSystem.getFtpTuner()); }
+void startFtpSensitivity(int i)
+	{ theSystem.startModal(theSystem.getFtpSensitivity()); }
+
+
+//---------------------------------
+// pseudo static initialization
+//---------------------------------
+
 void createOptions()
 {
 	if (rootOption == 0)
 	{
 		rootOption = new configOption();
-		optBrightness = new configOption(rootOption,"Brightness",OPTION_TYPE_BRIGHTNESS,PREF_BRIGHTNESS);
+
+		optBrightness = new configOption(
+			rootOption,
+			"Brightness",
+			0,
+			PREF_BRIGHTNESS,
+			setLEDBrightness);
+
 		new configOption(rootOption,"Patch",		OPTION_TYPE_CONFIG_NUM,		PREF_PATCH_NUM);
 		configOption *pedals = new configOption(rootOption,"Pedals");
 		configOption *system = new configOption(rootOption,"System");
@@ -43,9 +65,8 @@ void createOptions()
 		new configOption(rootOption,"Spoof FTP",	OPTION_TYPE_NEEDS_REBOOT,	PREF_SPOOF_FTP);
 
 		new configOption(rootOption,"Factory Reset",OPTION_TYPE_FACTORY_RESET);
-		new configOption(rootOption,"Test2");
-		new configOption(rootOption,"Test3");
-		new configOption(rootOption,"Test4");
+		new configOption(rootOption,"FTP Tuner",0,PREF_NONE,startFtpTuner);
+		new configOption(rootOption,"FTP Sensitivity",0,PREF_NONE,startFtpSensitivity);
 
 		configOption *calib_pedals = new configOption(pedals,"Calibrate Pedals");
 		configOption *config_pedals = new configOption(pedals,"Configure Pedals");
@@ -62,33 +83,15 @@ void createOptions()
 }
 
 
-void reboot(int num)
-{
-    if (dbgSerial == &Serial)
-        Serial.end();
-    else
-        Serial3.end();
 
-    for (int i=0; i<21; i++)
-    {
-        setLED(num,i & 1 ? LED_RED : 0);
-        showLEDs();
-        delay(80);
-    }
-    // REBOOT
-    #define RESTART_ADDR 0xE000ED0C
-    #define READ_RESTART() (*(volatile uint32_t *)RESTART_ADDR)
-    #define WRITE_RESTART(val) ((*(volatile uint32_t *)RESTART_ADDR) = (val))
-    WRITE_RESTART(0x5FA0004);
-}
-
-
+//---------------------------------
+// ctor and functions
+//---------------------------------
 
 configSystem::configSystem()
 	: expWindow(WIN_FLAG_OWNER_TITLE)
 {
 }
-
 
 
 // virtual
@@ -148,9 +151,31 @@ void configSystem::begin(bool warm)
 
 
 
+void reboot(int num)
+	// general purpose static reboot method
+{
+    if (dbgSerial == &Serial)
+        Serial.end();
+    else
+        Serial3.end();
+
+    for (int i=0; i<21; i++)
+    {
+        setLED(num,i & 1 ? LED_RED : 0);
+        showLEDs();
+        delay(80);
+    }
+    // REBOOT
+    #define RESTART_ADDR 0xE000ED0C
+    #define READ_RESTART() (*(volatile uint32_t *)RESTART_ADDR)
+    #define WRITE_RESTART(val) ((*(volatile uint32_t *)RESTART_ADDR) = (val))
+    WRITE_RESTART(0x5FA0004);
+}
+
 
 // virtual
 void configSystem::onEndModal(expWindow *win, uint32_t param)
+	// called when modal dialogs are ended
 {
 	if (param && win->getId() == OPTION_TYPE_FACTORY_RESET)
 	{
@@ -163,6 +188,11 @@ void configSystem::onEndModal(expWindow *win, uint32_t param)
 
 
 
+
+
+//---------------------------------------------
+// BUTTONS
+//---------------------------------------------
 
 // virtual
 void configSystem::onButtonEvent(int row, int col, int event)
@@ -250,6 +280,10 @@ void configSystem::onButtonEvent(int row, int col, int event)
 	{
 		if (num == BUTTON_SELECT)
 		{
+			// normal behavior - go into child menu,
+			// increment the value, call a dialog window,
+			// or do some special function
+
 			if (cur_option->pFirstChild)
 			{
 				display_option = 0;
@@ -260,6 +294,9 @@ void configSystem::onButtonEvent(int row, int col, int event)
 			else if (cur_option->hasValue())
 			{
 				cur_option->incValue(1);
+
+				// highlight the patch quick key
+
 				if (cur_option->type & OPTION_TYPE_CONFIG_NUM)
 				{
 					int value = getPref8(PREF_PATCH_NUM);
@@ -269,7 +306,14 @@ void configSystem::onButtonEvent(int row, int col, int event)
 						theButtons.clearRadioGroup(GROUP_PATCH_NUMS);
 					showLEDs();
 				}
-			} else if (cur_option->type & OPTION_TYPE_FACTORY_RESET)
+
+			}
+			else if (cur_option->m_setter_fxn)
+			{
+				// display(0,"calling dialog function on %d. %s",cur_option->getNum(), cur_option->getTitle());
+				(cur_option->m_setter_fxn)(cur_option->getNum());
+			}
+			else if (cur_option->type & OPTION_TYPE_FACTORY_RESET)
 			{
 				theSystem.startModal(new yesNoDialog(
 					OPTION_TYPE_FACTORY_RESET,
@@ -294,10 +338,9 @@ void configSystem::onButtonEvent(int row, int col, int event)
 }
 
 
-
-
-
-
+//---------------------------------------------
+// DRAW
+//---------------------------------------------
 
 #define LINE_HEIGHT     45
 #define TOP_OFFSET      50
@@ -351,7 +394,7 @@ void configSystem::updateUI()
         else
         {
             configOption *opt = cur_option->pParent;
-            theSystem.setTitle(opt->title);
+            theSystem.setTitle(opt->getTitle());
         }
     }
 
@@ -392,7 +435,7 @@ void configSystem::updateUI()
 				mylcd.Set_Text_Cursor(LEFT_OFFSET,y + TEXT_OFFSET);
 				mylcd.print(num+1,DEC);
 				mylcd.print(". ");
-				mylcd.print(opt->title);
+				mylcd.print(opt->getTitle());
 			}
 
 			if (opt->m_pref_num >= 0 && (

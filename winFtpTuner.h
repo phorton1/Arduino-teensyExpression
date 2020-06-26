@@ -32,5 +32,4 @@ class winFtpTuner : public expWindow
         void drawTunerPointer(int tuner_x, int color);
 };
 
-
 #endif      // !_winFtpTuner_h_
