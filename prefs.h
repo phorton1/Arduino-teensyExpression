@@ -25,6 +25,8 @@ extern void restore_prefs();
     // restore them to last saved state
 extern bool pref_changed8(int pref);
 extern bool pref_changed16(int pref);
+extern bool pref_reboot_needed();
+
 
 extern uint8_t portMonitorPref(int p, int off);
     // returns the preference setting for a port

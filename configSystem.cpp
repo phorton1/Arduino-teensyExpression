@@ -12,8 +12,6 @@
 
 #include "expDialogs.h"
 
-
-
 #define BUTTON_BRIGHTNESS_DOWN  0
 #define BUTTON_BRIGHTNESS_UP    1
 #define BUTTON_EXIT_CANCEL      3
@@ -25,45 +23,43 @@
 
 #define GROUP_PATCH_NUMS  		1
 
-configOption     rootOption;
-brightnessOption optBrightness(&rootOption);
-patchNumOption   optPatchNum(&rootOption);
-configOption     optPedals(&rootOption,"Pedals",OPTION_TYPE_MENU);
-configOption     optSystem(&rootOption,"System",OPTION_TYPE_MENU);
-serialPortOption optSerialPort(&rootOption);
-
-spoofFTPOption   optSpoofFTP(&rootOption);
-
-configOption     factorReset(&rootOption,"Factory Reset",  OPTION_TYPE_IMMEDIATE | OPTION_TYPE_FACTORY_RESET);
-configOption     testOption2(&rootOption,"Test2",  OPTION_TYPE_TERMINAL);
-configOption     testOption3(&rootOption,"Test3",  OPTION_TYPE_TERMINAL);
-configOption     testOption4(&rootOption,"Test4",  OPTION_TYPE_TERMINAL);
-
-
-configOption     optCalibPedals(&optPedals,"Calibrate Pedals",OPTION_TYPE_MENU);
-configOption     optConfigPedals(&optPedals,"Configure Pedals",OPTION_TYPE_MENU);
-
-configOption     optCalibPedal1(&optCalibPedals,"Calibrate Pedal1 (Synth)",  OPTION_TYPE_TERMINAL);
-configOption     optCalibPedal2(&optCalibPedals,"Calibrate Pedal2 (Loop)",   OPTION_TYPE_TERMINAL);
-configOption     optCalibPedal3(&optCalibPedals,"Calibrate Pedal3 (Wah)",    OPTION_TYPE_TERMINAL);
-configOption     optCalibPedal4(&optCalibPedals,"Calibrate Pedal4 (Guitar)", OPTION_TYPE_TERMINAL);
-
-configOption     optConfigPedal1(&optConfigPedals,"Configure Pedal1 (Synth)",  OPTION_TYPE_TERMINAL);
-configOption     optConfigPedal2(&optConfigPedals,"Configure Pedal2 (Loop)",   OPTION_TYPE_TERMINAL);
-configOption     optConfigPedal3(&optConfigPedals,"Configure Pedal3 (Wah)",    OPTION_TYPE_TERMINAL);
-configOption     optConfigPedal4(&optConfigPedals,"Configure Pedal4 (Guitar)", OPTION_TYPE_TERMINAL);
-
-
-configOption     optCalibrateTouch(&optSystem,"Calibrate Touch",OPTION_TYPE_TERMINAL);
-
-
-
+configOption *rootOption = 0;
 configOption *cur_menu = 0;
 configOption *cur_option = 0;
 configOption *display_menu = 0;
 configOption *display_option = 0;
-bool in_terminal_mode = false;
+configOption *optBrightness = 0;
 
+void createOptions()
+{
+	if (rootOption == 0)
+	{
+		rootOption = new configOption();
+		optBrightness = new configOption(rootOption,"Brightness",OPTION_TYPE_BRIGHTNESS,PREF_BRIGHTNESS);
+		new configOption(rootOption,"Patch",		OPTION_TYPE_CONFIG_NUM,		PREF_PATCH_NUM);
+		configOption *pedals = new configOption(rootOption,"Pedals");
+		configOption *system = new configOption(rootOption,"System");
+		new configOption(rootOption,"Debug Port",	OPTION_TYPE_NEEDS_REBOOT,	PREF_DEBUG_PORT);
+		new configOption(rootOption,"Spoof FTP",	OPTION_TYPE_NEEDS_REBOOT,	PREF_SPOOF_FTP);
+
+		new configOption(rootOption,"Factory Reset",OPTION_TYPE_FACTORY_RESET);
+		new configOption(rootOption,"Test2");
+		new configOption(rootOption,"Test3");
+		new configOption(rootOption,"Test4");
+
+		configOption *calib_pedals = new configOption(pedals,"Calibrate Pedals");
+		configOption *config_pedals = new configOption(pedals,"Configure Pedals");
+		new configOption(calib_pedals,"Calibrate Pedal1 (Synth)");
+		new configOption(calib_pedals,"Calibrate Pedal2 (Loop)");
+		new configOption(calib_pedals,"Calibrate Pedal3 (Wah)");
+		new configOption(calib_pedals,"Calibrate Pedal4 (Guitar)");
+		new configOption(config_pedals,"Configure Pedal1 (Synth)");
+		new configOption(config_pedals,"Configure Pedal2 (Loop)");
+		new configOption(config_pedals,"Configure Pedal3 (Wah)");
+		new configOption(config_pedals,"Configure Pedal4 (Guitar)");
+		new configOption(system,"Calibrate Touch");
+	}
+}
 
 
 void reboot(int num)
@@ -94,37 +90,21 @@ configSystem::configSystem()
 }
 
 
-void configSystem::notifyTerminalModeEnd()
-    // called by terminal nodes to end their sessions
-{
-    in_terminal_mode = 0;
-    display_menu = 0;
-    display_option = 0;
-    // reset up and down keys so they don't repeat
-	theButtons.setButtonType(BUTTON_MOVE_UP,   	BUTTON_EVENT_PRESS);
-	theButtons.setButtonType(BUTTON_MOVE_DOWN,	BUTTON_EVENT_PRESS);
-}
-
 
 // virtual
 void configSystem::begin(bool warm)
 {
     display(0,"configSystem::begin(%d)",warm);
     expWindow::begin(warm);
-
-    // setup option terminal nodes
-    // calls init() on entire tree
+	createOptions();
+	display(0,"options created",0);
 
 	if (!warm)
 	{
-		rootOption.init(this);
-
-		// initialize globals
-
-		cur_menu = rootOption.pFirstChild;
-		cur_option = rootOption.pFirstChild;
+		rootOption->init();
+		cur_menu = rootOption->pFirstChild;
+		cur_option = rootOption->pFirstChild;
 		cur_option->selected = 1;
-		in_terminal_mode = false;
 		m_scroll_top = 0;
 	}
 
@@ -152,14 +132,17 @@ void configSystem::begin(bool warm)
     for (int i=0; i<num_show; i++)
         theButtons.setButtonType(FIRST_PATCH_BUTTON+i,BUTTON_TYPE_RADIO(GROUP_PATCH_NUMS));
 
-    if (optPatchNum.value && optPatchNum.value<=MAX_SHOWN_PATCHES)
-        theButtons.select(FIRST_PATCH_BUTTON+optPatchNum.value-1,1);
+	int patch_num = getPref8(PREF_PATCH_NUM);
+    if (patch_num && patch_num<=MAX_SHOWN_PATCHES)
+        theButtons.select(FIRST_PATCH_BUTTON+patch_num-1,1);
 
     // finished
     // do not call draw() here!
     // only draw on the main thread ..
 
     showLEDs();
+
+	display(0,"configSystem::begin() finished",0);
 
 }   // configSystem::begin
 
@@ -174,7 +157,7 @@ void configSystem::onEndModal(expWindow *win, uint32_t param)
 		for (int i=0; i<NUM_EEPROM_USED; i++)
 			setPref8(i,255);
 		save_global_prefs();
-		reboot(BUTTON_SELECT);
+		reboot(THE_SYSTEM_BUTTON);
 	}
 }
 
@@ -185,13 +168,8 @@ void configSystem::onEndModal(expWindow *win, uint32_t param)
 void configSystem::onButtonEvent(int row, int col, int event)
 {
     // display(0,"configSystem(%d,%d) event(%s)",row,col,buttonArray::buttonEventName(event));
-    int num = row * NUM_BUTTON_COLS + col;
 
-    if (in_terminal_mode)
-    {
-        cur_option->terminalNav(num);
-        return;
-    }
+    int num = row * NUM_BUTTON_COLS + col;
 
     if (num == BUTTON_MOVE_UP)
     {
@@ -214,7 +192,7 @@ void configSystem::onButtonEvent(int row, int col, int event)
     else if (num == BUTTON_MOVE_LEFT)
     {
         configOption *option = cur_option->pParent;
-        if (option != &rootOption)
+        if (option != rootOption)
         {
             cur_option->selected = 0;
             cur_option->display_selected = -1;
@@ -246,7 +224,7 @@ void configSystem::onButtonEvent(int row, int col, int event)
 			// whereas there may be other ways to change the patch number
 			// so it *might* not have been saved since last time ...
 
-            theSystem.activatePatch(optPatchNum.orig_value);
+            theSystem.activatePatch(theSystem.getPrevConfigNum());
 
         }
     }
@@ -254,7 +232,8 @@ void configSystem::onButtonEvent(int row, int col, int event)
     {
         if (event == BUTTON_EVENT_LONG_CLICK)
         {
-			bool reboot_needed = pref_changed8(PREF_SPOOF_FTP);
+			bool reboot_needed = configOption::reboot_needed();
+			pref_changed8(PREF_SPOOF_FTP);
 			save_global_prefs();
             if (reboot_needed)
             {
@@ -262,7 +241,7 @@ void configSystem::onButtonEvent(int row, int col, int event)
             }
         }
 
-        theSystem.activatePatch(optPatchNum.value);
+        theSystem.activatePatch(getPref8(PREF_PATCH_NUM));
     }
 
 	// do something
@@ -278,36 +257,24 @@ void configSystem::onButtonEvent(int row, int col, int event)
 				cur_option = cur_option->pFirstChild;
 				cur_option->selected = 1;
 			}
-			else if (cur_option->type & OPTION_TYPE_IMMEDIATE)
+			else if (cur_option->hasValue())
 			{
 				cur_option->incValue(1);
 				if (cur_option->type & OPTION_TYPE_CONFIG_NUM)
 				{
-					if (optPatchNum.value &&
-						optPatchNum.value <= MAX_SHOWN_PATCHES)
-					{
-						theButtons.select(FIRST_PATCH_BUTTON+optPatchNum.value-1,1);
-					}
+					int value = getPref8(PREF_PATCH_NUM);
+					if (value && value <= MAX_SHOWN_PATCHES)
+						theButtons.select(FIRST_PATCH_BUTTON+value-1,1);
 					else
-					{
 						theButtons.clearRadioGroup(GROUP_PATCH_NUMS);
-					}
 					showLEDs();
 				}
-				else if (cur_option->type & OPTION_TYPE_FACTORY_RESET)
-				{
-					theSystem.startModal(new yesNoDialog(
-						OPTION_TYPE_FACTORY_RESET,
-						"Confirm Factory Reset",
-						"Are you sure you want to do a\nfactory reset?"));
-				}
-			}
-			else if (cur_option->type & OPTION_TYPE_TERMINAL)
+			} else if (cur_option->type & OPTION_TYPE_FACTORY_RESET)
 			{
-				// have the up and down keys start repeating for default terminal mode editors
-				theButtons.setButtonType(BUTTON_MOVE_UP,   	BUTTON_EVENT_PRESS | BUTTON_MASK_REPEAT );
-				theButtons.setButtonType(BUTTON_MOVE_DOWN,	BUTTON_EVENT_PRESS | BUTTON_MASK_REPEAT );
-				in_terminal_mode = cur_option->beginTerminalMode();
+				theSystem.startModal(new yesNoDialog(
+					OPTION_TYPE_FACTORY_RESET,
+					"Confirm Factory Reset",
+					"Are you sure you want to do a\nfactory reset?"));
 			}
 		}
 
@@ -315,12 +282,12 @@ void configSystem::onButtonEvent(int row, int col, int event)
 				 num == BUTTON_BRIGHTNESS_DOWN)
 		{
 			int inc = num == BUTTON_BRIGHTNESS_UP ? 5 : -5;
-			optBrightness.setValue(optBrightness.value + inc);
+			optBrightness->setValue(getPref8(PREF_BRIGHTNESS) + inc);
 		}
 
 		else if (row == ROW_CONFIGS)
 		{
-			optPatchNum.setValue(col + 1);
+			setPref8(PREF_PATCH_NUM,col + 1);
 		}
 
 	}	// enabled
@@ -348,14 +315,7 @@ void configSystem::onButtonEvent(int row, int col, int event)
 
 
 void configSystem::updateUI()
-
 {
-    if (in_terminal_mode)
-    {
-        cur_option->terminalDraw();
-        return;
-    }
-
     bool draw_all = false;
 
 	if (cur_option != m_last_display_option)
@@ -386,7 +346,7 @@ void configSystem::updateUI()
 
         mylcd.Fill_Screen(0);
 
-        if (cur_option->pParent == &rootOption)
+        if (cur_option->pParent == rootOption)
             theSystem.setTitle(theSystem.getCurPatch()->name());
         else
         {
@@ -395,20 +355,16 @@ void configSystem::updateUI()
         }
     }
 
-    mylcd.setFont(Arial_20);
-
-    // int num = 0;
     int y = TOP_OFFSET;
     configOption *opt = cur_menu;
+    mylcd.setFont(Arial_20);
 
     while (opt)
     {
-        // num++;
-
 		int num = opt->getNum();
 		if (num >= m_scroll_top && num < m_scroll_top + OPTIONS_PER_PAGE)
 		{
-			bool draw_value = opt->display_value != opt->value;
+			bool draw_value = opt->needsValueDisplay();
 			bool enabled = opt->isEnabled();
 
 			bool draw_selected =
@@ -417,7 +373,7 @@ void configSystem::updateUI()
 
 			opt->display_enabled = enabled;
 			opt->display_selected = opt->selected;
-			opt->display_value = opt->value;
+			opt->clearDisplayValue();
 
 			if (draw_all || draw_selected)
 			{
@@ -439,7 +395,7 @@ void configSystem::updateUI()
 				mylcd.print(opt->title);
 			}
 
-			if (opt->type & OPTION_TYPE_VALUE && (
+			if (opt->m_pref_num >= 0 && (
 				draw_all || draw_selected || draw_value))
 			{
 				uint16_t fc = enabled ? TFT_WHITE : TFT_DARKGREY;
@@ -461,4 +417,4 @@ void configSystem::updateUI()
         opt = opt->pNextOption;
     }
 
-}
+}	// updateUI()
