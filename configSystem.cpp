@@ -27,7 +27,7 @@
 
 configOption     rootOption;
 brightnessOption optBrightness(&rootOption);
-patchNumOption  optPatchNum(&rootOption);
+patchNumOption   optPatchNum(&rootOption);
 configOption     optPedals(&rootOption,"Pedals",OPTION_TYPE_MENU);
 configOption     optSystem(&rootOption,"System",OPTION_TYPE_MENU);
 spoofFTPOption   optSpoofFTP(&rootOption);
@@ -89,15 +89,6 @@ void reboot(int num)
 configSystem::configSystem()
 	: expWindow(WIN_FLAG_OWNER_TITLE)
 {
-}
-
-
-bool configSystem::config_changed()
-{
-    return
-        optBrightness.getValue() != optBrightness.getOrigValue() ||
-        optPatchNum.getValue() != optPatchNum.getOrigValue() ||
-		optSpoofFTP.getValue() != optSpoofFTP.getOrigValue();
 }
 
 
@@ -242,25 +233,28 @@ void configSystem::onButtonEvent(int row, int col, int event)
         }
         else
         {
-            setLEDBrightness(optBrightness.orig_value);
+			restore_prefs();
+
+			// re-init things that might have changed
+            // setLEDBrightness(optBrightness.orig_value);
+			// value on config options is superflous ?!?
+
+            setLEDBrightness(getPref8(PREF_BRIGHTNESS));
+
+			// whereas there may be other ways to change the patch number
+			// so it *might* not have been saved since last time ...
+
             theSystem.activatePatch(optPatchNum.orig_value);
+
         }
     }
     else if (num == BUTTON_EXIT_DONE)
     {
         if (event == BUTTON_EVENT_LONG_CLICK)
         {
-            display(0,"setPrefs bright=%d config=%d spoof_ftp=%d",
-                optBrightness.value,
-                optPatchNum.value,
-				optSpoofFTP.value);
-
-            setPref8(PREF_BRIGHTNESS,optBrightness.value);
-            setPref8(PREF_PATCH_NUM,optPatchNum.value);
-            setPref8(PREF_SPOOF_FTP,optSpoofFTP.value);
+			bool reboot_needed = pref_changed8(PREF_SPOOF_FTP);
 			save_global_prefs();
-
-            if (optSpoofFTP.value != optSpoofFTP.orig_value)
+            if (reboot_needed)
             {
                 reboot(num);
             }
@@ -285,7 +279,6 @@ void configSystem::onButtonEvent(int row, int col, int event)
 			else if (cur_option->type & OPTION_TYPE_IMMEDIATE)
 			{
 				cur_option->incValue(1);
-
 				if (cur_option->type & OPTION_TYPE_CONFIG_NUM)
 				{
 					if (optPatchNum.value &&
@@ -297,7 +290,6 @@ void configSystem::onButtonEvent(int row, int col, int event)
 					{
 						theButtons.clearRadioGroup(GROUP_PATCH_NUMS);
 					}
-
 					showLEDs();
 				}
 				else if (cur_option->type & OPTION_TYPE_FACTORY_RESET)

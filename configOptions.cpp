@@ -13,26 +13,27 @@
 
 configOption::configOption()
 {
-    init_cold(0,"",0,0,0);
+    init_cold(0,"",0,0,0,-1);
 }
 
-configOption::configOption(configOption *parent, const char *title, int type)
+configOption::configOption(configOption *parent, const char *title, int type, int pref_num)
 {
-    init_cold(parent,title,type,0,0);
+    init_cold(parent,title,type,0,0,pref_num);
 }
 
-configOption::configOption(configOption *parent, const char *title, int type, int min, int max)
+configOption::configOption(configOption *parent, const char *title, int type, int min, int max, int pref_num)
 {
-    init_cold(parent,title,type,min,max);
+    init_cold(parent,title,type,min,max,pref_num);
 }
 
 
 
-void configOption::init_cold(configOption *parent, const char *tit, int typ, int min, int max)
+void configOption::init_cold(configOption *parent, const char *tit, int typ, int min, int max, int pref_num)
 {
     title            = tit;
     type             = typ;
     pParent          = parent;
+    m_pref_num       = pref_num;
     min_value        = min;
     max_value        = max;
 
@@ -102,19 +103,36 @@ void configOption::init()
 
 // virtual
 void  configOption::setValue(int i)
+    // enforces min/max
 {
-    value = i;  // enforces min/max
-    if (value > max_value) value = max_value;
-    if (value < min_value) value = min_value;
+    if (i > max_value) i = max_value;
+    if (i < min_value) i = min_value;
+    if (m_pref_num >= 0)
+    {
+        if (max_value > 254)
+            setPref16(m_pref_num,i);
+        else
+            setPref8(m_pref_num,i);
+    }
+    value = i;
 }
 
 
 // virtual
-void configOption::incValue(int inc_dec)  // wraps
+void configOption::incValue(int inc_dec)
+    // wraps thru min/max
 {
-    value += inc_dec;   // wraps thru min/max
-    if (value > max_value) value = min_value;
-    if (value < min_value) value = max_value;
+    int i = value += inc_dec;
+    if (i > max_value) i = min_value;
+    if (i < min_value) i = max_value;
+    if (m_pref_num >= 0)
+    {
+        if (max_value > 254)
+            setPref16(m_pref_num,i);
+        else
+            setPref8(m_pref_num,i);
+    }
+    value = i;
 }
 
 
@@ -130,8 +148,8 @@ void configOption::incValue(int inc_dec)  // wraps
 // the use of the left arrow to go back also feels
 // weird, as the green "select" button does nothing
 
-integerOption::integerOption(configOption *parent, const char *title, int type, int min, int max) :
-    configOption(parent,title,type | OPTION_TYPE_VALUE,min,max)
+integerOption::integerOption(configOption *parent, const char *title, int type, int min, int max, int pref_num) :
+    configOption(parent,title,type | OPTION_TYPE_VALUE,min,max,pref_num)
 {}
 
 
@@ -219,8 +237,13 @@ void integerOption::terminalDraw()
 //--------------------------------------------
 
 brightnessOption::brightnessOption(configOption *parent) :
-    integerOption(parent,"Brightness",
-        OPTION_TYPE_TERMINAL | OPTION_TYPE_BRIGHTNESS,1,100)
+    integerOption(
+        parent,
+        "Brightness",
+        OPTION_TYPE_TERMINAL | OPTION_TYPE_BRIGHTNESS,
+        1,
+        100,
+        PREF_BRIGHTNESS)
 {}
 
 
@@ -229,6 +252,8 @@ void brightnessOption::init()
 {
     integerOption::init();
     value = getLEDBrightness();
+        // should be equal to the pref at any point
+        // the "value" may be duplicitous
     orig_value = value;
     display_value = -1;
 }
@@ -248,8 +273,13 @@ void brightnessOption::setValue(int i)
 //--------------------------------------------
 
 patchNumOption::patchNumOption(configOption *parent) :
-    integerOption(parent,"Patch",
-        OPTION_TYPE_IMMEDIATE | OPTION_TYPE_CONFIG_NUM,1,0)
+    integerOption(
+        parent,
+        "Patch",
+        OPTION_TYPE_IMMEDIATE | OPTION_TYPE_CONFIG_NUM,
+        1,
+        0,
+        PREF_PATCH_NUM)
 {}
 
 
@@ -276,8 +306,8 @@ const char *patchNumOption::getValueString()
 // onOffOption
 //-------------------------------------
 
-onOffOption::onOffOption(configOption *parent, const char *title) :
-    integerOption(parent,title,OPTION_TYPE_IMMEDIATE,0,1)
+onOffOption::onOffOption(configOption *parent, const char *title, int pref_num) :
+    integerOption(parent,title,OPTION_TYPE_IMMEDIATE,0,1,pref_num)
 {}
 
 // virtual
@@ -291,7 +321,7 @@ const char *onOffOption::getValueString()
 
 
 spoofFTPOption::spoofFTPOption(configOption *parent) :
-    onOffOption(parent,"Spoof FTP") {}
+    onOffOption(parent,"Spoof FTP",PREF_SPOOF_FTP) {}
 
 // virtual
 void spoofFTPOption::init()

@@ -36,8 +36,8 @@ class configOption
     public:
 
         configOption();
-        configOption(configOption *parent, const char *title, int type);
-        configOption(configOption *parent, const char *title, int type, int min, int max);
+        configOption(configOption *parent, const char *title, int type, int pref_num=-1);
+        configOption(configOption *parent, const char *title, int type, int min, int max, int pref_num=-1);
 
     protected:
 
@@ -63,11 +63,13 @@ class configOption
         virtual bool  isEnabled()             { return 1; }
 
     protected:
+
         friend class configSystem;
 
         const char *title;
         int         type;
         int         option_num;
+        int         m_pref_num;
         int         num_children;
 
         configOption *pParent;
@@ -102,7 +104,7 @@ class configOption
 
     private:
 
-        void init_cold(configOption *parent, const char *tit, int typ, int min, int max);
+        void init_cold(configOption *parent, const char *tit, int typ, int min, int max, int pref_num);
             // ctor initialization
 };
 
@@ -111,7 +113,7 @@ class configOption
 class integerOption : public configOption
 {
     public:
-        integerOption(configOption *parent, const char *title, int type, int min, int max);
+        integerOption(configOption *parent, const char *title, int type, int min, int max, int pref_num=-1);
         virtual const char *getValueString();
     protected:
 
@@ -145,7 +147,7 @@ class patchNumOption : public integerOption
 class onOffOption : public integerOption
 {
     public:
-        onOffOption(configOption *parent, const char *title);
+        onOffOption(configOption *parent, const char *title, int pref_num=-1);
         virtual const char *getValueString();
 };
 
@@ -154,8 +156,10 @@ class onOffOption : public integerOption
 class spoofFTPOption : public onOffOption
 {
     public:
+
         spoofFTPOption(configOption *parent);
         virtual void init();
+
         // virtual bool isEnabled();
 };
 

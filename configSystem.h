@@ -26,8 +26,6 @@ class configSystem : public expWindow
         virtual void onButtonEvent(int row, int col, int event);
         virtual void onEndModal(expWindow *win, uint32_t param);
 
-        bool config_changed();
-
         int m_scroll_top;
         configOption *m_last_display_option;
 
