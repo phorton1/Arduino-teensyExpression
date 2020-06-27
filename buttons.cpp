@@ -119,7 +119,7 @@ void buttonArray::setEventState(int num, int state)
     // retains the state of the pressed bit,
     // but clears the m_press_time (handled)
 {
-    display(0,"setEventState num=%d state=%04x",num,state);
+    // display(0,"setEventState num=%d state=%04x",num,state);
 
     arrayedButton *button = &m_buttons[num / NUM_BUTTON_COLS][num % NUM_BUTTON_COLS];
     state &= ~BUTTON_STATE_PRESSED;
@@ -135,7 +135,7 @@ void buttonArray::setEventState(int num, int state)
             button->m_touch_color :
             button->m_default_color;
 
-    display(0,"color(num)=%d",color);
+    // display(0,"color(num)=%d",color);
     setLED(num,color);
 }
 
