@@ -38,7 +38,7 @@ class expressionPedal
         }
         int getRawValueScaled()
         {
-            float ret_val = getRawValuePct() * 127.00;
+            float ret_val = getRawValuePct() * 127.00 + 0.5;
             return ret_val;
         }
         void invalidate()

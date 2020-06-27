@@ -124,14 +124,77 @@ void expressionPedal::poll()
 
     if (raw_changed || !m_valid)
     {
-        int calib_min = getPrefPedalCalibMin(m_num);
-        int calib_max = getPrefPedalCalibMax(m_num);
-        int value_min = getPrefPedalMin(m_num);
-        int value_max = getPrefPedalMax(m_num);
+        int value;
 
-        int value = map(m_raw_value,calib_min,calib_max,value_min,value_max);
-        if (value > value_max) value = value_max;
-        if (value < value_min) value = value_min;
+        // get the scaled x, and min and max values
+
+        int scaled_x = getRawValueScaled();
+        int curve_type = getPrefPedalCurve(m_num);
+        int min_x = getPref8(PREF_PEDAL_CURVE_POINT(m_num,curve_type,0) + PEDAL_POINTS_OFFSET_X);
+        int max_x = getPref8(PREF_PEDAL_CURVE_POINT(m_num,curve_type,curve_type+1) + PEDAL_POINTS_OFFSET_X);
+
+        // we are to the left of the MIN, so our value is MIN.Y
+
+        if (scaled_x < min_x)
+        {
+            value = getPref8(PREF_PEDAL_CURVE_POINT(m_num,curve_type,0) + PEDAL_POINTS_OFFSET_Y);
+            display(0,"LESS THAN MIN_X value=%d",value);
+        }
+
+        // we are at, or to the right, of the MAX so our value is MAX.Y
+
+        else if (scaled_x >= max_x)
+        {
+            value = getPref8(PREF_PEDAL_CURVE_POINT(m_num,curve_type,curve_type+1) + PEDAL_POINTS_OFFSET_Y);
+            display(0,"GE THAN MAX_X value=%d",value);
+        }
+
+        // loop thru points left (not max) pointstill we are at or to the right of one
+        // or we are out of points
+
+        else
+        {
+            int point_num = 0;
+            int right_x = getPref8(PREF_PEDAL_CURVE_POINT(m_num,curve_type,point_num+1) + PEDAL_POINTS_OFFSET_X);
+
+            while (point_num < curve_type &&
+                   scaled_x >= right_x)
+            {
+                point_num++;
+                right_x = getPref8(PREF_PEDAL_CURVE_POINT(m_num,curve_type,point_num+1) + PEDAL_POINTS_OFFSET_X);
+            }
+
+            // we are now between point_num and point_num+1
+
+
+            int left_x = getPref8(PREF_PEDAL_CURVE_POINT(m_num,curve_type,point_num) + PEDAL_POINTS_OFFSET_X);
+            // right_x = getPref8(PREF_PEDAL_CURVE_POINT(m_num,curve_type,point_num+1) + PEDAL_POINTS_OFFSET_X);
+            int left_y = getPref8(PREF_PEDAL_CURVE_POINT(m_num,curve_type,point_num) + PEDAL_POINTS_OFFSET_Y);
+            int right_y = getPref8(PREF_PEDAL_CURVE_POINT(m_num,curve_type,point_num+1) + PEDAL_POINTS_OFFSET_Y);
+
+            // display(0,"SCALING %d BETWEEN POINT %d(%d,%d) and %d(%d,%d)",
+            //     scaled_x,point_num,left_x,left_y,point_num+1,right_x,right_y);
+
+            float range_x = (right_x - left_x) + 1;
+            float range_y = (right_y - left_y) + 1;
+            float val_x = (scaled_x - left_x);
+            float pct = val_x / range_x;
+            float val_y = left_y + pct * range_y + 0.5;
+            value = val_y;
+
+            // display(0,"    range_x(%0.2f) range_y(%0.2f) val_x(%0.2f) pct(%0.2f) val_y(%0.2f) VALUE=%d",
+            //     range_x,range_y,val_x,pct,val_y,value);
+        }
+
+        #if 0   // old way
+            int calib_min = getPrefPedalCalibMin(m_num);
+            int calib_max = getPrefPedalCalibMax(m_num);
+            int value_min = getPrefPedalMin(m_num);
+            int value_max = getPrefPedalMax(m_num);
+            int value = map(m_raw_value,calib_min,calib_max,value_min,value_max);
+            if (value > value_max) value = value_max;
+            if (value < value_min) value = value_min;
+        #endif
 
         if (value != m_value)
         {
