@@ -88,5 +88,27 @@ class configOption
 };
 
 
+#define ENABLED_CONFIG(class_name,condition)  \
+    class class_name : public configOption    \
+    {                                         \
+    public:                                   \
+                                              \
+       class_name(                            \
+            configOption *parent,             \
+            const char *title,                \
+            int type=0,                       \
+            int pref_num=-1,                  \
+            setterFxn setter=0) :             \
+                configOption(                 \
+                    parent,                   \
+                    title,                    \
+                    type,                     \
+                    pref_num,                 \
+                    setter) {}                \
+                                              \
+        virtual bool  isEnabled()             \
+            { return (condition); }           \
+    }
+
 
 #endif  // !__configOptions_h_

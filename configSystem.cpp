@@ -44,6 +44,9 @@ void startFtpSensitivity(int i)
 void configPedal(int i)
 	{ theSystem.startModal(new winConfigPedal(i)); }
 
+ENABLED_CONFIG(ftpPortOption,!getPref8(PREF_SPOOF_FTP));
+
+
 
 //---------------------------------
 // pseudo static initialization
@@ -63,21 +66,31 @@ void createOptions()
 			setLEDBrightness);
 
 		new configOption(rootOption,"Patch",		OPTION_TYPE_CONFIG_NUM,		PREF_PATCH_NUM);
+
+//      FTP
+//          Spoof FTP       ON/OFF
+//          FTP Port        None, Host, Remote
+//          Tuner           -> modal window
+//          Sensitivity     -> modal window
+
+		configOption *optFTP = new configOption(rootOption,"FTP");
+		new configOption(optFTP,"Spoof FTP",	OPTION_TYPE_NEEDS_REBOOT,	PREF_SPOOF_FTP);
+		new ftpPortOption(optFTP,"FTP Port",	0,							PREF_FTP_PORT);
+		new configOption(optFTP,"FTP Tuner",	0,							PREF_NONE,		startFtpTuner);
+		new configOption(optFTP,"FTP Sensitivity",0,						PREF_NONE,		startFtpSensitivity);
+
 		configOption *pedals = new configOption(rootOption,"Pedals");
-		configOption *system = new configOption(rootOption,"System");
-		new configOption(rootOption,"Debug Port",	OPTION_TYPE_NEEDS_REBOOT,	PREF_DEBUG_PORT);
-		new configOption(rootOption,"Spoof FTP",	OPTION_TYPE_NEEDS_REBOOT,	PREF_SPOOF_FTP);
-
-		new configOption(rootOption,"Factory Reset",OPTION_TYPE_FACTORY_RESET);
-		new configOption(rootOption,"FTP Tuner",0,PREF_NONE,startFtpTuner);
-		new configOption(rootOption,"FTP Sensitivity",0,PREF_NONE,startFtpSensitivity);
-
 		new configOption(pedals,"Configure Pedal1 (Synth)",	0,PREF_NONE,configPedal);
 		new configOption(pedals,"Configure Pedal2 (Loop)",	0,PREF_NONE,configPedal);
 		new configOption(pedals,"Configure Pedal3 (Wah)",	0,PREF_NONE,configPedal);
 		new configOption(pedals,"Configure Pedal4 (Guitar)",	0,PREF_NONE,configPedal);
 
+		configOption *system = new configOption(rootOption,"System");
 		new configOption(system,"Calibrate Touch");
+
+		new configOption(rootOption,"Debug Port",	OPTION_TYPE_NEEDS_REBOOT,	PREF_DEBUG_PORT);
+		new configOption(rootOption,"Factory Reset",OPTION_TYPE_FACTORY_RESET);
+
 	}
 }
 
