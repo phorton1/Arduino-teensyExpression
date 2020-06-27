@@ -39,6 +39,8 @@ class winConfigPedal : public expWindow
 
         int m_display_item;
         int m_display_curve;
+        int m_display_raw_value;
+        bool m_in_calibrate;
 
         prefCurvePoint_t m_points[MAX_PEDAL_CURVE_POINTS];
         prefCurvePoint_t m_prev_points[MAX_CURVE_POINTS];

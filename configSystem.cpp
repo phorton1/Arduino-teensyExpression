@@ -72,17 +72,10 @@ void createOptions()
 		new configOption(rootOption,"FTP Tuner",0,PREF_NONE,startFtpTuner);
 		new configOption(rootOption,"FTP Sensitivity",0,PREF_NONE,startFtpSensitivity);
 
-		configOption *config_pedals = new configOption(pedals,"Configure Pedals");
-		new configOption(config_pedals,"Configure Pedal1 (Synth)",	0,PREF_NONE,configPedal);
-		new configOption(config_pedals,"Configure Pedal2 (Loop)",	0,PREF_NONE,configPedal);
-		new configOption(config_pedals,"Configure Pedal3 (Wah)",	0,PREF_NONE,configPedal);
-		new configOption(config_pedals,"Configure Pedal4 (Guitar)",	0,PREF_NONE,configPedal);
-
-		configOption *calib_pedals = new configOption(pedals,"Calibrate Pedals");
-		new configOption(calib_pedals, "Calibrate Pedal1 (Synth)");
-		new configOption(calib_pedals, "Calibrate Pedal2 (Loop)");
-		new configOption(calib_pedals, "Calibrate Pedal3 (Wah)");
-		new configOption(calib_pedals, "Calibrate Pedal4 (Guitar)");
+		new configOption(pedals,"Configure Pedal1 (Synth)",	0,PREF_NONE,configPedal);
+		new configOption(pedals,"Configure Pedal2 (Loop)",	0,PREF_NONE,configPedal);
+		new configOption(pedals,"Configure Pedal3 (Wah)",	0,PREF_NONE,configPedal);
+		new configOption(pedals,"Configure Pedal4 (Guitar)",	0,PREF_NONE,configPedal);
 
 		new configOption(system,"Calibrate Touch");
 	}

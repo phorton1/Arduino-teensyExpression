@@ -52,26 +52,12 @@ void expressionPedal::init(
     m_cc_channel = cc_channel;
     m_name = name;
 
-    // m_calib_min  = 0;
-    // m_calib_max  = 1023;
-    // m_value_min  = 0;
-    // m_value_max  = value_max;
-
     m_raw_value = -1;         // 0..1023
     m_direction = -1;
     m_settle_time = 0;
 
     m_value = 0;
     m_last_value = -1;
-
-    // m_curve_type = 0;
-    // m_cur_point = m_curve_type + 1;
-    // for (int i=0; i<MAX_PEDAL_CURVE_POINTS; i++)
-    // {
-    //     m_points[i].x = 0;
-    //     m_points[i].y = 0;
-    //     m_points[i].weight = 0;
-    // }
 
     pinMode(m_pin,INPUT_PULLDOWN);
 

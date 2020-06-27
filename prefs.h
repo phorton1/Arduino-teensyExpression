@@ -142,12 +142,12 @@
 #define getPrefPedalCurve(p)            (getPref8(PREF_PEDAL_CURVE_TYPE(p)))
 #define getPrefPedalMin(p)              (getPref8(PREF_PEDAL_CURVE_POINT(p,getPrefPedalCurve(p),0) + PEDAL_POINTS_OFFSET_Y))
 #define getPrefPedalMax(p)              (getPref8(PREF_PEDAL_CURVE_POINT(p,getPrefPedalCurve(p),getPrefPedalCurve(p)+1) + PEDAL_POINTS_OFFSET_Y))
-#define getPrefPedalCalibMin(p)         (getPref16(PREF_PEDAL(m_num) + PREF_PEDAL_CALIB_MIN_OFFSET))
-#define getPrefPedalCalibMax(p)         (getPref16(PREF_PEDAL(m_num) + PREF_PEDAL_CALIB_MAX_OFFSET))
+#define getPrefPedalCalibMin(p)         (getPref16(PREF_PEDAL(p) + PREF_PEDAL_CALIB_MIN_OFFSET))
+#define getPrefPedalCalibMax(p)         (getPref16(PREF_PEDAL(p) + PREF_PEDAL_CALIB_MAX_OFFSET))
 
 #define setPrefPedalCurve(p,i)          setPref8(PREF_PEDAL_CURVE_TYPE(p),(i))
-#define setPrefPedalCalibMin(p,i)       setPref16(PREF_PEDAL(m_num) + PREF_PEDAL_CALIB_MIN_OFFSET, (i))
-#define setPrefPedalCalibMax(p,i)       setPref16(PREF_PEDAL(m_num) + PREF_PEDAL_CALIB_MAX_OFFSET, (i))
+#define setPrefPedalCalibMin(p,i)       setPref16(PREF_PEDAL(p) + PREF_PEDAL_CALIB_MIN_OFFSET, (i))
+#define setPrefPedalCalibMax(p,i)       setPref16(PREF_PEDAL(p) + PREF_PEDAL_CALIB_MAX_OFFSET, (i))
 
 
 //-----------------------
