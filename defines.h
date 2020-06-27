@@ -165,22 +165,41 @@
 
 // ansi colors
 
-#define ansi_color_black 	        30
-#define ansi_color_red 	     	    31
-#define ansi_color_green 	        32
-#define ansi_color_brown 	 	    33
-#define ansi_color_blue 	        34
-#define ansi_color_magenta 	 	    35
-#define ansi_color_cyan 	        36
-#define ansi_color_grey 	        37
-#define ansi_color_light_gray  	    90
-#define ansi_color_light_red 	    91
-#define ansi_color_light_green 	    92
-#define ansi_color_yellow 		    93
-#define ansi_color_light_blue  	    94
-#define ansi_color_light_magenta    95
-#define ansi_color_light_cyan 	    96
-#define ansi_color_white  		    97
+#define ansi_color_black 	            30
+#define ansi_color_red 	     	        31
+#define ansi_color_green 	            32
+#define ansi_color_brown 	 	        33
+#define ansi_color_blue 	            34
+#define ansi_color_magenta 	 	        35
+#define ansi_color_cyan 	            36
+#define ansi_color_light_grey 	        37
+
+#define ansi_color_grey  	            90
+#define ansi_color_light_red 	        91
+#define ansi_color_light_green 	        92
+#define ansi_color_yellow 		        93
+#define ansi_color_light_blue  	        94
+#define ansi_color_light_magenta        95
+#define ansi_color_light_cyan 	        96
+#define ansi_color_white  		        97
+
+#define ansi_color_bg_black 	        40
+#define ansi_color_bg_red 	     	    41
+#define ansi_color_bg_green 	        42
+#define ansi_color_bg_brown 	 	    43
+#define ansi_color_bg_blue 	            44
+#define ansi_color_bg_magenta 	 	    45
+#define ansi_color_bg_cyan 	            46
+#define ansi_color_bg_light_grey 	    47
+
+#define ansi_color_bg_grey  	        100
+#define ansi_color_bg_light_red 	    101
+#define ansi_color_bg_light_green 	    102
+#define ansi_color_bg_yellow 		    103
+#define ansi_color_bg_light_blue  	    104
+#define ansi_color_bg_light_magenta     105
+#define ansi_color_bg_light_cyan 	    106
+#define ansi_color_bg_white  		    107
 
 
 #endif  // !__defines_h__

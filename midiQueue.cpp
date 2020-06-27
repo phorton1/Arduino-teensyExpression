@@ -399,6 +399,8 @@ void _processMessage(uint32_t i)
 
     // that leaves cyan, magenta, green, and white
 
+    int bg_color = ansi_color_bg_black;
+
     int color =
         msg.isOutput() ? ansi_color_white :
         msg.isHost() ? ansi_color_light_cyan : ansi_color_light_magenta;
@@ -446,8 +448,9 @@ void _processMessage(uint32_t i)
 
         if (is_done && showSysex && dbgSerial)
         {
-            sprintf(buf2,"\033[%dm %s(%d,--)      sysex len=%d",
+            sprintf(buf2,"\033[%d;%dm %s(%d,--)      sysex len=%d",
                 color,
+                bg_color,
                 port_name,
                 INDEX_CABLE(pindex),
                 sysex_buflen[pindex]);
@@ -480,21 +483,23 @@ void _processMessage(uint32_t i)
             most_recent_note_val = msg.b[2];
             most_recent_note_vel = msg.b[3];
             color = ansi_color_light_red;
+            // color = ansi_color_red;
+            // bg_color = ansi_color_bg_white;
         }
         else if (type == 0x0a)
         {
             s = "VelocityChange";   // after touch poly
-            color = ansi_color_light_gray;  // understood
+            color = ansi_color_light_grey;  // understood
         }
         else if (type == 0x0c)
         {
             s = "ProgramChange";
-            color = ansi_color_light_gray;  // understood
+            color = ansi_color_light_grey;  // understood
         }
         else if (type == 0x0d)
         {
             s = "AfterTouch";
-            color = ansi_color_light_gray;  // understood
+            color = ansi_color_light_grey;  // understood
         }
         else if (type == 0x0E)
         {
@@ -502,15 +507,15 @@ void _processMessage(uint32_t i)
             int value = p1 + (p2 << 7);
             value -= 8192;
             sprintf(buf2,"value=%d",value);
-            color = ansi_color_light_gray;  // understood
+            color = ansi_color_light_grey;  // understood
         }
         else if (msg.isActiveSense())
         {
             s = "ActiveSense";
-            color = ansi_color_light_gray;  // understood
+            color = ansi_color_light_grey;  // understood
         }
 
-
+        // CONTROL CHANGES
 
         else if (type == 0x0b)
         {
@@ -581,7 +586,7 @@ void _processMessage(uint32_t i)
                 {
                     if (!tuning_note)
                         tuning_note = most_recent_note;
-                    color = tuning_note ? ansi_color_light_gray : ansi_color_yellow;
+                    color = tuning_note ? ansi_color_light_grey : ansi_color_yellow;
                         // yellow indicates a tuning message without a corresponding tuning note
                         // or even a most_recent one to inherit from
                 }
@@ -721,7 +726,7 @@ void _processMessage(uint32_t i)
 
             else if (0)
             {
-                color = ansi_color_light_gray;  // understood
+                color = ansi_color_light_grey;  // understood
 
             }
 
@@ -731,8 +736,9 @@ void _processMessage(uint32_t i)
         if (show_it && dbgSerial)
         {
             char buf[200];
-            sprintf(buf,"\033[%dm %s(%d,%2d)  %02X  %-16s  %02x  %02x  %s",
+            sprintf(buf,"\033[%d;%dm %s(%d,%2d)  %02X  %-16s  %02x  %02x  %s",
                 color,
+                bg_color,
                 port_name,
                 INDEX_CABLE(pindex),
                 msg.getChannel(),
@@ -741,7 +747,15 @@ void _processMessage(uint32_t i)
                 p1,
                 p2,
                 buf2);
-            dbgSerial->println(buf);
+
+            #if 1
+                // putty fix for colors background colors wrapping
+                dbgSerial->print(buf);
+                dbgSerial->print("\033[37;40m");
+                dbgSerial->println();
+            #else
+                dbgSerial->println(buf);
+            #endif
 
         }   // show_it
 
