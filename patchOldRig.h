@@ -13,7 +13,7 @@ class patchOldRig : public expWindow
 
     private:
 
-        virtual const char *name() { return "Old Rig Configuration"; }
+        virtual const char *name()          { return "Old Rig"; }
         virtual const char *short_name()    { return "Old Rig"; }
 
         virtual void end();
