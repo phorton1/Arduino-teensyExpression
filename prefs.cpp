@@ -51,7 +51,12 @@ extern
 void setDefaultPrefs()
 {
     _setDefaultPref8(PREF_BRIGHTNESS,        1,100, 30);    // 1..100 - default(30)
-    _setDefaultPref8(PREF_PATCH_NUM,         0,254, 1);     // 0..254 - default(1)
+
+    // use the existing max and strings for PREF_PATCH_NUM
+    // which gets setup in expSystem::begin()
+
+    _setDefaultPref8(PREF_PATCH_NUM,         0,pref_max[PREF_PATCH_NUM], 1, pref_strings[PREF_PATCH_NUM]);
+        // 0..0 - default(1) .. better be some patches!
 
     _setDefaultPref8(PREF_DEBUG_PORT,        0,2,   1,  off_usb_serial);           // off, USB, Serial - default(USB)
     _setDefaultPref8(PREF_SPOOF_FTP,         0,1,   0,  off_on);                   // off, on - default(off)
