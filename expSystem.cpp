@@ -203,8 +203,6 @@ void expSystem::begin()
 	setPrefMax(PREF_PATCH_NUM,m_num_patches-1);
 	setPrefStrings(PREF_PATCH_NUM,patch_names);
 
-
-
     m_ftp_tuner = new winFtpTuner();
     m_ftp_sensitivity = new winFtpSensitivity();
 
