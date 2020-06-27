@@ -41,6 +41,10 @@ class expressionPedal
             float ret_val = getRawValuePct() * 127.00;
             return ret_val;
         }
+        void invalidate()
+        {
+            m_valid = false;
+        }
 
 
         // midi
@@ -78,6 +82,7 @@ class expressionPedal
 
         // runtime working variables
 
+        bool     m_valid;
         int      m_raw_value;       // 0..1023
         int      m_direction;       // -1,0,1
         unsigned m_settle_time;

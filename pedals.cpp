@@ -57,6 +57,7 @@ void expressionPedal::init(
     m_settle_time = 0;
 
     m_value = 0;
+    m_valid = false;
     m_last_value = -1;
 
     pinMode(m_pin,INPUT_PULLDOWN);
@@ -121,7 +122,7 @@ void expressionPedal::poll()
     // calculate value
     //-------------------------------
 
-    if (raw_changed)
+    if (raw_changed || !m_valid)
     {
         int calib_min = getPrefPedalCalibMin(m_num);
         int calib_max = getPrefPedalCalibMax(m_num);
@@ -141,4 +142,6 @@ void expressionPedal::poll()
             theSystem.pedalEvent(m_num,m_value);
         }
     }
+
+    m_valid = true;
 }

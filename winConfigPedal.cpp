@@ -60,6 +60,8 @@ void winConfigPedal::begin(bool warm)
     m_display_curve = -1;
     m_display_item = -1;
     m_display_raw_value = -1;
+    m_display_pedal_x = -1;
+    m_display_pedal_value = -1;
     m_in_calibrate = 0;
 
     m_cur_curve = getPref8(PREF_PEDAL(m_pedal_num) + PREF_PEDAL_CURVE_TYPE_OFFSET);
@@ -159,6 +161,7 @@ void winConfigPedal::onButtonEvent(int row, int col, int event)
                 points[m_cur_point].y = y;
                 setPref8(PREF_PEDAL_CURVE_POINT(m_pedal_num,m_cur_curve,m_cur_point) + PEDAL_POINTS_OFFSET_Y, y);
                 m_redraw_curve = 1;
+                thePedals.getPedal(m_pedal_num)->invalidate();
             }
         }
         else
@@ -194,6 +197,7 @@ void winConfigPedal::onButtonEvent(int row, int col, int event)
                 points[m_cur_point].x = x;
                 setPref8(PREF_PEDAL_CURVE_POINT(m_pedal_num,m_cur_curve,m_cur_point) + PEDAL_POINTS_OFFSET_X, x);
                 m_redraw_curve = 1;
+                thePedals.getPedal(m_pedal_num)->invalidate();
             }
         }
         else
@@ -217,6 +221,7 @@ void winConfigPedal::onButtonEvent(int row, int col, int event)
         else if (m_cur_item == ITEM_CURVE_TYPE)
         {
             m_cur_curve = (m_cur_curve + 1) % MAX_PEDAL_CURVES;
+            thePedals.getPedal(m_pedal_num)->invalidate();
             setPrefPedalCurve(m_pedal_num, m_cur_curve);
             setEditPoints();
         }
@@ -353,7 +358,11 @@ void winConfigPedal::updateUI()
     bool redraw_curve = m_redraw_curve;
     expressionPedal *pedal = thePedals.getPedal(m_pedal_num);
     int raw_value = pedal->getRawValue();
+    int pedal_value = pedal->getValue();
+    int pedal_x = pedal->getRawValueScaled();
+    int last_pedal_x = m_display_pedal_x;
     int last_raw_value = m_display_raw_value;
+    int last_pedal_value = m_display_pedal_value;
 
     prefCurvePoint_t points[MAX_CURVE_POINTS];
     prefCurvePoint_t prev_points[MAX_CURVE_POINTS];
@@ -366,6 +375,9 @@ void winConfigPedal::updateUI()
     m_display_item = m_cur_item;
     m_display_curve = m_cur_curve;
     m_display_raw_value = raw_value;
+    m_display_pedal_value = pedal_value;
+    m_display_pedal_x = pedal_x;
+
     memcpy(m_prev_points,points,PREF_BYTES_PER_CURVE);
 
     __enable_irq();
@@ -393,17 +405,6 @@ void winConfigPedal::updateUI()
             "VALUE");
     }
 
-    // show raw value changes as a rectangle just below th grid
-
-    if (raw_value != last_raw_value)
-    {
-        int bar_y = Y_OFFSET + CHART_MAX + 1;
-        int bar_h = 320 - bar_y + 1;
-        int scaled_value = pedal->getRawValueScaled();
-
-        mylcd.Fill_Rect(X_OFFSET-1,bar_y,scaled_value*2+3,bar_h,TFT_CYAN);
-        mylcd.Fill_Rect(X_OFFSET+scaled_value*3,bar_y,CHART_MAX-scaled_value*2,bar_h,0);
-    }
 
     bool calib_changed = m_in_calibrate && raw_value != last_raw_value;
     if (full_redraw || calib_changed)
@@ -489,7 +490,9 @@ void winConfigPedal::updateUI()
 
     if (full_redraw ||
         select_changed ||
-        redraw_curve)
+        redraw_curve ||
+        raw_value != last_raw_value ||
+        last_pedal_value != pedal_value)
     {
         // erase old points if they moved
 
@@ -509,6 +512,16 @@ void winConfigPedal::updateUI()
                     6);
             }
         }
+
+        if (last_pedal_x != -1)
+        {
+            mylcd.Set_Draw_color(TFT_BLACK);
+            mylcd.Fill_Circle(
+                X_OFFSET + 2*last_pedal_x,
+                Y_OFFSET + (CHART_MAX-2*last_pedal_value),
+                6);
+        }
+
 
         // grid left w/ticks
 
@@ -539,9 +552,9 @@ void winConfigPedal::updateUI()
         //----------------------------------
         // line from 0 to MIN
 
-        if (prev_points[0].x != points[0].x ||
-            prev_points[0].y != points[0].y)
-        {
+        // if (prev_points[0].x != points[0].x ||
+        //     prev_points[0].y != points[0].y)
+        // {
             // erase old one if it moved
 
             if (prev_points[0].x &&
@@ -566,7 +579,7 @@ void winConfigPedal::updateUI()
                     X_OFFSET + 2*points[0].x ,
                     Y_OFFSET + CHART_MAX - 2*points[0].y);
             }
-        }
+        // }
 
         // interior lines
 
@@ -579,10 +592,10 @@ void winConfigPedal::updateUI()
 
             // don't draw lines that haven't moved
 
-            if (prev0->x != cur0->x  ||
-                prev0->y != cur0->y  ||
-                prev1->x != cur1->x  ||
-                prev1->y != cur1->y)
+            // if (prev0->x != cur0->x  ||
+            //     prev0->y != cur0->y  ||
+            //     prev1->x != cur1->x  ||
+            //     prev1->y != cur1->y)
             {
                 // if previous line was valid, redraw it in black
 
@@ -614,9 +627,9 @@ void winConfigPedal::updateUI()
 
         int max_point = m_num_points-1;
 
-        if (prev_points[max_point].x != points[max_point].x ||
-            prev_points[max_point].y != points[max_point].y)
-        {
+        // if (prev_points[max_point].x != points[max_point].x ||
+        //     prev_points[max_point].y != points[max_point].y)
+        // {
             // erase old one if it moved
 
             if (prev_points[max_point].x < 127)
@@ -640,7 +653,7 @@ void winConfigPedal::updateUI()
                     X_OFFSET + CHART_MAX,
                     Y_OFFSET + CHART_MAX - 2*points[max_point].y);
             }
-        }
+        // }
 
 
         //---------------------
@@ -650,23 +663,22 @@ void winConfigPedal::updateUI()
         for (int i=0; i<m_num_points; i++)
         {
             prefCurvePoint_t *cur0 = &points[i];
-            // prefCurvePoint_t *prev0 = &prev_points[i];
-            // if (prev0->x == 255 ||
-            //     prev0->y == 255 || (
-            //     prev0->x != cur0->x ||
-            //     prev0->y != cur0->y))
-            {
-                int fill_color =
-                    i == m_cur_point ? TFT_RED :
-                    i == m_cur_item-NUM_FIXED_ITEMS ? TFT_GREEN : TFT_YELLOW;
+            int fill_color =
+                i == m_cur_point ? TFT_RED :
+                i == m_cur_item-NUM_FIXED_ITEMS ? TFT_GREEN : TFT_YELLOW;
 
-                mylcd.Set_Draw_color(fill_color);
-                mylcd.Fill_Circle(
-                    X_OFFSET + 2*cur0->x,
-                    Y_OFFSET + (CHART_MAX-2*cur0->y),
-                    6);
-            }
+            mylcd.Set_Draw_color(fill_color);
+            mylcd.Fill_Circle(
+                X_OFFSET + 2*cur0->x,
+                Y_OFFSET + (CHART_MAX-2*cur0->y),
+                6);
         }
+
+        mylcd.Set_Draw_color(TFT_CYAN);
+        mylcd.Fill_Circle(
+            X_OFFSET + 2*pedal_x,
+            Y_OFFSET + (CHART_MAX-2*pedal_value),
+            6);
     }
 
     // current value
@@ -674,7 +686,8 @@ void winConfigPedal::updateUI()
     if (full_redraw ||
         select_changed ||
         redraw_curve ||
-        raw_value != last_raw_value)
+        raw_value != last_raw_value ||
+        last_pedal_value != pedal_value)
     {
         int text_y = Y_OFFSET + 8 * RIGHT_LINE_HEIGHT;
         mylcd.Fill_Rect(RIGHT_COL,text_y,RIGHT_WIDTH,3*RIGHT_LINE_HEIGHT,0);
@@ -704,7 +717,32 @@ void winConfigPedal::updateUI()
             0,
             false,
             "%d",
-            pedal->getRawValueScaled());
+            pedal_x);
+        text_y += 2*RIGHT_LINE_HEIGHT;
+
+        mylcd.setFont(Arial_16_Bold);
+        mylcd.printf_justified(RIGHT_COL,text_y,RIGHT_WIDTH,RIGHT_LINE_HEIGHT,
+            LCD_JUST_CENTER,
+            TFT_YELLOW,
+            0,
+            true,
+            "%d",
+            pedal_value);
+    }
+
+    // show raw value changes as a rectangle just below the grid
+    // and a line to the value
+
+    if (full_redraw ||
+        redraw_curve ||
+        pedal_x != last_pedal_x)
+    {
+        int bar_y = Y_OFFSET + CHART_MAX + 1;
+        int bar_h = 320 - bar_y + 1;
+
+        mylcd.Fill_Rect(X_OFFSET-1,bar_y,pedal_x*2+3,bar_h,TFT_CYAN);
+        mylcd.Fill_Rect(X_OFFSET+pedal_x*2+3,bar_y,CHART_MAX-pedal_x*2-3,bar_h,0);
+
     }
 
     // finished
