@@ -35,10 +35,14 @@ configOption *optBrightness = 0;
 
 #include "winFtpTuner.h"
 #include "winFtpSensitivity.h"
+#include "winConfigPedal.h"
+
 void startFtpTuner(int i)
 	{ theSystem.startModal(theSystem.getFtpTuner()); }
 void startFtpSensitivity(int i)
 	{ theSystem.startModal(theSystem.getFtpSensitivity()); }
+void configPedal(int i)
+	{ theSystem.startModal(new winConfigPedal(i)); }
 
 
 //---------------------------------
@@ -68,16 +72,18 @@ void createOptions()
 		new configOption(rootOption,"FTP Tuner",0,PREF_NONE,startFtpTuner);
 		new configOption(rootOption,"FTP Sensitivity",0,PREF_NONE,startFtpSensitivity);
 
-		configOption *calib_pedals = new configOption(pedals,"Calibrate Pedals");
 		configOption *config_pedals = new configOption(pedals,"Configure Pedals");
-		new configOption(calib_pedals,"Calibrate Pedal1 (Synth)");
-		new configOption(calib_pedals,"Calibrate Pedal2 (Loop)");
-		new configOption(calib_pedals,"Calibrate Pedal3 (Wah)");
-		new configOption(calib_pedals,"Calibrate Pedal4 (Guitar)");
-		new configOption(config_pedals,"Configure Pedal1 (Synth)");
-		new configOption(config_pedals,"Configure Pedal2 (Loop)");
-		new configOption(config_pedals,"Configure Pedal3 (Wah)");
-		new configOption(config_pedals,"Configure Pedal4 (Guitar)");
+		new configOption(config_pedals,"Configure Pedal1 (Synth)",	0,PREF_NONE,configPedal);
+		new configOption(config_pedals,"Configure Pedal2 (Loop)",	0,PREF_NONE,configPedal);
+		new configOption(config_pedals,"Configure Pedal3 (Wah)",	0,PREF_NONE,configPedal);
+		new configOption(config_pedals,"Configure Pedal4 (Guitar)",	0,PREF_NONE,configPedal);
+
+		configOption *calib_pedals = new configOption(pedals,"Calibrate Pedals");
+		new configOption(calib_pedals, "Calibrate Pedal1 (Synth)");
+		new configOption(calib_pedals, "Calibrate Pedal2 (Loop)");
+		new configOption(calib_pedals, "Calibrate Pedal3 (Wah)");
+		new configOption(calib_pedals, "Calibrate Pedal4 (Guitar)");
+
 		new configOption(system,"Calibrate Touch");
 	}
 }

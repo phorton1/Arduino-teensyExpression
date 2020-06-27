@@ -25,24 +25,26 @@ class expressionPedal
         bool displayValueChanged()      { return m_last_value != m_value; }
         void clearDisplayValueChanged() { m_last_value = m_value; }
 
-        int getCalibMin()               { return m_calib_min; }
-        int getCalibMax()               { return m_calib_max; }
-        int getCurveType()              { return m_curve_type; }
-        int getValueMin()               { return m_value_min; }
-        int getValueMax()               { return m_value_max; }
-
-        void setCalibMin(int i)         { if (i>=m_calib_max) i=m_calib_max-1;  if (i<0) i=0; m_calib_min = i; }
-        void setCalibMax(int i)         { if (i<=m_calib_min) i=m_calib_min+1;  if (i>1023) i=1023; m_calib_max = i; }
-        void setCurveType(int i)        { if (i<0) i=0; if (i>2) i=2;  m_curve_type = i; }
-        void setValueMin(int i)         { if (i>=m_value_max) i=m_value_max-1;  if (i<0) i=0; m_value_min = i; }
-        void setValueMax(int i)         { if (i<=m_value_min) i=m_value_min+1;  if (i>127) i=127; m_value_max = i; }
-
-        pedalPoint_t *getPoint(int i)   { return &m_points[i]; }
-
         // midi
 
         int getCCChannel()              { return m_cc_channel; }
         int getCCNum()                  { return m_cc_num; }
+
+    // private:
+    //
+    //     int getCalibMin()               { return m_calib_min; }
+    //     int getCalibMax()               { return m_calib_max; }
+    //     int getCurveType()              { return m_curve_type; }
+    //     int getValueMin()               { return m_value_min; }
+    //     int getValueMax()               { return m_value_max; }
+    //
+    //     void setCalibMin(int i)         { if (i>=m_calib_max) i=m_calib_max-1;  if (i<0) i=0; m_calib_min = i; }
+    //     void setCalibMax(int i)         { if (i<=m_calib_min) i=m_calib_min+1;  if (i>1023) i=1023; m_calib_max = i; }
+    //     void setCurveType(int i)        { if (i<0) i=0; if (i>2) i=2;  m_curve_type = i; }
+    //     void setValueMin(int i)         { if (i>=m_value_max) i=m_value_max-1;  if (i<0) i=0; m_value_min = i; }
+    //     void setValueMax(int i)         { if (i<=m_value_min) i=m_value_min+1;  if (i>127) i=127; m_value_max = i; }
+    //
+    //     pedalPoint_t *getPoint(int i)   { return &m_points[i]; }
 
     protected:
 
@@ -55,8 +57,7 @@ class expressionPedal
             int pin,
             const char *name,
             int cc_channel,
-            int cc_num,
-            int value_max=127);
+            int cc_num);
 
         void poll();
 
@@ -72,12 +73,12 @@ class expressionPedal
 
         const char *m_name;
 
-        // implmented configuration variables
-
-        int     m_calib_min;        // defaults in pedals.cpp
-        int     m_calib_max;        // 0..1023
-        int     m_value_min;        // 0..127
-        int     m_value_max;
+        // // implemented configuration variables
+        //
+        // int     m_calib_min;        // defaults in pedals.cpp
+        // int     m_calib_max;        // 0..1023
+        // int     m_value_min;        // 0..127
+        // int     m_value_max;
 
         // runtime working variables
 
@@ -87,15 +88,15 @@ class expressionPedal
         int      m_value;           // 0..127
         int      m_last_value;      // display helper
 
-        // for editing curves (future development)
+        // // for editing curves (future development)
+        //
+        // int     m_curve_type;     // 0..2 (also defines number of points)
+        // int     m_cur_point;
+        //     // min=0, max=m_curve_type+1
+        //     // in between are m_curve_type points that are called
+        //     // "mid", or "left" and "right"
 
-        int     m_curve_type;     // 0..2 (also defines number of points)
-        int     m_cur_point;
-            // min=0, max=m_curve_type+1
-            // in between are m_curve_type points that are called
-            // "mid", or "left" and "right"
-
-        pedalPoint_t m_points[MAX_PEDAL_CURVE_POINTS];
+        // pedalPoint_t m_points[MAX_PEDAL_CURVE_POINTS];
 
 };
 

@@ -183,20 +183,4 @@
 #define ansi_color_white  		    97
 
 
-//----------------------------------
-// Pedals
-//----------------------------------
-// for the time being there is one set of values for the pedals
-// across all patches.  An idea is then to have "pedal sets"
-// that can be shared between different patches while still
-// allowing for multiple definitions.
-
-#define PEDAL_CURVE_TYPE_LINEAR         0       // default and only currently implemented one
-#define PEDAL_CURVE_TYPE_ASYMPTOTIC     1
-#define PEDAL_CURVE_TYPE_SCURVE         2
-
-#define MAX_PEDAL_CURVE_POINTS          2       // number of movable points (with weights)
-
-
-
 #endif  // !__defines_h__

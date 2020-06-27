@@ -346,6 +346,8 @@ void expSystem::swapModal(expWindow *win, uint32_t param)
 	// the stack
 
 	expWindow *old = getTopModalWindow();
+	old->end();
+	win->begin(1);
 	m_modal_stack[m_num_modals-1] = win;
 	m_num_modals++;
 	endModal(old,param);

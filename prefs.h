@@ -107,25 +107,56 @@
 // pedals
 //--------------------------------
 
+#define MAX_PEDAL_CURVES                3       // number of curves per pedal
+#define MAX_CURVE_POINTS                4       // number of points per curve
+#define MAX_PEDAL_CURVE_POINTS          (MAX_PEDAL_CURVES * MAX_CURVE_POINTS)
+
 #define PREF_PEDAL_CALIB_MIN_OFFSET     0       // default 0
 #define PREF_PEDAL_CALIB_MAX_OFFSET     2       // default 1023
-#define PREF_PEDAL_VALUE_MIN_OFFSET     4       // default 0
-#define PREF_PEDAL_VALUE_MAX_OFFSET     5       // default 127 (except for pedal 1, loop, which is 92)
-#define PREF_PEDAL_CURVE_TYPE_OFFSET    6       // 0=linear, 1=asymptotic, 2=scurve - default(0) == num_points
+#define PREF_PEDAL_CURVE_TYPE_OFFSET    4       // 0=linear, 1=asymptotic, 2=scurve - default(0) == num_points
 
-#define PREF_PEDAL_POINTS_OFFSET        8       // = 8, and there are 2 of what follows
+// each pedal maintains 3 distinct curves consisiting of upto 4 points
+// where the MIN is always the 0th point, and the MAX is always the
+// CURVE_TYPE + 1'th point. On those two "special points", the x values
+// are fixed at 0 and 127, respecitvely, and the y position is used
+// in my current pedal handling.
+
+#define PREF_PEDAL_POINTS_OFFSET        6       // word boundry
 
 #define PEDAL_POINTS_OFFSET_X           0
-#define PEDAL_POINTS_OFFSET_Y           2
-#define PEDAL_POINTS_OFFSET_WEIGHT      4
-#define PEDAL_POINT_PREF_SIZE           6
+#define PEDAL_POINTS_OFFSET_Y           1
+#define PEDAL_POINTS_OFFSET_WEIGHT      2
+#define PEDAL_POINT_PREF_SIZE           4       // word boundry
 
-#define PREF_BYTES_PER_PEDAL   (PREF_PEDAL_POINTS_OFFSET + MAX_PEDAL_CURVE_POINTS * PEDAL_POINT_PREF_SIZE)   // 20
+#define PREF_BYTES_PER_CURVE   (MAX_CURVE_POINTS * PEDAL_POINT_PREF_SIZE)
+#define CURVE_BYTES_PER_PEDAL  (MAX_PEDAL_CURVES * PREF_BYTES_PER_CURVE)
+#define PREF_BYTES_PER_PEDAL   (PREF_PEDAL_POINTS_OFFSET + CURVE_BYTES_PER_PEDAL)
 
-#define PREF_PEDAL0            (PREF_MONITOR_PORT0 + 8*BYTES_PER_PORT_MONITOR)      // 100
-#define PREF_PEDAL(i)          (PREF_PEDAL0 + (i)*PREF_BYTES_PER_PEDAL)             // 100, 120, 140, 160
+#define PREF_PEDAL0            (PREF_MONITOR_PORT0 + 8*BYTES_PER_PORT_MONITOR)      // 100 at this time
+#define PREF_PEDAL(i)          (PREF_PEDAL0 + (i)*PREF_BYTES_PER_PEDAL)
 
-#define NUM_EEPROM_USED        (PREF_PEDAL0 + NUM_PEDALS*PREF_BYTES_PER_PEDAL)     // 180
+#define PREF_PEDAL_CURVE_TYPE(p)        (PREF_PEDAL(p) + PREF_PEDAL_CURVE_TYPE_OFFSET)
+#define PREF_PEDAL_CURVE(p,c)           (PREF_PEDAL(p) + PREF_PEDAL_POINTS_OFFSET + (c)*PREF_BYTES_PER_CURVE)
+#define PREF_PEDAL_CURVE_POINT(p,c,i)   (PREF_PEDAL_CURVE(p,c) + (i)*PEDAL_POINT_PREF_SIZE)
+
+#define getPrefPedalCurve(p)            (getPref8(PREF_PEDAL_CURVE_TYPE(p)))
+#define getPrefPedalMin(p)              (getPref8(PREF_PEDAL_CURVE_POINT(p,getPrefPedalCurve(p),0) + PEDAL_POINTS_OFFSET_Y))
+#define getPrefPedalMax(p)              (getPref8(PREF_PEDAL_CURVE_POINT(p,getPrefPedalCurve(p),getPrefPedalCurve(p)+1) + PEDAL_POINTS_OFFSET_Y))
+#define getPrefPedalCalibMin(p)         (getPref16(PREF_PEDAL(m_num) + PREF_PEDAL_CALIB_MIN_OFFSET))
+#define getPrefPedalCalibMax(p)         (getPref16(PREF_PEDAL(m_num) + PREF_PEDAL_CALIB_MAX_OFFSET))
+
+#define setPrefPedalCurve(p,i)          setPref8(PREF_PEDAL_CURVE_TYPE(p),(i))
+#define setPrefPedalCalibMin(p,i)       setPref16(PREF_PEDAL(m_num) + PREF_PEDAL_CALIB_MIN_OFFSET, (i))
+#define setPrefPedalCalibMax(p,i)       setPref16(PREF_PEDAL(m_num) + PREF_PEDAL_CALIB_MAX_OFFSET, (i))
+
+
+//-----------------------
+// total
+//-----------------------
+
+
+#define NUM_EEPROM_USED        (PREF_PEDAL0 + NUM_PEDALS*PREF_BYTES_PER_PEDAL)
+
 
 
 //--------------------------------------------------------------------------------
@@ -150,10 +181,16 @@ extern void setPref16(int pref, uint16_t val);
 
 extern bool prefs_changed();
     // are they changed since last save?
-extern void restore_prefs();
-    // restore them to last saved state
 extern bool pref_changed8(int pref);
 extern bool pref_changed16(int pref);
+
+extern void restore_prefs();
+    // restore them to last saved state
+extern void restore_pref8(int pref);
+extern void restore_pref16(int pref);
+extern void setDefaultPrefs();
+    // should be called after multiple calls to restore_pref
+    // is safe - does not re-read or alter write thru cache
 
 
 extern uint8_t portMonitorPref(int p, int off);

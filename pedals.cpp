@@ -1,6 +1,6 @@
 #include <myDebug.h>
 #include "pedals.h"
-#include "defines.h"
+#include "prefs.h"
 #include "expSystem.h"
 #include "oldRig_defs.h"
 
@@ -21,7 +21,7 @@ pedalManager thePedals;
 void pedalManager::init()
 {
     m_pedals[0].init(0, PIN_EXPR1, "Synth",  SYNTH_VOLUME_CHANNEL,   SYNTH_VOLUME_CC);
-    m_pedals[1].init(1, PIN_EXPR2, "Loop",   LOOP_CONTROL_CHANNEL,   LOOP_VOLUME_CC,96);
+    m_pedals[1].init(1, PIN_EXPR2, "Loop",   LOOP_CONTROL_CHANNEL,   LOOP_VOLUME_CC);
     m_pedals[2].init(2, PIN_EXPR3, "Wah",    GUITAR_EFFECTS_CHANNEL, GUITAR_WAH_CONTROL_CC);
     m_pedals[3].init(3, PIN_EXPR4, "Guitar", GUITAR_VOLUME_CHANNEL,  GUITAR_VOLUME_CC);
 }
@@ -44,38 +44,37 @@ void expressionPedal::init(
     int pin,
     const char *name,
     int cc_channel,
-    int cc_num,
-    int value_max)
+    int cc_num)
 {
     m_num = num;
     m_pin = pin;
     m_cc_num = cc_num;
     m_cc_channel = cc_channel;
     m_name = name;
-    
-    m_calib_min  = 0;      
-    m_calib_max  = 1023;   
-    m_value_min  = 0;      
-    m_value_max  = value_max;
-    
+
+    // m_calib_min  = 0;
+    // m_calib_max  = 1023;
+    // m_value_min  = 0;
+    // m_value_max  = value_max;
+
     m_raw_value = -1;         // 0..1023
     m_direction = -1;
-    m_settle_time = 0; 
-        
+    m_settle_time = 0;
+
     m_value = 0;
     m_last_value = -1;
-    
-    m_curve_type = 0;     
-    m_cur_point = m_curve_type + 1;
-    for (int i=0; i<MAX_PEDAL_CURVE_POINTS; i++)
-    {
-        m_points[i].x = 0;
-        m_points[i].y = 0;
-        m_points[i].weight = 0;
-    }
+
+    // m_curve_type = 0;
+    // m_cur_point = m_curve_type + 1;
+    // for (int i=0; i<MAX_PEDAL_CURVE_POINTS; i++)
+    // {
+    //     m_points[i].x = 0;
+    //     m_points[i].y = 0;
+    //     m_points[i].weight = 0;
+    // }
 
     pinMode(m_pin,INPUT_PULLDOWN);
-    
+
 }
 
 
@@ -85,11 +84,11 @@ void expressionPedal::poll()
     bool raw_changed = false;
     int raw_value = analogRead(m_pin);
     unsigned time = millis();
-    
+
     // display(0,"poll(%d) raw_value=%d",m_num,raw_value);
-    
+
     // if not moving, and outside of hysterisis range, start moving
-    
+
     if (!m_direction)
     {
         if (raw_value > m_raw_value + HYSTERISIS)
@@ -107,17 +106,17 @@ void expressionPedal::poll()
             raw_changed = 1;
         }
     }
-    
+
     // if stopped moving, reset to default state
-    
+
     else if (time >= m_settle_time + SETTLE_TIME)
     {
         m_settle_time = 0;
         m_direction = 0;
     }
-    
+
     // otherwise, process the input
-    
+
     else if (m_direction > 0 && raw_value > m_raw_value)
     {
         m_raw_value = raw_value;
@@ -130,18 +129,23 @@ void expressionPedal::poll()
         m_settle_time = time;
         raw_changed = 1;
     }
-    
-    
+
+
     //-------------------------------
     // calculate value
     //-------------------------------
-    
+
     if (raw_changed)
     {
-        int value = map(m_raw_value,m_calib_min,m_calib_max,m_value_min,m_value_max);
-        if (value > m_value_max) value = m_value_max;
-        if (value < m_value_min) value = m_value_min;
-        
+        int calib_min = getPrefPedalCalibMin(m_num);
+        int calib_max = getPrefPedalCalibMax(m_num);
+        int value_min = getPrefPedalMin(m_num);
+        int value_max = getPrefPedalMax(m_num);
+
+        int value = map(m_raw_value,calib_min,calib_max,value_min,value_max);
+        if (value > value_max) value = value_max;
+        if (value < value_min) value = value_min;
+
         if (value != m_value)
         {
             m_value = value;
@@ -152,4 +156,3 @@ void expressionPedal::poll()
         }
     }
 }
-

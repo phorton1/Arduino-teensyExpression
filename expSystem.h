@@ -26,7 +26,9 @@ class expWindow
         virtual ~expWindow()        {}
 
         virtual const char *name() = 0;
-        virtual const char *short_name() = 0;
+            // used for titles
+        virtual const char *short_name() { return ""; };
+            // only used for patches in config window
         virtual uint32_t getId()    { return 0; }
 
 

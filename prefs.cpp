@@ -47,7 +47,8 @@ static void _setDefaultPref16(int i, int min, int max, uint16_t def_val)
 }
 
 
-void _setDefaultPrefs()
+extern
+void setDefaultPrefs()
 {
     _setDefaultPref8(PREF_BRIGHTNESS,        1,100, 30);    // 1..100 - default(30)
     _setDefaultPref8(PREF_PATCH_NUM,         0,254, 1);     // 0..254 - default(1)
@@ -90,15 +91,55 @@ void _setDefaultPrefs()
     {
         _setDefaultPref16(PREF_PEDAL(i) + PREF_PEDAL_CALIB_MIN_OFFSET,    0,1023,   0);             // default 0
         _setDefaultPref16(PREF_PEDAL(i) + PREF_PEDAL_CALIB_MAX_OFFSET,    0,1023,   1023);          // default 1023
-        _setDefaultPref8 (PREF_PEDAL(i) + PREF_PEDAL_VALUE_MIN_OFFSET,    0,127,    0);             // default 0
-        _setDefaultPref8 (PREF_PEDAL(i) + PREF_PEDAL_VALUE_MAX_OFFSET,    0,127,    i==1?92:127);   // default 127 (except for pedal 1, loop, which is 92)
         _setDefaultPref8 (PREF_PEDAL(i) + PREF_PEDAL_CURVE_TYPE_OFFSET,   0,2,      0,curve_types); // 0=linear, 1=asymptotic, 2=scurve - default(0) == num_points
 
-        // zero out the points, they will be set if the curve type changes
+        int out_byte = PREF_PEDAL(i) + PREF_PEDAL_POINTS_OFFSET;
 
-        _setDefaultPref8 (PREF_PEDAL(i) + PREF_PEDAL_POINTS_OFFSET + PEDAL_POINTS_OFFSET_X,     0,127,  0);
-        _setDefaultPref8 (PREF_PEDAL(i) + PREF_PEDAL_POINTS_OFFSET + PEDAL_POINTS_OFFSET_Y,     0,127,  0);
-        _setDefaultPref16(PREF_PEDAL(i) + PREF_PEDAL_POINTS_OFFSET + PEDAL_POINTS_OFFSET_WEIGHT,0,1023, 0);
+        for (int j=0; j<MAX_PEDAL_CURVES; j++)
+        {
+            int max = 127;
+
+            _setDefaultPref8(out_byte++, 0, 127, 0);     // X    first point is always min, at 0,0
+            _setDefaultPref8(out_byte++, 0, 127, 0);     // Y
+            _setDefaultPref8(out_byte++, 0, 127, 0);     // W
+            _setDefaultPref8(out_byte++, 0, 0,   0);     // W
+
+            int x = 127/(j+1);
+            int use_max = i==1 && j==0 ? 92 : 127;               // set loop max volume to 92 on linear
+            int y = use_max/(j+1);
+
+            _setDefaultPref8(out_byte++, 0, 127, x);     // X    second point is max, mid, or left with slope 1
+            _setDefaultPref8(out_byte++, 0, 127, y);     // Y
+            _setDefaultPref8(out_byte++, 0, 127, 0);     // W
+            _setDefaultPref8(out_byte++, 0, 0,   0);     // W
+
+            x = 0;
+            max = 0;
+            if (j)
+            {
+                max = 127;
+                x = (2 * 127)/(j+1);
+            }
+
+            _setDefaultPref8(out_byte++, 0, max, x);     // X    third point is null, max, or right
+            _setDefaultPref8(out_byte++, 0, max, x);     // Y
+            _setDefaultPref8(out_byte++, 0, max, 0);     // W
+            _setDefaultPref8(out_byte++, 0, 0,   0);     // W
+
+            x = 0;
+            max = 0;
+            if (j==2)
+            {
+                max = 127;
+                x = 127;
+            }
+
+            _setDefaultPref8(out_byte++, 0, max, x);     // X    fourth point is null or max
+            _setDefaultPref8(out_byte++, 0, max, x);     // Y
+            _setDefaultPref8(out_byte++, 0, max, 0);     // W
+            _setDefaultPref8(out_byte++, 0, 0,   0);     // W
+
+        }
     }
 }
 
@@ -142,7 +183,7 @@ extern void init_global_prefs()
     {
         prefs[i] = last_prefs[i] = pref_cache[i] = EEPROM.read(i);
     }
-    _setDefaultPrefs();
+    setDefaultPrefs();
 }
 
 
@@ -164,6 +205,15 @@ void save_global_prefs()
 // changes
 //------------------------------
 
+// extern
+bool prefs_changed()
+{
+    for (int i=0; i<NUM_EEPROM_USED; i++)
+        if (last_prefs[i] != pref_cache[i])
+            return true;
+    return false;
+}
+
 
 // extern
 bool pref_changed8(int pref)
@@ -180,22 +230,24 @@ bool pref_changed16(int pref)
 
 
 // extern
-bool prefs_changed()
-{
-    for (int i=0; i<NUM_EEPROM_USED; i++)
-        if (last_prefs[i] != pref_cache[i])
-            return true;
-    return false;
-}
-
-
-// extern
 void restore_prefs()
 {
     display(dbg_prefs,"restore_prefs()",0);
     for (int i=0; i<NUM_EEPROM_USED; i++)
         pref_cache[i] = last_prefs[i];
-    _setDefaultPrefs();
+    setDefaultPrefs();
+}
+
+// extern
+void restore_pref8(int i)
+{
+    pref_cache[i] = last_prefs[i];
+}
+
+void restore_pref16(int i)
+{
+    pref_cache[i] = last_prefs[i];
+    pref_cache[i+1] = last_prefs[i+1];
 }
 
 
