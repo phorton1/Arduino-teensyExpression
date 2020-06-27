@@ -345,7 +345,7 @@ void winFtpSensitivity::updateUI()	// draw
 			i == ITEM_DYNAMIC_OFFSET ? ftp_dynamic_offset :
 			i == ITEM_TOUCH_SENSITIVITY ? ftp_touch_sensitivity :
 			i == ITEM_POLY_MODE ? ftp_poly_mode :
-			ftp_sensitivity[i];
+			ftp_sensitivity[i] + 1;
 
 
         if (full_draw ||

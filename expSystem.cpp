@@ -300,7 +300,7 @@ void expSystem::activatePatch(int i)
 
 void expSystem::startModal(expWindow *win)
 {
-	display(0,"startModa(%s)",win->name());
+	display(0,"startModal(%s)",win->name());
 
 	if (m_num_modals >= MAX_MODAL_STACK)
 	{

@@ -64,9 +64,9 @@
 #define INDEX_MASK_OUTPUT   0x02
 #define INDEX_MASK_CABLE    0x01
 
-#define INDEX_HOST(i)       (i & INDEX_MASK_HOST)
-#define INDEX_OUTPUT(i)     (i & INDEX_MASK_OUTPUT)
-#define INDEX_CABLE(i)      (i & INDEX_MASK_CABLE)
+#define INDEX_IS_HOST(i)       (i & INDEX_MASK_HOST)
+#define INDEX_IS_OUTPUT(i)     (i & INDEX_MASK_OUTPUT)
+#define INDEX_CABLE(i)         (i & INDEX_MASK_CABLE)
 
 
 

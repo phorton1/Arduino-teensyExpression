@@ -16,6 +16,10 @@
 #define PREF_SPOOF_FTP          3           // off, on - default(off)
 #define PREF_FTP_PORT           4           // off, Host, Remote, default(Host)
 
+
+#define FTP_OUTPUT_PORT    (getPref8(PREF_SPOOF_FTP) ? 1 : getPref8(PREF_FTP_PORT))
+
+
 //-----------------------------
 // default patch settings
 //-----------------------------

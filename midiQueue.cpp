@@ -1,28 +1,18 @@
 #include "myDebug.h"
 #include "midiQueue.h"
 #include "defines.h"
+#include "prefs.h"
 #include "ftp.h"
 #include "ftp_defs.h"
 #include "myMidiHost.h"
-
-// these get set by prefs
-
-uint8_t ftp_controller_index = PORT_INDEX_HOST_INPUT1;
-    // this is the index that will be identified
-    // to read values from the controller and set
-    // them into ftp.cpp variables.  It should be
-    // changed to PORT_INDEX_DUINO_INPUT1 if using
-    // a remote FTP device.
-bool FTP_ON_DEVICE = false;
-
 
 
 #define MAX_PROCESS_QUEUE   8192
 #define MAX_SYSEX_BUFFER    1024
 #define MAX_OUTGOING_QUEUE  1024
 
-// display filters
 
+// display filters
 
 int  showSysex = 2;
 bool showActiveSense = 0;
@@ -37,12 +27,7 @@ bool showBatteryLevel = 1;
 bool showPerformanceCCs = 1;
 
 
-bool showPatch(int pindex, uint8_t *buf, uint32_t buflen);
-    // forward
-
-
-
-// basic queues
+// queues
 
 int process_head = 0;
 int process_tail = 0;
@@ -53,7 +38,7 @@ uint32_t outgoing_queue[MAX_OUTGOING_QUEUE];
 uint32_t process_queue[MAX_PROCESS_QUEUE];
 
 
-// sysex buffer
+// sysex buffers
 
 int sysex_buflen[NUM_MIDI_PORTS]     = {0,0,0,0,0,0,0,0};
 bool sysex_buf_ready[NUM_MIDI_PORTS] = {0,0,0,0,0,0,0,0};
@@ -69,7 +54,7 @@ uint8_t most_recent_note_vel = 0;
     // NoteInfo messages.
 
 
-// basic ftp processing
+// ftp command processing
 
 uint8_t last_command[NUM_MIDI_PORTS]  = {0,0,0,0,0,0,0,0};
     // as we are processing messages, we keep track of the most recent
@@ -100,8 +85,8 @@ elapsedMillis command_time      = 0;
     // which is just a uint8_t
 
 
-
-#define IS_CONTROLLER  (pindex == ftp_controller_index)
+void _processMessage(uint32_t i);
+    // forward
 
 
 //-------------------------------------
@@ -132,11 +117,9 @@ void mySendDeviceControlChange(uint8_t cc_num, uint8_t value, uint8_t channel)
 
 
 
-
 //-------------------------------------
-// outGoingMessage Processing
+// outgoing Message Processing
 //-------------------------------------
-
 
 void _enqueueOutgoing(uint32_t msg)
 {
@@ -163,9 +146,14 @@ uint32_t _dequeueOutgoing()
 }
 
 
-
 void sendFTPCommandAndValue(uint8_t command, uint8_t value)
 {
+    if (!FTP_OUTPUT_PORT)
+    {
+        warning(0,"PREF_FTP_PORT is set to Off in sendFTPCommandAndValue(%02x,%02x)",command,value);
+        return;
+    }
+
     display(0,"sendFTPCommandAndValue(%02x,%02x)",command,value);
 
     msgUnion msg(
@@ -187,12 +175,52 @@ void sendFTPCommandAndValue(uint8_t command, uint8_t value)
 
 
 
+void sendPendingCommand()
+{
+    int ftp_output_port = FTP_OUTPUT_PORT;
+    if (ftp_output_port)            // Host or Remote
+    {
+        if (ftp_output_port == 2)   // Remote
+        {
+            uint32_t cmd = (pending_command >> 24) & 0xFF;
+            uint32_t val = (pending_command_value >> 24) & 0xFF;
+            display(0,"SENDING cmd=%02x  val=%02x  TO TEENSYDUINO",cmd,val);
+            usbMIDI.sendControlChange(
+                0x1F,
+                cmd,
+                8,
+                1);         // cable1 !
+            usbMIDI.sendControlChange(
+                0x3F,
+                val,
+                8,
+                1);
+
+            enqueueProcess(pending_command | PORT_MASK_OUTPUT);
+            enqueueProcess(pending_command_value | PORT_MASK_OUTPUT);
+        }
+        else        // Host
+        {
+            midi_host.write_packed(pending_command);
+            midi_host.write_packed(pending_command_value);
+            enqueueProcess(pending_command | PORT_MASK_HOST | PORT_MASK_OUTPUT);
+            enqueueProcess(pending_command_value | PORT_MASK_HOST | PORT_MASK_OUTPUT);
+        }
+        command_time = 0;
+    }
+    else
+    {
+        display(0,"PREF_FTP_PORT is NONE in sendPendingCommand(%d) command(%08x) value(%08x)",command_retry_count,pending_command,pending_command_value);
+    }
+    command_time = 0;
+}
 
 
 
 void _processOutgoing()
 {
     // see if there's a command to dequue and send
+    // dequeue them even if we don't send them
 
     if (!pending_command)
     {
@@ -200,36 +228,9 @@ void _processOutgoing()
         if (pending_command)
         {
             pending_command_value = _dequeueOutgoing();
-            command_retry_count = 0;
-
             display(0,"--> sending(%d) command(%08x) value(%08x)",command_retry_count,pending_command,pending_command_value);
-
-            if (FTP_ON_DEVICE)
-            {
-                uint32_t cmd = (pending_command >> 24) & 0xFF;
-                uint32_t val = (pending_command_value >> 24) & 0xFF;
-                display(0,"SENDING cmd=%02x  val=%02x  TO TEENSYDUINO",cmd,val);
-                usbMIDI.sendControlChange(
-                    0x1F,
-                    cmd,
-                    8);
-                usbMIDI.sendControlChange(
-                    0x3F,
-                    val,
-                    8);
-
-                enqueueProcess(pending_command | PORT_MASK_OUTPUT);
-                enqueueProcess(pending_command_value | PORT_MASK_OUTPUT);
-
-            }
-            else
-            {
-                midi_host.write_packed(pending_command);
-                midi_host.write_packed(pending_command_value);
-                enqueueProcess(pending_command | PORT_MASK_HOST | PORT_MASK_OUTPUT);
-                enqueueProcess(pending_command_value | PORT_MASK_HOST | PORT_MASK_OUTPUT);
-            }
-            command_time = 0;
+            command_retry_count = 0;
+            sendPendingCommand();
         }
     }
     else if (command_retry_count > 10)
@@ -241,36 +242,17 @@ void _processOutgoing()
     else if (command_time > 100)    // resend with timer
     {
         command_retry_count++;
-        display(0,"--> sending2(%d) command(%08x) value(%08x)",command_retry_count,pending_command,pending_command_value);
-        if (FTP_ON_DEVICE)
-        {
-            uint32_t cmd = (pending_command >> 24) & 0xFF;
-            uint32_t val = (pending_command_value >> 24) & 0xFF;
-            display(0,"SENDING2 cmd=%02x  val=%02x  TO TEENSYDUINO",cmd,val);
-            usbMIDI.sendControlChange(
-                0x1F,
-                cmd,
-                8);
-            usbMIDI.sendControlChange(
-                0x3F,
-                val,
-                8);
-            enqueueProcess(pending_command | PORT_MASK_OUTPUT);
-            enqueueProcess(pending_command_value | PORT_MASK_OUTPUT);
-
-        }
-        else
-        {
-            midi_host.write_packed(pending_command);
-            midi_host.write_packed(pending_command_value);
-            enqueueProcess(pending_command | PORT_MASK_HOST | PORT_MASK_OUTPUT);
-            enqueueProcess(pending_command_value | PORT_MASK_HOST | PORT_MASK_OUTPUT);
-        }
-        command_time = 0;
+        display(0,"--> retry(%d) command(%08x) value(%08x)",command_retry_count,pending_command,pending_command_value);
+        sendPendingCommand();
     }
 }
 
 
+
+
+//-------------------------------------
+// API and utilities
+//-------------------------------------
 
 const char *portName(int pindex)
 {
@@ -285,15 +267,117 @@ const char *portName(int pindex)
     return "unknown";
 }
 
-//-------------------------------------
+
+void enqueueProcess(uint32_t msg)
+{
+    // display(0,"enqueueProcess(%d,%08x)",display_head,msg);
+
+    __disable_irq();
+    process_queue[process_head++] = msg;
+    if (process_head == MAX_PROCESS_QUEUE)
+        process_head = 0;
+    if (process_head == process_tail)
+        my_error("expSystem processQueue overflow at %d",process_head);
+    __enable_irq();
+}
+
+
+void dequeueProcess()
+{
+    int msg = 0;
+    if (process_tail != process_head)
+    {
+        msg = process_queue[process_tail++];
+        if (process_tail == MAX_PROCESS_QUEUE)
+            process_tail = 0;
+    }
+    if (msg)
+        _processMessage(msg);
+
+    _processOutgoing();
+}
+
+
+// patch display
+
+uint8_t patch_sig[6] = {0xF0, 0x00, 0x01, 0x6E, 0x01, 0x21};
+
+bool showPatch(int pindex, uint8_t *buf, uint32_t buflen)
+{
+    uint8_t *p = buf;
+    patch_sig[5] = pindex ? 0x21 : 0x41;
+    // if (!pindex) return false;            // looking for things from controller
+    if (buflen != 142) return false;      // patches are 42
+    for (int i=0; i<6; i++)
+        if (*p++ != patch_sig[i])
+        {
+            warning(0,"sysex of 142 that does not match patch_sig!!",0);
+            return true;
+        }
+
+    uint8_t bank_num = *p++;
+    uint8_t patch_num = *p++;
+    display(0,"    PATCH BANK(%d) PATCH(%d)",bank_num,patch_num);
+    if (bank_num > 1) return false;
+
+    p += 8;     // move to touch sensitivity
+    uint8_t touch_sense = *p;
+
+    p += 2;     // move to first split section
+    p += 6;
+
+    uint8_t dyn_sense = *p++;
+    uint8_t dyn_off  = *p++;
+
+    display(0,"        touch_sens=%d   dyn_sense=0x%02x  dyn_off=0x%02x",touch_sense,dyn_sense,dyn_off);
+
+    return false;
+}
+
+
+
+// port classification for _processOMessageg;
+
+
+bool isFtpPort(int idx)
+{
+    bool is_spoof = getPref8(PREF_SPOOF_FTP);
+    if (is_spoof) return 1;
+    uint8_t pref_ftp_port = getPref8(PREF_FTP_PORT);
+    if (!pref_ftp_port) return 0;   // Off
+    if (pref_ftp_port == 1)         // Host
+        return INDEX_IS_HOST(idx);
+    return !INDEX_IS_HOST(idx);     // Remote
+}
+
+
+bool isFtpController(int idx)
+{
+    if (INDEX_IS_OUTPUT(idx)) return false;
+    bool is_spoof = getPref8(PREF_SPOOF_FTP);
+    if (is_spoof) return INDEX_IS_HOST(idx);
+    uint8_t pref_ftp_port = getPref8(PREF_FTP_PORT);
+    if (!pref_ftp_port) return 0;   // Off
+    if (pref_ftp_port == 1)         // Host
+        return INDEX_IS_HOST(idx);
+    return !INDEX_IS_HOST(idx);     // Remote
+}
+
+
+
+//===================================================================================
 // _processMessage
-//-------------------------------------
+//===================================================================================
+
 
 void _processMessage(uint32_t i)
 {
     msgUnion msg(i);
+    uint8_t p0 = msg.b[1];
+    uint8_t p1 = msg.b[2];
+    uint8_t p2 = msg.b[3];
 
-    // active sensing messed up the 1E asserts
+    // short ending on active sense filter
 
     if (msg.isActiveSense() && !showActiveSense)
         return;
@@ -303,12 +387,21 @@ void _processMessage(uint32_t i)
     const char *s = "unknown";
     int type = msg.getMsgType();
     int pindex = msg.portIndex();
-    const char *who = portName(pindex);
-    int color = msg.isHost() ? ansi_color_light_cyan : ansi_color_light_magenta;
+    const char *port_name = portName(pindex);
+    bool is_ftp_port = isFtpPort(pindex);
+    bool is_ftp_controller = isFtpController(pindex);
 
-    uint8_t p0 = msg.b[1];
-    uint8_t p1 = msg.b[2];
-    uint8_t p2 = msg.b[3];
+    // colors
+    //    sysex and performance stuff comes out in ligh_grey
+    //    note_on is light_red
+    //    note_off is light_blue
+    //    and yellow is used for a warning
+
+    // that leaves cyan, magenta, green, and white
+
+    int color =
+        msg.isOutput() ? ansi_color_white :
+        msg.isHost() ? ansi_color_light_cyan : ansi_color_light_magenta;
 
     //--------------------------------
     // buffer SYSEX
@@ -355,7 +448,7 @@ void _processMessage(uint32_t i)
         {
             sprintf(buf2,"\033[%dm %s(%d,--)      sysex len=%d",
                 color,
-                who,
+                port_name,
                 INDEX_CABLE(pindex),
                 sysex_buflen[pindex]);
             dbgSerial->println(buf2);
@@ -365,6 +458,8 @@ void _processMessage(uint32_t i)
 
             ;
         }
+
+        return;
     }
 
     // NON-SYSEX messages
@@ -375,28 +470,31 @@ void _processMessage(uint32_t i)
         if (type == 0x08)
         {
             s = "Note Off";
-            color = ansi_color_light_blue;
             most_recent_note_val = msg.b[2];
             most_recent_note_vel = msg.b[3];
+            color = ansi_color_light_blue;  // understood
         }
         else if (type == 0x09)
         {
             s = "Note On";
-            color = ansi_color_light_red;
             most_recent_note_val = msg.b[2];
             most_recent_note_vel = msg.b[3];
+            color = ansi_color_light_red;
         }
         else if (type == 0x0a)
         {
             s = "VelocityChange";   // after touch poly
+            color = ansi_color_light_gray;  // understood
         }
         else if (type == 0x0c)
         {
             s = "ProgramChange";
+            color = ansi_color_light_gray;  // understood
         }
         else if (type == 0x0d)
         {
             s = "AfterTouch";
+            color = ansi_color_light_gray;  // understood
         }
         else if (type == 0x0E)
         {
@@ -418,13 +516,15 @@ void _processMessage(uint32_t i)
         {
             s = "ControlChange";
             show_it = showPerformanceCCs || msg.getChannel() == 8;
+            const char *cmd_or_reply = is_ftp_controller ?
+                "reply" : "command";
 
             //-----------------------------------------
             // NoteInfo - create/delete my note_t
             //-----------------------------------------
             // based on most_recent_note_vel from previous NoteOn NoteOff message
 
-            if (IS_CONTROLLER && p1 == FTP_NOTE_INFO)    // 0x1e
+            if (is_ftp_controller && p1 == FTP_NOTE_INFO)    // 0x1e
             {
                 s = "NoteInfo";
                 show_it = showNoteInfoMessages;
@@ -463,8 +563,7 @@ void _processMessage(uint32_t i)
             // tuning
             //------------------------
 
-            else if (IS_CONTROLLER &&
-                     (p1 == FTP_SET_TUNING || p1 == FTP_TUNING))  // 0x1d || 0x3d
+            else if (is_ftp_controller && (p1 == FTP_SET_TUNING || p1 == FTP_TUNING))  // 0x1d || 0x3d
             {
                 s = "Tuning";
 
@@ -528,24 +627,24 @@ void _processMessage(uint32_t i)
             // #define FTP_COMMAND_OR_REPLY    0x1F
             // #define FTP_COMMAND_VALUE       0x3F
 
-            else if (p1 == FTP_COMMAND_OR_REPLY)
+            else if (is_ftp_port && p1 == FTP_COMMAND_OR_REPLY)
             {
                 s = "ftpCmdOrReply";
                 last_command[pindex] = p2;
-                sprintf(buf2,"%s %s",INDEX_OUTPUT(pindex) ? "command" : "reply",getFTPCommandName(p2));
+
+                sprintf(buf2,"%s %s",cmd_or_reply,getFTPCommandName(p2));
 
                 if (p2 == FTP_CMD_BATTERY_LEVEL)
                     show_it = showBatteryLevel;
                 else if (p2 == FTP_CMD_VOLUME_LEVEL)
                     show_it = showVolumeLevel;
             }
-            else if (p1 == FTP_COMMAND_VALUE)
+            else if (is_ftp_port && p1 == FTP_COMMAND_VALUE)
             {
                 s = "ftpCommandParam";
                 uint8_t command = last_command[pindex];
                 last_command[pindex] = 0;
                 const char *command_name = getFTPCommandName(command);
-                const char *what_name = INDEX_OUTPUT(pindex) ? "command" : "reply";
                 uint8_t pending_command_byte = GET_COMMAND_VALUE(pending_command);
                 uint8_t pending_command_value_byte = GET_COMMAND_VALUE(pending_command_value);
 
@@ -562,13 +661,13 @@ void _processMessage(uint32_t i)
                 if (command == FTP_CMD_BATTERY_LEVEL) // we can parse this one because it doesn't require extra knowledge
                 {
                     show_it = showBatteryLevel;
-                    if (IS_CONTROLLER)
+                    if (is_ftp_controller)
                     {
-                        sprintf(buf2,"%s %s setting battery_level=%02x",what_name,command_name,p2);
+                        sprintf(buf2,"%s %s setting battery_level=%02x",cmd_or_reply,command_name,p2);
                         ftp_battery_level = p2;
                     }
                     else
-                        sprintf(buf2,"%s %s ",what_name,command_name);
+                        sprintf(buf2,"%s %s ",cmd_or_reply,command_name);
 
                 }
                 else if (command == FTP_CMD_GET_SENSITIVITY)
@@ -576,15 +675,15 @@ void _processMessage(uint32_t i)
                     // we only stuff the vaue if it matches what we're waiting for ...
                     // note that pending_command is a full 32 bits, but "command" is only 8
 
-                    if (IS_CONTROLLER && pending_command_byte == FTP_CMD_GET_SENSITIVITY)
+                    if (is_ftp_controller && pending_command_byte == FTP_CMD_GET_SENSITIVITY)
                     {
-                        sprintf(buf2,"%s %s setting string_sensitivity[%d]=%02x",what_name,command_name,pending_command_value_byte,p2);
+                        sprintf(buf2,"%s %s setting string_sensitivity[%d]=%02x",cmd_or_reply,command_name,pending_command_value_byte,p2);
                         ftp_sensitivity[pending_command_value_byte] = p2;
                     }
                     else
                     {
                         // we can't parse this one because it requires extra knowledge
-                        sprintf(buf2,"%s %s %s=%02x",what_name,command_name,INDEX_OUTPUT(pindex)?"string":"level",p2);
+                        sprintf(buf2,"%s %s %s=%02x",cmd_or_reply,command_name,is_ftp_controller?"level":"string",p2);
                     }
                 }
                 else if (command == FTP_CMD_VOLUME_LEVEL)
@@ -595,28 +694,38 @@ void _processMessage(uint32_t i)
                 {
                     int string = p2 >> 4;
                     int level  = p2 & 0xf;
-                    sprintf(buf2,"%s %s setting string_sensitivity[%d]=%d",what_name,command_name,string,level);
-                    if (IS_CONTROLLER)
+                    sprintf(buf2,"%s %s setting string_sensitivity[%d]=%d",cmd_or_reply,command_name,string,level);
+                    if (is_ftp_controller)
                     {
-                        sprintf(buf2,"%s %s setting string_sensitivity[%d]=%d",what_name,command_name,string,level);
+                        sprintf(buf2,"%s %s setting string_sensitivity[%d]=%d",cmd_or_reply,command_name,string,level);
                         ftp_sensitivity[string] = level;
                     }
                     else
                     {
-                        sprintf(buf2,"%s %s string[%d]=%d",what_name,command_name,string,level);
+                        sprintf(buf2,"%s %s string[%d]=%d",cmd_or_reply,command_name,string,level);
                     }
                 }
 
                 // now that we have the 2nd 3F message, if we matched the 1F message,
                 // clear the pending outgoing command
 
-                if (IS_CONTROLLER && command == pending_command_byte)
+                if (is_ftp_controller && command == pending_command_byte)
                 {
                     display(0,"Clearing pending command(%02x)",pending_command_byte);
                     pending_command = 0;
                 }
+
+            }   // is_ftp_port && it's an FTP command_value (0x1f)
+
+            // any other CC's are considered "performance" CCs at this time ???
+
+            else if (0)
+            {
+                color = ansi_color_light_gray;  // understood
+
             }
-        }
+
+        }   // 0xB0 (controller) messages
 
 
         if (show_it && dbgSerial)
@@ -624,7 +733,7 @@ void _processMessage(uint32_t i)
             char buf[200];
             sprintf(buf,"\033[%dm %s(%d,%2d)  %02X  %-16s  %02x  %02x  %s",
                 color,
-                who,
+                port_name,
                 INDEX_CABLE(pindex),
                 msg.getChannel(),
                 p0,
@@ -635,77 +744,7 @@ void _processMessage(uint32_t i)
             dbgSerial->println(buf);
 
         }   // show_it
-    }   // Not Sysext
+
+    }   // Not Sysex
 
 }   // processMsg()
-
-
-
-
-void enqueueProcess(uint32_t msg)
-{
-    // display(0,"enqueueProcess(%d,%08x)",display_head,msg);
-
-    __disable_irq();
-    process_queue[process_head++] = msg;
-    if (process_head == MAX_PROCESS_QUEUE)
-        process_head = 0;
-    if (process_head == process_tail)
-        my_error("expSystem processQueue overflow at %d",process_head);
-    __enable_irq();
-}
-
-void dequeueProcess()
-{
-    int msg = 0;
-    if (process_tail != process_head)
-    {
-        msg = process_queue[process_tail++];
-        if (process_tail == MAX_PROCESS_QUEUE)
-            process_tail = 0;
-    }
-    if (msg)
-        _processMessage(msg);
-
-    _processOutgoing();
-}
-
-
-
-//------------------------------------------------
-// patches
-//-------------------------------------------------
-
-uint8_t patch_sig[6] = {0xF0, 0x00, 0x01, 0x6E, 0x01, 0x21};
-
-bool showPatch(int pindex, uint8_t *buf, uint32_t buflen)
-{
-    uint8_t *p = buf;
-    patch_sig[5] = pindex ? 0x21 : 0x41;
-    // if (!pindex) return false;            // looking for things from controller
-    if (buflen != 142) return false;      // patches are 42
-    for (int i=0; i<6; i++)
-        if (*p++ != patch_sig[i])
-        {
-            warning(0,"sysex of 142 that does not match patch_sig!!",0);
-            return true;
-        }
-
-    uint8_t bank_num = *p++;
-    uint8_t patch_num = *p++;
-    display(0,"    PATCH BANK(%d) PATCH(%d)",bank_num,patch_num);
-    if (bank_num > 1) return false;
-
-    p += 8;     // move to touch sensitivity
-    uint8_t touch_sense = *p;
-
-    p += 2;     // move to first split section
-    p += 6;
-
-    uint8_t dyn_sense = *p++;
-    uint8_t dyn_off  = *p++;
-
-    display(0,"        touch_sens=%d   dyn_sense=0x%02x  dyn_off=0x%02x",touch_sense,dyn_sense,dyn_off);
-
-    return false;
-}
