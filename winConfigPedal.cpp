@@ -158,8 +158,7 @@ void winConfigPedal::onButtonEvent(int row, int col, int event)
 	}
 	else if (num == KEYPAD_LEFT || num == KEYPAD_RIGHT)
 	{
-        if (m_cur_point > 0 &&                  // not on min or max
-            m_cur_point < m_num_points -1)
+        if (m_cur_point >= 0)
         {
             prefCurvePoint_t *points = getCurvePoints();
             int x = points[m_cur_point].x;
@@ -181,7 +180,7 @@ void winConfigPedal::onButtonEvent(int row, int col, int event)
                 m_redraw_curve = 1;
             }
         }
-        else if (m_cur_point == -1)
+        else
         {
 
         }
@@ -346,7 +345,7 @@ void winConfigPedal::updateUI()
 
     // X Y Weight Text
 
-    if (full_redraw || select_changed)
+    if (full_redraw || select_changed || redraw_curve)
     {
         mylcd.Fill_Rect(60,255,60,60,0);
         if (m_cur_item)
@@ -361,49 +360,11 @@ void winConfigPedal::updateUI()
             mylcd.print(points[m_cur_item-1].y,DEC);
             mylcd.Set_Text_Cursor(60,295);
             mylcd.print("w: ");
-            mylcd.print(points[m_cur_point-1].w,DEC);
+            mylcd.print(points[m_cur_item-1].w,DEC);
         }
     }
 
-    // left grid only if full or the min is being edited
-    // middle grid and diagonal only if full redraw
-    // right grid only if full or the min is being edited
-
-    if (full_redraw ||
-        select_changed ||
-        (redraw_curve && !m_cur_point))
-    {
-        mylcd.Set_Draw_color(TFT_WHITE);
-        mylcd.Draw_Line(X_OFFSET, Y_OFFSET,             X_OFFSET,           Y_OFFSET+CHART_MAX);
-        // ticks
-        for (int i=0; i<16; i++)
-        {
-            int y = Y_OFFSET + i * 16;
-            mylcd.Draw_Line(X_OFFSET, y, X_OFFSET+9, y);
-        }
-    }
-    if (full_redraw ||
-        select_changed ||
-        redraw_curve)
-    {
-        mylcd.Set_Draw_color(TFT_WHITE);
-        mylcd.Draw_Line(X_OFFSET, Y_OFFSET+CHART_MAX,   X_OFFSET+CHART_MAX, Y_OFFSET+CHART_MAX);  // bottom
-        mylcd.Draw_Line(X_OFFSET, Y_OFFSET+CHART_MAX,   X_OFFSET+CHART_MAX, Y_OFFSET);            // diagonal
-    }
-
-    if (full_redraw ||
-        select_changed ||
-        (redraw_curve && m_cur_point == m_num_points-1))
-    {
-        mylcd.Set_Draw_color(TFT_WHITE);
-        mylcd.Draw_Line(X_OFFSET+CHART_MAX, Y_OFFSET,   X_OFFSET+CHART_MAX,   Y_OFFSET+CHART_MAX);
-        // ticks
-        for (int i=0; i<16; i++)
-        {
-            int y = Y_OFFSET + i * 16;
-            mylcd.Draw_Line(X_OFFSET+CHART_MAX-9, y, X_OFFSET+CHART_MAX, y);
-        }
-    }
+    // REDRAW CHART
 
     if (full_redraw ||
         select_changed ||
@@ -428,7 +389,65 @@ void winConfigPedal::updateUI()
             }
         }
 
-        // lines between points
+        // grid left w/ticks
+
+        mylcd.Set_Draw_color(TFT_WHITE);
+        mylcd.Draw_Line(X_OFFSET, Y_OFFSET,             X_OFFSET,           Y_OFFSET+CHART_MAX);
+        for (int i=0; i<16; i++)
+        {
+            int y = Y_OFFSET + i * 16;
+            mylcd.Draw_Line(X_OFFSET, y, X_OFFSET+9, y);
+        }
+
+        // grid center
+
+        mylcd.Draw_Line(X_OFFSET, Y_OFFSET+CHART_MAX,   X_OFFSET+CHART_MAX, Y_OFFSET+CHART_MAX);  // bottom
+        mylcd.Draw_Line(X_OFFSET, Y_OFFSET+CHART_MAX,   X_OFFSET+CHART_MAX, Y_OFFSET);            // diagonal
+
+        // grid right w/ticks
+
+        mylcd.Draw_Line(X_OFFSET+CHART_MAX, Y_OFFSET,   X_OFFSET+CHART_MAX,   Y_OFFSET+CHART_MAX);
+        for (int i=0; i<16; i++)
+        {
+            int y = Y_OFFSET + i * 16;
+            mylcd.Draw_Line(X_OFFSET+CHART_MAX-9, y, X_OFFSET+CHART_MAX, y);
+        }
+
+        //----------------------------------
+        // lines
+        //----------------------------------
+        // line from 0 to MIN
+
+        if (prev_points[0].x != points[0].x ||
+            prev_points[0].y != points[0].y)
+        {
+            // erase old one if it moved
+
+            if (prev_points[0].x &&
+                prev_points[0].x != 255)
+            {
+                mylcd.Set_Draw_color(TFT_BLACK);
+                mylcd.Draw_Line(
+                    X_OFFSET,
+                    Y_OFFSET + CHART_MAX - 2*prev_points[0].y,
+                    X_OFFSET + 2*prev_points[0].x ,
+                    Y_OFFSET + CHART_MAX - 2*prev_points[0].y);
+            }
+
+            // draw new one if off zero
+
+            if (points[0].x)
+            {
+                mylcd.Set_Draw_color(TFT_YELLOW);
+                mylcd.Draw_Line(
+                    X_OFFSET,
+                    Y_OFFSET + CHART_MAX - 2*points[0].y,
+                    X_OFFSET + 2*points[0].x ,
+                    Y_OFFSET + CHART_MAX - 2*points[0].y);
+            }
+        }
+
+        // interior lines
 
         for (int i=0; i<m_num_points-1; i++)
         {
@@ -470,7 +489,42 @@ void winConfigPedal::updateUI()
         }   // for each line
 
 
+        // line from MAX to 127
+
+        int max_point = m_num_points-1;
+
+        if (prev_points[max_point].x != points[max_point].x ||
+            prev_points[max_point].y != points[max_point].y)
+        {
+            // erase old one if it moved
+
+            if (prev_points[max_point].x < 127)
+            {
+                mylcd.Set_Draw_color(TFT_BLACK);
+                mylcd.Draw_Line(
+                    X_OFFSET + 2*prev_points[max_point].x,
+                    Y_OFFSET + CHART_MAX - 2*prev_points[max_point].y,
+                    X_OFFSET + CHART_MAX,
+                    Y_OFFSET + CHART_MAX - 2*prev_points[max_point].y);
+            }
+
+            // draw new one if off zero
+
+            if (points[max_point].x < 127)
+            {
+                mylcd.Set_Draw_color(TFT_YELLOW);
+                mylcd.Draw_Line(
+                    X_OFFSET + 2*points[max_point].x,
+                    Y_OFFSET + CHART_MAX - 2*points[max_point].y,
+                    X_OFFSET + CHART_MAX,
+                    Y_OFFSET + CHART_MAX - 2*points[max_point].y);
+            }
+        }
+
+
+        //---------------------
         // new points
+        //---------------------
 
         for (int i=0; i<m_num_points; i++)
         {
