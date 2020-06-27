@@ -319,15 +319,16 @@ void buttonArray::task()
                 // repeat generates PRESS events
 
                 int dif = millis() - pButton->m_press_time;
-                if ((mask & BUTTON_MASK_REPEAT) && dif > 350)
+                if ((mask & BUTTON_MASK_REPEAT) && dif > 300)
                 {
-                    // starts repeating after 350ms
-                    // starts at 10 per second and accelerates to 200 per second over one seconds
+                    // starts repeating after 300ms
+                    // starts at 10 per second and accelerates to 100 per second over one second
 
-                    dif -= 350;
-                    if (dif > 1500) dif = 1500;
-                    unsigned interval = 1500 - dif;
-                    interval = 5 + (interval / 8);
+                    dif -= 300;
+                    if (dif > 1000) dif = 1000;
+
+                    unsigned interval = 100;
+                    interval -= 90*dif/1000;
 
                     if (pButton->m_repeat_time > interval)
                     {
