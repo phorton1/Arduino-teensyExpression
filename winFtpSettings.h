@@ -12,13 +12,14 @@
 #define PERF_NUM_LAYER_TYPES  6
 
 #define FTP_SETTING_POLY_MODE             0
-#define FTP_SETTING_PERF_LAYER_TYPE       1
-#define FTP_SETTING_PERF_FILTER           2
-#define FTP_SETTING_PERF_FILTER_BENDS     3
-#define FTP_SETTING_THRU_MESSAGES         4
-#define FTP_SETTING_FILTERED_MESSAGES     5
-#define FTP_SETTING_GENERATED_MESSAGEES   6
-#define FTP_NUM_SETTINGS                  7
+#define FTP_SETTING_BEND_MODE             1
+#define FTP_SETTING_PERF_LAYER_TYPE       2
+#define FTP_SETTING_PERF_FILTER           3
+#define FTP_SETTING_PERF_FILTER_BENDS     4
+#define FTP_SETTING_THRU_MESSAGES         5
+#define FTP_SETTING_FILTERED_MESSAGES     6
+#define FTP_SETTING_GENERATED_MESSAGEES   7
+#define FTP_NUM_SETTINGS                  8
 
 class winFtpSettings : public expWindow
 {

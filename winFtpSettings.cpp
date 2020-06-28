@@ -93,6 +93,13 @@ void winFtpSettings::onButtonEvent(int row, int col, int event)
 			sendFTPCommandAndValue(FTP_CMD_POLY_MODE,ftp_poly_mode?0:1);
 				// wait for response to repaint
 		}
+		if (selected_item == FTP_SETTING_POLY_MODE)
+		{
+			int i = (ftp_bend_mode + inc) % 4;
+			sendFTPCommandAndValue(FTP_CMD_SPLIT_NUMBER,0x01);
+			sendFTPCommandAndValue(FTP_CMD_PITCHBEND_MODE,i);
+				// wait for response to repaint
+		}
 		else if (selected_item == FTP_SETTING_PERF_LAYER_TYPE)
 		{
 			ftp_settings[selected_item] = (i + inc) % PERF_NUM_LAYER_TYPES;
@@ -129,6 +136,7 @@ void winFtpSettings::onButtonEvent(int row, int col, int event)
 const char *getItemName(int i)
 {
 	if (i==FTP_SETTING_POLY_MODE             ) return "Poly Mode";
+	if (i==FTP_SETTING_BEND_MODE             ) return "Pitchbend Mode";
 	if (i==FTP_SETTING_PERF_LAYER_TYPE       ) return "Layer Type";
 	if (i==FTP_SETTING_PERF_FILTER           ) return "Perf Filter";
 	if (i==FTP_SETTING_PERF_FILTER_BENDS     ) return "Perf Filter_bends  ";
@@ -149,10 +157,23 @@ const char *getLayerTypeName(int i)
 	return "unknown type";
 }
 
+
+const char *getBendModeName(int i)
+{
+	if (i == 1) return "Smooth";
+	if (i == 1) return "Stepped";
+	if (i == 1) return "Trigger";
+	return "Auto";
+}
+
+
+
 const char *getItemValueString(int item, int val)
 {
 	if (item == FTP_SETTING_PERF_LAYER_TYPE)
 		return getLayerTypeName(val);
+	else if (item == FTP_SETTING_BEND_MODE)
+		return getBendModeName(val);
 	if (val) return "On";
 	return "Off";
 }
@@ -164,6 +185,7 @@ void winFtpSettings::updateUI()	// draw
 {
 	__disable_irq();
 	ftp_settings[0] = ftp_poly_mode;
+	ftp_settings[0] = ftp_bend_mode;
 	bool full_draw = draw_needed;
 	int sel_item = selected_item;
 	int last_sel = last_selected_item;

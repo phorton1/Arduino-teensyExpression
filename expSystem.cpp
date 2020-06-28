@@ -482,13 +482,22 @@ void expSystem::critical_timer_handler()
 
     if (msg)
     {
-		// write it to the midi host
+		// we only write it to the midi host if we are spoofing
 
-        midi_host.write_packed(msg);
+	    bool is_spoof = getPref8(PREF_SPOOF_FTP);
+		if (is_spoof)
+	        midi_host.write_packed(msg);
 
         // enqueue it for processing (display from device)
+		// if we are monitoring the input port, or its the remote FTP
 
-        enqueueProcess(msg);
+		int pindex = (msg >> 4) & PORT_INDEX_MASK;
+		if (getPref8(PREF_MONITOR_PORT0 + pindex) || (  		// if monitoring the port, OR
+			(getPref8(PREF_FTP_PORT) == FTP_PORT_REMOTE) &&     // if this is the PREF_FTP_PORT==2==Remote, AND
+			INDEX_CABLE(pindex)))                       		// cable=1
+		{
+	        enqueueProcess(msg);
+		}
     }
 }
 
@@ -601,7 +610,7 @@ void expSystem::updateUI()
 		int color = ftp_battery_level == -1 ? TFT_LIGHTGREY : (pct <= .15 ? TFT_RED : TFT_DARKGREEN);
 		if (pct > 1) pct = 1.0;
 
-		display(0,"battery_level=%d   pct=%0.2f",ftp_battery_level,pct);
+		// display(0,"battery_level=%d   pct=%0.2f",ftp_battery_level,pct);
 
 		float left_width = pct * ((float) BATTERY_WIDTH - 2*BATTERY_FRAME);
 		float right_width = (1-pct) * ((float) BATTERY_WIDTH - 2*BATTERY_FRAME);

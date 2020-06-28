@@ -412,7 +412,7 @@ typedef struct  // 142 byte "data" packet (subpatch)
     // to those numbers, and only upon a "save" does it write it to the "real" location.
 
 {
-	uint8_t header1[6];	                // F0 00 01 6E 01 21 or 41
+	uint8_t header1[6];	                // F0 00 01 6E 01 (21=reply, or 41=set)
 	uint8_t bank_num;                   // 0=hardware poly, 1=hardware mono
 	uint8_t patch_num;                  // patch number within bank (0..127 .. only to 112 for mono bank?!?)
 

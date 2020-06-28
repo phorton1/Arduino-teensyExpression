@@ -41,7 +41,6 @@ uint32_t process_queue[MAX_PROCESS_QUEUE];
 // sysex buffers
 
 int sysex_buflen[NUM_MIDI_PORTS]     = {0,0,0,0,0,0,0,0};
-bool sysex_buf_ready[NUM_MIDI_PORTS] = {0,0,0,0,0,0,0,0};
 uint8_t sysex_buffer[NUM_MIDI_PORTS][MAX_SYSEX_BUFFER];
 
 
@@ -302,34 +301,50 @@ void dequeueProcess()
 
 uint8_t patch_sig[6] = {0xF0, 0x00, 0x01, 0x6E, 0x01, 0x21};
 
-bool showPatch(int pindex, uint8_t *buf, uint32_t buflen)
+
+bool showPatch(
+    Stream *out_stream,
+    int color,
+    int bg_color,
+    bool is_ftp_controller,
+    uint8_t *patch_buf,
+    uint32_t buflen)
+    // returns true if there was an error
 {
-    uint8_t *p = buf;
-    patch_sig[5] = pindex ? 0x21 : 0x41;
-    // if (!pindex) return false;            // looking for things from controller
+    uint8_t *p = patch_buf;
+    patch_sig[5] = is_ftp_controller ? 0x21 : 0x41;
     if (buflen != 142) return false;      // patches are 42
+
     for (int i=0; i<6; i++)
-        if (*p++ != patch_sig[i])
+    {
+        if (*p != patch_sig[i])
         {
-            warning(0,"sysex of 142 that does not match patch_sig!!",0);
+            out_stream->printf("\033[%d;%dm    sysex of 142 that does not match patch_sig at byte(%d) sig(%02x) != patch(%02x)\n\r",
+                ansi_color_yellow,
+                ansi_color_black,
+                i,patch_sig[i],*p);
             return true;
         }
+        p++;
+    }
 
     uint8_t bank_num = *p++;
     uint8_t patch_num = *p++;
-    display(0,"    PATCH BANK(%d) PATCH(%d)",bank_num,patch_num);
+    out_stream->printf("\033[%d;%dm    PATCH BANK(%d) PATCH(%d)\n\r",
+            color,bg_color,bank_num,patch_num);
     if (bank_num > 1) return false;
 
     p += 8;     // move to touch sensitivity
     uint8_t touch_sense = *p;
 
     p += 2;     // move to first split section
-    p += 6;
+    p += 6;     // move to dyn_sense
 
     uint8_t dyn_sense = *p++;
     uint8_t dyn_off  = *p++;
 
-    display(0,"        touch_sens=%d   dyn_sense=0x%02x  dyn_off=0x%02x",touch_sense,dyn_sense,dyn_off);
+    out_stream->printf("\033[%d;%dm        touch_sens=%d   dyn_sense=0x%02x  dyn_off=0x%02x\n\r",
+        color,bg_color,touch_sense,dyn_sense,dyn_off);
 
     return false;
 }
@@ -340,25 +355,31 @@ bool showPatch(int pindex, uint8_t *buf, uint32_t buflen)
 
 
 bool isFtpPort(int idx)
+    // if messages from the port should be parsed and
+    // displayed as ftp specific
 {
     bool is_spoof = getPref8(PREF_SPOOF_FTP);
-    if (is_spoof) return 1;
-    uint8_t pref_ftp_port = getPref8(PREF_FTP_PORT);
-    if (!pref_ftp_port) return 0;   // Off
-    if (pref_ftp_port == 1)         // Host
+    if (is_spoof) return 1;                             // all ports if spoofing
+    uint8_t pref_ftp_port = getPref8(PREF_FTP_PORT);    // otherwise
+    if (!pref_ftp_port) return 0;   // Off              // only if it matches
+    if (pref_ftp_port == FTP_PORT_HOST)   // Host       // the specified ftp port
         return INDEX_IS_HOST(idx);
     return !INDEX_IS_HOST(idx);     // Remote
 }
 
 
 bool isFtpController(int idx)
+    // returns true if message should be considered as
+    // coming from the controller for updating our internal
+    // ftp state variables
 {
-    if (INDEX_IS_OUTPUT(idx)) return false;
+    if (!INDEX_CABLE(idx)) return false;                // only on cable 1
+    if (INDEX_IS_OUTPUT(idx)) return false;             // only on input
     bool is_spoof = getPref8(PREF_SPOOF_FTP);
-    if (is_spoof) return INDEX_IS_HOST(idx);
-    uint8_t pref_ftp_port = getPref8(PREF_FTP_PORT);
-    if (!pref_ftp_port) return 0;   // Off
-    if (pref_ftp_port == 1)         // Host
+    if (is_spoof) return INDEX_IS_HOST(idx);            // if spoofing and on host
+    uint8_t pref_ftp_port = getPref8(PREF_FTP_PORT);    // otherwise
+    if (!pref_ftp_port) return 0;   // Off              // only if ftp port specified
+    if (pref_ftp_port == FTP_PORT_HOST)  // Host        // and it matches the specified ftp port
         return INDEX_IS_HOST(idx);
     return !INDEX_IS_HOST(idx);     // Remote
 }
@@ -386,15 +407,21 @@ void _processMessage(uint32_t i)
     const char *s = "unknown";
     int type = msg.getMsgType();
     int pindex = msg.portIndex();
+    int channel = msg.getChannel();
     const char *port_name = portName(pindex);
     bool is_ftp_port = isFtpPort(pindex);
     bool is_ftp_controller = isFtpController(pindex);
     int monitor = getPref8(PREF_MIDI_MONITOR);   // off, DebugPort, USB, Serial   default(DebugPort)
+
     Stream *out_stream =
         monitor == 3 ? &Serial3 :
         monitor == 2 ? &Serial :
         monitor == 1 ? dbgSerial : 0;
-    bool show_it = out_stream;
+
+    bool show_it =
+        out_stream &&
+        getPref8(PREF_MONITOR_PORT0 + pindex) &&
+        getPref8(PREF_MONITOR_CHANNEL1 + channel - 1);
 
     // colors
     //    sysex and performance stuff comes out in ligh_grey
@@ -413,62 +440,62 @@ void _processMessage(uint32_t i)
     //--------------------------------
     // buffer SYSEX
     //--------------------------------
-    // FTP seems to start all sysex's with 0x15
+    // FTP seems to start all sysex's with 0x14
     // and end them with 0x15, 0x16, or 0x17.
 
     if (type >= 0x04 && type <= 0x07)
     {
         int len = 3;
         bool is_done = 0;
-        int *buflen = &sysex_buflen[pindex];
-        bool *ready = &sysex_buf_ready[pindex];
+        uint8_t *buf = sysex_buffer[pindex];
+        int buf_len = sysex_buflen[pindex];
 
         if (type == 0x04)        // start midi message
         {
-            if (*ready)
-            {
-                if (p0 != 0xf0)
-                    warning(0,"sysex does not start with F0",0);
-                *ready = 0;
-                *buflen = 0;
-            }
+            if (!buf_len && p0 != 0xf0)
+                warning(0,"sysex does not start with F0 got(%02x)",p0);
         }
         else                    // end midi message
         {
             is_done = 1;
-            *ready = 1;
             len = type - 0x4;
         }
 
         uint8_t *ip = msg.b + 1;
-        uint8_t *op = &sysex_buffer[pindex][*buflen];
+        uint8_t *op = &buf[buf_len];
         while (len--)
         {
             *op++ = *ip++;
-            (*buflen)++;
+            buf_len++;
         }
+        sysex_buflen[pindex] = buf_len;
 
         if (is_done)
         {
-            if (sysex_buffer[pindex][*buflen-1] != 0xf7)
+            sysex_buflen[pindex] = 0;
+            if (buf[buf_len-1] != 0xf7)
                 warning(0,"sysex does not end with F7",0);
 
-            int show_sysex = getPref8(PREF_MONITOR_SYSEX);
-            if (out_stream && show_sysex)
+            if (out_stream &&
+                getPref8(PREF_MONITOR_PORT0 + pindex))
             {
-                sprintf(buf2,"\033[%d;%dm %s(%d,--)      sysex len=%d",
-                    color,
-                    bg_color,
-                    port_name,
-                    INDEX_CABLE(pindex),
-                    sysex_buflen[pindex]);
-                out_stream->println(buf2);
-
-                // if (showPatch(pindex,sysex_buffer[pindex],sysex_buflen[pindex]) ||
-                if (show_sysex == 2)
+                int show_sysex = getPref8(PREF_MONITOR_SYSEX);
+                if (show_sysex)
                 {
-                    display_bytes_long(0,0,sysex_buffer[pindex],sysex_buflen[pindex],out_stream);
+                    sprintf(buf2,"\033[%d;%dm %s(%d,--)      sysex len=%d",
+                        color,
+                        bg_color,
+                        port_name,
+                        INDEX_CABLE(pindex),
+                        buf_len);
+                    out_stream->println(buf2);
                 }
+
+                // if (is_ftp_port && getPref8(PREF_MONITOR_PARSE_FTP_PATCHES))
+                    showPatch(out_stream,color,bg_color,is_ftp_controller,buf,buf_len);
+
+                if (show_sysex == 2)
+                    display_bytes_long(0,0,buf,buf_len,out_stream);
 
             }   // show_sysex
         }   // is_done
@@ -487,6 +514,7 @@ void _processMessage(uint32_t i)
             most_recent_note_val = msg.b[2];
             most_recent_note_vel = msg.b[3];
             color = ansi_color_light_blue;  // understood
+            show_it = show_it && getPref8(PREF_MONITOR_NOTE_OFF);
         }
         else if (type == 0x09)
         {
@@ -494,27 +522,32 @@ void _processMessage(uint32_t i)
             most_recent_note_val = msg.b[2];
             most_recent_note_vel = msg.b[3];
             color = ansi_color_light_red;
+            show_it = show_it && getPref8(PREF_MONITOR_NOTE_ON);
         }
         else if (type == 0x0a)
         {
             s = "VelocityChange";   // after touch poly
             color = ansi_color_light_grey;  // understood
+            show_it = show_it && getPref8(PREF_MONITOR_VELOCITY);
         }
         else if (type == 0x0c)
         {
             s = "ProgramChange";
             color = ansi_color_light_grey;  // understood
+            show_it = show_it && getPref8(PREF_MONITOR_PROGRAM_CHG);
         }
         else if (type == 0x0d)
         {
             s = "AfterTouch";
             color = ansi_color_light_grey;  // understood
+            show_it = show_it && getPref8(PREF_MONITOR_AFTERTOUCH);
         }
         else if (type == 0x0E)
         {
             s = "Pitch Bend";
             int value = p1 + (p2 << 7);
             value -= 8192;
+            show_it = show_it && getPref8(PREF_MONITOR_PITCHBEND);
             if (show_it) sprintf(buf2,"value=%d",value);
             color = ansi_color_light_grey;  // understood
         }
@@ -529,7 +562,6 @@ void _processMessage(uint32_t i)
         else if (type == 0x0b)
         {
             s = "ControlChange";
-            show_it = show_it && (getPref8(PREF_MONITOR_PERFORMANCE_CCS) || msg.getChannel() == 8);
             const char *cmd_or_reply = is_ftp_controller ?
                 "reply" : "command";
 
@@ -640,27 +672,62 @@ void _processMessage(uint32_t i)
             {
                 s = "ftpCmdOrReply";
                 last_command[pindex] = p2;
+                show_it = show_it && getPref8(PREF_MONITOR_FTP_COMMANDS);
 
-                sprintf(buf2,"%s %s",cmd_or_reply,getFTPCommandName(p2));
+                if (show_it)
+                {
+                    bool known = true;
+                    const char *command_name = getFTPCommandName(p2);
+                    if (!command_name)
+                    {
+                        command_name = "unknown";
+                        known = false;
+                    }
 
-                if (p2 == FTP_CMD_BATTERY_LEVEL)
-                    show_it = show_it && getPref8(PREF_MONITOR_FTP_BATTERY);
-                else if (p2 == FTP_CMD_VOLUME_LEVEL)
-                    show_it = show_it && getPref8(PREF_MONITOR_FTP_VOLUME);
+                    if (!known)
+                        show_it = getPref8(PREF_MONITOR_UNKNOWN_FTP_COMMANDS);
+                    else if (p2 == FTP_CMD_POLY_MODE)
+                        show_it = getPref8(PREF_MONITOR_FTP_POLY_MODE);
+                    else if (p2 == FTP_CMD_PITCHBEND_MODE)
+                        show_it = getPref8(PREF_MONITOR_FTP_BEND_MODE);
+                    else if (p2 == FTP_CMD_VOLUME_LEVEL)
+                        show_it = getPref8(PREF_MONITOR_FTP_VOLUME);
+                    else if (p2 == FTP_CMD_BATTERY_LEVEL)
+                        show_it = getPref8(PREF_MONITOR_FTP_BATTERY);
+                    else if (p2 == FTP_CMD_GET_SENSITIVITY ||
+                             p2 == FTP_CMD_SET_SENSITIVITY)
+                        show_it = getPref8(PREF_MONITOR_FTP_SENSITIVITY);
+                    else
+                        show_it = getPref8(PREF_MONITOR_KNOWN_FTP_COMMANDS);
+
+                    if (show_it)
+                        sprintf(buf2,"%s %s",cmd_or_reply,command_name);
+                }
             }
             else if (is_ftp_port && p1 == FTP_COMMAND_VALUE)
             {
                 s = "ftpCommandParam";
                 uint8_t command = last_command[pindex];
                 last_command[pindex] = 0;
-                const char *command_name = getFTPCommandName(command);
                 uint8_t pending_command_byte = GET_COMMAND_VALUE(pending_command);
                 uint8_t pending_command_value_byte = GET_COMMAND_VALUE(pending_command_value);
 
-                // get the 8bit "command" from the 32bit midi message
-
-                if (command == FTP_CMD_POLY_MODE)
+                bool known = true;
+                const char *command_name = getFTPCommandName(pending_command_byte);
+                if (!command_name)
                 {
+                    command_name = "unknown";
+                    known = false;
+                }
+
+                if (!known)
+                {
+                    show_it = show_it && getPref8(PREF_MONITOR_UNKNOWN_FTP_COMMANDS);
+                }
+                else if (command == FTP_CMD_POLY_MODE)
+                {
+                    show_it = show_it && getPref8(PREF_MONITOR_FTP_POLY_MODE);
+
                     if (is_ftp_controller)
                     {
                         if (show_it)
@@ -669,7 +736,25 @@ void _processMessage(uint32_t i)
                     }
                     else if (show_it)
                         sprintf(buf2,"%s %s ",cmd_or_reply,command_name);
+                }
 
+                else if (command == FTP_CMD_PITCHBEND_MODE)
+                {
+                    show_it = show_it && getPref8(PREF_MONITOR_FTP_BEND_MODE);
+
+                    if (is_ftp_controller)
+                    {
+                        if (show_it)
+                            sprintf(buf2,"%s %s setting bend_mode=%02x",cmd_or_reply,command_name,p2);
+                        ftp_bend_mode = p2;
+                    }
+                    else if (show_it)
+                        sprintf(buf2,"%s %s ",cmd_or_reply,command_name);
+
+                }
+                else if (command == FTP_CMD_VOLUME_LEVEL)
+                {
+                    show_it = show_it && getPref8(PREF_MONITOR_FTP_VOLUME);
                 }
                 else if (command == FTP_CMD_BATTERY_LEVEL) // we can parse this one because it doesn't require extra knowledge
                 {
@@ -683,6 +768,7 @@ void _processMessage(uint32_t i)
                     else if (show_it)
                         sprintf(buf2,"%s %s ",cmd_or_reply,command_name);
                 }
+
                 else if (command == FTP_CMD_GET_SENSITIVITY)
                 {
                     // we only stuff the vaue if it matches what we're waiting for ...
@@ -700,10 +786,6 @@ void _processMessage(uint32_t i)
                         sprintf(buf2,"%s %s %s=%02x",cmd_or_reply,command_name,is_ftp_controller?"level":"string",p2);
                     }
                 }
-                else if (command == FTP_CMD_VOLUME_LEVEL)
-                {
-                    show_it = show_it && getPref8(PREF_MONITOR_FTP_VOLUME);
-                }
                 else if (command == FTP_CMD_SET_SENSITIVITY)  // we can parse this one because it doesn't require extra knowledge
                 {
                     int string = p2 >> 4;
@@ -718,6 +800,10 @@ void _processMessage(uint32_t i)
                     {
                         sprintf(buf2,"%s %s string[%d]=%d",cmd_or_reply,command_name,string,level);
                     }
+                }
+                else
+                {
+                    show_it = show_it && getPref8(PREF_MONITOR_KNOWN_FTP_COMMANDS);
                 }
 
                 // now that we have the 2nd 3F message, if we matched the 1F message,
@@ -736,10 +822,14 @@ void _processMessage(uint32_t i)
             else if (0)
             {
                 color = ansi_color_light_grey;  // understood
+                show_it = show_it && getPref8(PREF_MONITOR_CCS);
             }
 
         }   // 0xB0 (controller) messages
-
+        else
+        {
+            show_it = show_it && getPref8(PREF_MONITOR_EVERYTHING_ELSE);
+        }
 
         if (show_it && out_stream)
         {
@@ -749,7 +839,7 @@ void _processMessage(uint32_t i)
                 bg_color,
                 port_name,
                 INDEX_CABLE(pindex),
-                msg.getChannel(),
+                channel,
                 p0,
                 s,
                 p1,

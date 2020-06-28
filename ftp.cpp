@@ -13,6 +13,7 @@ note_t *tuning_note = 0;
 int ftp_battery_level = -1;
 int ftp_sensitivity[NUM_STRINGS] = {-1,-1,-1,-1,-1,-1};
 int ftp_poly_mode = 1;
+int ftp_bend_mode = 0;
 
 
 uint8_t ftp_get_sensitivy_command_string_number = 0;
@@ -41,8 +42,7 @@ const char *getFTPCommandName(uint8_t p2)
     if (p2 == FTP_CMD_BLOCK_MIDI_NOTES      ) return "BLOCK_MIDI_NOTES";            // 0x46
     if (p2 == FTP_CMD_TOUCH_SENSITIVITY     ) return "TOUCH_SENSITIVITY";           // 0x4f
     if (p2 == FTP_CMD_SPLIT_NUMBER          ) return "SPLIT_NUMBER";                // 0x52
-
-    return "unknownFTPCommand";
+    return 0;
 }
 
 

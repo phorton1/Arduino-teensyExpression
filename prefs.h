@@ -18,6 +18,10 @@
 
 #define FTP_OUTPUT_PORT    (getPref8(PREF_SPOOF_FTP) ? 1 : getPref8(PREF_FTP_PORT))
 
+#define FTP_PORT_OFF            0
+#define FTP_PORT_HOST           1
+#define FTP_PORT_REMOTE         2
+
 
 //--------------------------------
 // pedals
@@ -72,14 +76,80 @@
 
 #define PREF_MIDI_MONITOR    PREF_PEDAL(NUM_PEDALS + 1)   // off, DebugPort, USB, Serial   default(DebugPort)
 
-#define PREF_MONITOR_SYSEX              (PREF_MIDI_MONITOR+2)     // off, on, Detail         default(2=Detail)
-#define PREF_MONITOR_ACTIVESENSE        (PREF_MIDI_MONITOR+3)     // off, on                 default(0==off)
-#define PREF_MONITOR_PERFORMANCE_CCS    (PREF_MIDI_MONITOR+4)     // off, on,                default(1=on)
-// ftp input and output port only
-#define PREF_MONITOR_FTP_TUNING_MSGS    (PREF_MIDI_MONITOR+5)     // off, on                 default(1==on)
-#define PREF_MONITOR_FTP_NOTE_INFO      (PREF_MIDI_MONITOR+6)     // off, on                 default(1==on)
-#define PREF_MONITOR_FTP_VOLUME         (PREF_MIDI_MONITOR+7)     // off, on                 default(1==on)
-#define PREF_MONITOR_FTP_BATTERY        (PREF_MIDI_MONITOR+8)     // off, on                 default(1==on)
+#define PREF_MONITOR_PORT0          (PREF_MIDI_MONITOR+1)      // 0=DUINO_INPUT0    default(off)
+
+#define PREF_MONITOR_DUINO_INPUT0   (PREF_MONITOR_PORT0+0)     // 0=DUINO_INPUT0    default(off)
+#define PREF_MONITOR_DUINO_INPUT1   (PREF_MONITOR_PORT0+1)     // 1=DUINO_INPUT1    default(on)
+#define PREF_MONITOR_DUINO_OUTPUT0  (PREF_MONITOR_PORT0+2)     // 2=DUINO_OUTPUT0   default(on)
+#define PREF_MONITOR_DUINO_OUTPUT1  (PREF_MONITOR_PORT0+3)     // 3=DUINO_OUTPUT1   default(on)
+#define PREF_MONITOR_HOST_INPUT0    (PREF_MONITOR_PORT0+4)     // 4=HOST_INPUT0     default(off)
+#define PREF_MONITOR_HOST_INPUT1    (PREF_MONITOR_PORT0+5)     // 5=HOST_INPUT1     default(on)
+#define PREF_MONITOR_HOST_OUTPUT0   (PREF_MONITOR_PORT0+6)     // 6=HOST_OUTPUT0    default(off)
+#define PREF_MONITOR_HOST_OUTPUT1   (PREF_MONITOR_PORT0+7)     // 7=HOST_OUTPUT1    default(on)
+    // The above prefs determine whether or not messages will be enqueued for
+    // ports besides the FTP Controller port.  So it must be rechecked in the
+    // monitor display method as well in case we don't want to SEE the FTP
+    // controller messages.
+    //
+    // Nominally the Thru messages are NOT seperately monitored.  That is to say that
+    // we don't normally display every message that goes from the the duino to the host
+    // in spoof mode.  If not in spoof mode, by default, the hosted controller does
+    // NOT receive messages directly from the duino input port, and vice-versa, the
+    // duino port does not receive non-performances messages from the hosted controller.
+
+#define PREF_MONITOR_HOST_PERFORMANCE  (PREF_MONITOR_PORT0+8)
+    // whether to monitor performce output from midiHost which is
+    // exclusive of ftp spoof mode.
+
+
+#define PREF_MONITOR_CHANNEL1       (PREF_MONITOR_HOST_PERFORMANCE+1)      // monitor specific midi channels
+    // default:  all channels are monitored
+
+
+// The following list needs to be exclusive and complete, so that
+// turning them all off has the effect of not displaying anything.
+// The prefs mirror my midi parser implementation.
+
+
+#define PREF_MONITOR_SYSEX              (PREF_MONITOR_CHANNEL1+16)     // off, on, Detail         default(2=Detail)
+#define PREF_MONITOR_ACTIVESENSE        (PREF_MONITOR_SYSEX+1)        // off, on                 default(0==off)
+
+// following all default to "on"
+
+#define PREF_MONITOR_NOTE_ON            (PREF_MONITOR_SYSEX+2)
+#define PREF_MONITOR_NOTE_OFF           (PREF_MONITOR_SYSEX+3)
+#define PREF_MONITOR_VELOCITY           (PREF_MONITOR_SYSEX+4)      // "after touch poly"
+#define PREF_MONITOR_PROGRAM_CHG        (PREF_MONITOR_SYSEX+5)
+#define PREF_MONITOR_AFTERTOUCH         (PREF_MONITOR_SYSEX+6)
+#define PREF_MONITOR_PITCHBEND          (PREF_MONITOR_SYSEX+7)
+
+// ftp specifics
+
+#define PREF_MONITOR_FTP                (PREF_MONITOR_SYSEX+8)
+
+#define PREF_MONITOR_PARSE_FTP_PATCHES  (PREF_MONITOR_FTP+0)
+#define PREF_MONITOR_FTP_NOTE_INFO      (PREF_MONITOR_FTP+1)
+#define PREF_MONITOR_FTP_TUNING_MSGS    (PREF_MONITOR_FTP+2)
+
+#define PREF_MONITOR_FTP_COMMANDS       (PREF_MONITOR_FTP+3)
+#define PREF_MONITOR_FTP_VALUES         (PREF_MONITOR_FTP+4)
+    // one or both of the above must be ON to see specific messages below
+
+#define PREF_MONITOR_FTP_POLY_MODE      (PREF_MONITOR_FTP+5)
+#define PREF_MONITOR_FTP_BEND_MODE      (PREF_MONITOR_FTP+6)
+
+#define PREF_MONITOR_FTP_VOLUME         (PREF_MONITOR_FTP+7)
+#define PREF_MONITOR_FTP_BATTERY        (PREF_MONITOR_FTP+8)
+#define PREF_MONITOR_FTP_SENSITIVITY    (PREF_MONITOR_FTP+9)
+    // includes both forms of FTP message
+#define PREF_MONITOR_KNOWN_FTP_COMMANDS     (PREF_MONITOR_FTP+10)
+#define PREF_MONITOR_UNKNOWN_FTP_COMMANDS   (PREF_MONITOR_FTP+11)
+
+#define PREF_MONITOR_CCS                (PREF_MONITOR_FTP+12)
+    // all other CC's (which should be displayed with standard midi names if known)
+#define PREF_MONITOR_EVERYTHING_ELSE    (PREF_MONITOR_CCS+1)
+    // general catch all
+
 
 
 
@@ -115,7 +185,7 @@
 //-----------------------
 
 
-#define NUM_EEPROM_USED        (PREF_MONITOR_FTP_BATTERY + 1)
+#define NUM_EEPROM_USED        (PREF_MONITOR_EVERYTHING_ELSE + 1)
 
 
 

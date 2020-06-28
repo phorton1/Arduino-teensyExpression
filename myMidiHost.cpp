@@ -1,5 +1,6 @@
 #include <myDebug.h>
 #include "myMidiHost.h"
+#include "prefs.h"
 #include "defines.h"
 #include "midiQueue.h"
 
@@ -22,41 +23,63 @@ void myMidiHostDevice::init()
 
 
 
+bool passFilter(uint32_t iii)
+{
+    return true;
+}
+
+
+
 // made virtual in USBHost_t36.h
 void myMidiHostDevice::rx_data(const Transfer_t *transfer)
 {
-    bool any = 0;
-    uint32_t len = (transfer->length - ((transfer->qtd.token >> 16) & 0x7FFF)) >> 2;
-    for (uint32_t i=0; i < len; i++)
+   uint32_t len = (transfer->length - ((transfer->qtd.token >> 16) & 0x7FFF)) >> 2;
+
+    if (len)
     {
-        uint32_t msg = rx_buffer[i];
-        if (msg)
+        bool any = 0;
+        bool spoof_ftp = getPref8(PREF_SPOOF_FTP);
+        uint8_t ftp_port = getPref8(PREF_FTP_PORT);
+
+        for (uint32_t i=0; i < len; i++)
         {
-            //===========================================================
-            // WRITE THE MESSAGE DIRECTLY TO THE TEENSY_DUINO MIDI DEVICE
-            //===========================================================
-
-            any = 1;
-            usb_midi_write_packed(msg);
-
-            // we just handle the mssages from the FTP controller cable 1
-            // as it is the one that has the active sense messages and the
-            // are completely duplicated on cable 0
-
-            if (msg & 0x10)
+            uint32_t msg = rx_buffer[i];
+            if (msg)
             {
-                // prh - set the high order bit of the "cable" to indicate
-                // this came from the host ...
+                //===========================================================
+                // WRITE THE MESSAGE DIRECTLY TO THE TEENSY_DUINO MIDI DEVICE
+                //===========================================================
+                // if spoofing, otherwise, let the filter decide
 
-                // msg |= HOST_CABLE_BIT;
+                if (spoof_ftp || passFilter(msg))
+                {
+                    any = 1;
+                    usb_midi_write_packed(msg);
+                }
+
+                //-------------------
+                // Enqueue message
+                //-------------------
+                // We enqueue the message if (a) the port has been selected for monitoring,
+                // or (b) if it is the ftp port
+
                 msg |= PORT_MASK_HOST;
-                enqueueProcess(msg);
+                int pindex = (msg >> 4) & PORT_INDEX_MASK;
+
+                if (getPref8(PREF_MONITOR_PORT0 + pindex) || (  // if monitoring the port, OR
+                    (ftp_port == FTP_PORT_HOST) &&              // if this is the PREF_FTP_PORT==1==Host, AND
+                     INDEX_CABLE(pindex)))                       // cable=1
+                // if (msg & 0x10)
+                {
+                    enqueueProcess(msg);
+                }
             }
         }
+
+        if (any)
+            usb_midi_flush_output();
     }
 
-    if (any)
-        usb_midi_flush_output();
     queue_Data_Transfer(rxpipe, rx_buffer, rx_size, this);
 }
 

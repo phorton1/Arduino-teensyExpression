@@ -118,7 +118,9 @@ void patchMidiHost::onButtonEvent(int row, int col, int event)
 	else if (num == PAD2_UP || num == PAD2_DOWN)
 	{
 		myIncDec(num==PAD2_UP ? 1 : -1, &dbg_command);
-		display(0,"setting dbg command to 0x%02x=%s",dbg_command,getFTPCommandName(dbg_command));
+		const char *name = getFTPCommandName(dbg_command);
+		if (!name) name = "unknown";
+		display(0,"setting dbg command to 0x%02x=%s",dbg_command,name);
 
 	}
 	else if (num == PAD2_LEFT || num == PAD2_RIGHT)
@@ -134,7 +136,9 @@ void patchMidiHost::onButtonEvent(int row, int col, int event)
 	}
 	else if (num == PAD2_SELECT)
 	{
-		display(0,"sending command(0x%02x=%s)  param(%02x)",dbg_command,getFTPCommandName(dbg_command),dbg_param);
+		const char *name = getFTPCommandName(dbg_command);
+		if (!name) name = "unknown";
+		display(0,"sending command(0x%02x=%s)  param(%02x)",dbg_command,name,dbg_param);
 		sendFTPCommandAndValue(dbg_command,dbg_param);
 	}
 	else if (num == 24)
