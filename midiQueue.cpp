@@ -513,7 +513,13 @@ void _processMessage(uint32_t i)
             s = "Note Off";
             most_recent_note_val = msg.b[2];
             most_recent_note_vel = msg.b[3];
-            color = ansi_color_light_blue;  // understood
+            if (i & PORT_MASK_PERFORM)
+            {
+                bg_color = ansi_color_bg_blue;
+                color = ansi_color_white;
+            }
+            else
+                color = ansi_color_light_blue;  // understood
             show_it = show_it && getPref8(PREF_MONITOR_NOTE_OFF);
         }
         else if (type == 0x09)
@@ -521,7 +527,13 @@ void _processMessage(uint32_t i)
             s = "Note On";
             most_recent_note_val = msg.b[2];
             most_recent_note_vel = msg.b[3];
-            color = ansi_color_light_red;
+            if (i & PORT_MASK_PERFORM)
+            {
+                bg_color = ansi_color_bg_red;
+                color = ansi_color_white;
+            }
+            else
+                color = ansi_color_light_red;
             show_it = show_it && getPref8(PREF_MONITOR_NOTE_ON);
         }
         else if (type == 0x0a)
@@ -549,7 +561,13 @@ void _processMessage(uint32_t i)
             value -= 8192;
             show_it = show_it && getPref8(PREF_MONITOR_PITCHBEND);
             if (show_it) sprintf(buf2,"value=%d",value);
-            color = ansi_color_light_grey;  // understood
+            if (i & PORT_MASK_PERFORM)
+            {
+                bg_color = ansi_color_bg_grey;
+                color = ansi_color_white;
+            }
+            else
+                color = ansi_color_light_grey;  // understood
         }
         else if (msg.isActiveSense())
         {

@@ -49,6 +49,7 @@
 #define PORT_MASK_HOST      0x40
 #define PORT_MASK_OUTPUT    0x20
 #define PORT_MASK_CABLE     0x10
+#define PORT_MASK_PERFORM   0x80
 
 #define PORT_INDEX_MASK             0x7
 #define PORT_INDEX_DUINO_INPUT0     0x0   // input from teensyDuino on cable 0

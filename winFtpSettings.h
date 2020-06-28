@@ -16,10 +16,8 @@
 #define FTP_SETTING_PERF_LAYER_TYPE       2
 #define FTP_SETTING_PERF_FILTER           3
 #define FTP_SETTING_PERF_FILTER_BENDS     4
-#define FTP_SETTING_THRU_MESSAGES         5
-#define FTP_SETTING_FILTERED_MESSAGES     6
-#define FTP_SETTING_GENERATED_MESSAGEES   7
-#define FTP_NUM_SETTINGS                  8
+#define FTP_SETTING_MONITOR_PERFORMANCE   5
+#define FTP_NUM_SETTINGS                  6
 
 class winFtpSettings : public expWindow
 {
@@ -27,7 +25,7 @@ class winFtpSettings : public expWindow
 
         winFtpSettings();
 
-        int getSetting(int i)   { return ftp_settings[i];}
+        static int getSetting(int i)   { return ftp_settings[i];}
 
 
     private:

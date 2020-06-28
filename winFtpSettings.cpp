@@ -21,12 +21,11 @@
 
 int winFtpSettings::ftp_settings[FTP_NUM_SETTINGS] = {
 	1,	// poly_mode
+	0,  // bend_mode
 	0,	// layer_type
-	0,	// perf_filter
+	1,	// perf_filter
 	0,	// filter_bends
-	1,	// show_thru
-	0,	// show filtred
-	1	// show generated
+	1,	// monitor performance
 };
 
 
@@ -93,7 +92,7 @@ void winFtpSettings::onButtonEvent(int row, int col, int event)
 			sendFTPCommandAndValue(FTP_CMD_POLY_MODE,ftp_poly_mode?0:1);
 				// wait for response to repaint
 		}
-		if (selected_item == FTP_SETTING_POLY_MODE)
+		if (selected_item == FTP_SETTING_BEND_MODE)
 		{
 			int i = (ftp_bend_mode + inc) % 4;
 			sendFTPCommandAndValue(FTP_CMD_SPLIT_NUMBER,0x01);
@@ -126,23 +125,21 @@ void winFtpSettings::onButtonEvent(int row, int col, int event)
 //------------------------------------------------------------
 
 #define TOP_Y     	   60
-#define LINE_HEIGHT    30
+#define LINE_HEIGHT    35
 #define LEFT_X    	   20
 #define LEFT_WIDTH     120
-#define RIGHT_X        380
-#define RIGHT_WIDTH    80
+#define RIGHT_X        360
+#define RIGHT_WIDTH    90
 
 
 const char *getItemName(int i)
 {
 	if (i==FTP_SETTING_POLY_MODE             ) return "Poly Mode";
-	if (i==FTP_SETTING_BEND_MODE             ) return "Pitchbend Mode";
+	if (i==FTP_SETTING_BEND_MODE             ) return "Bend Mode";
 	if (i==FTP_SETTING_PERF_LAYER_TYPE       ) return "Layer Type";
 	if (i==FTP_SETTING_PERF_FILTER           ) return "Perf Filter";
-	if (i==FTP_SETTING_PERF_FILTER_BENDS     ) return "Perf Filter_bends  ";
-	if (i==FTP_SETTING_THRU_MESSAGES         ) return "Show Thru";
-	if (i==FTP_SETTING_FILTERED_MESSAGES     ) return "Show Filtered";
-	if (i==FTP_SETTING_GENERATED_MESSAGEES   ) return "Show Generated";
+	if (i==FTP_SETTING_PERF_FILTER_BENDS     ) return "Filter Bends";
+	if (i==FTP_SETTING_MONITOR_PERFORMANCE   ) return "Send to Monitor";
 	return "unknown item";
 }
 
@@ -161,8 +158,8 @@ const char *getLayerTypeName(int i)
 const char *getBendModeName(int i)
 {
 	if (i == 1) return "Smooth";
-	if (i == 1) return "Stepped";
-	if (i == 1) return "Trigger";
+	if (i == 2) return "Stepped";
+	if (i == 3) return "Trigger";
 	return "Auto";
 }
 
@@ -185,7 +182,7 @@ void winFtpSettings::updateUI()	// draw
 {
 	__disable_irq();
 	ftp_settings[0] = ftp_poly_mode;
-	ftp_settings[0] = ftp_bend_mode;
+	ftp_settings[1] = ftp_bend_mode;
 	bool full_draw = draw_needed;
 	int sel_item = selected_item;
 	int last_sel = last_selected_item;
@@ -199,7 +196,7 @@ void winFtpSettings::updateUI()	// draw
 	{
 		if (full_draw)
 		{
-			mylcd.setFont(Arial_16_Bold);
+			mylcd.setFont(Arial_18_Bold);
 			mylcd.Set_Text_colour(TFT_YELLOW);
 			mylcd.Set_Text_Cursor(LEFT_X, TOP_Y + i*LINE_HEIGHT + 5);
 			mylcd.print(getItemName(i));
@@ -215,7 +212,7 @@ void winFtpSettings::updateUI()	// draw
 		{
 			last_value[i] = value;
 			int color = i == sel_item ? TFT_BLUE : 0;
-			mylcd.setFont(Arial_16_Bold);
+			mylcd.setFont(Arial_18);
 			mylcd.Fill_Rect(
 				RIGHT_X,
 				TOP_Y + i*LINE_HEIGHT,

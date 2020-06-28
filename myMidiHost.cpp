@@ -3,6 +3,7 @@
 #include "prefs.h"
 #include "defines.h"
 #include "midiQueue.h"
+#include "winFtpSettings.h"
 
 
 // #define HOST_CABLE_BIT  0x80
@@ -25,7 +26,55 @@ void myMidiHostDevice::init()
 
 bool passFilter(uint32_t iii)
 {
-    return true;
+    // don't pass em if filter is not on
+
+    msgUnion msg(iii);
+    int type = msg.getMsgType();
+    if (winFtpSettings::getSetting(FTP_SETTING_PERF_FILTER))        // filter is on
+    {
+        // only accept messages from cable 0
+
+        if (msg.isCable1())
+            return 0;
+
+        // only accept note on, note off, or pitchbends if the pref is cleared
+
+        bool filter_bends = winFtpSettings::getSetting(FTP_SETTING_PERF_FILTER_BENDS);
+        if (type!=0x08 && type!=0x09 && (type!=0x0E || filter_bends))
+            return 0;
+    }
+
+    // layers are independent of filter, though bends may be gone by now
+
+    int layer_type = winFtpSettings::getSetting(FTP_SETTING_PERF_LAYER_TYPE);
+    if (layer_type)
+    {
+        int channel = msg.getChannel() - 1;
+
+        if (type==0x0E && (channel != 0 && channel != layer_type))
+            return 0;
+
+        int new_channel = channel >= layer_type ? 1 : 0;
+        msg.i &= ~0x0f00;           // clear the old channel
+        msg.i |= new_channel << 8;  // set the new channel
+    }
+
+    // send it to the teensyduino
+
+    usb_midi_write_packed(msg.i);
+
+    // if "monitor performanc" pref is set
+    // enqueue it for display as PORT_INDEX_DUINO_OUTPUT0
+    // with the PORT_MASK_PERFORM flag to display it differently
+
+    if (winFtpSettings::getSetting(FTP_SETTING_MONITOR_PERFORMANCE))
+    {
+        msg.i &= ~PORT_MASK;                            // clear the old port
+        msg.i |= PORT_MASK_OUTPUT | PORT_MASK_PERFORM;  // output to teensyDuino0
+        enqueueProcess(msg.i);
+    }
+
+    return 1;   // flush the usb_midi buffer
 }
 
 
@@ -51,7 +100,7 @@ void myMidiHostDevice::rx_data(const Transfer_t *transfer)
                 //===========================================================
                 // if spoofing, otherwise, let the filter decide
 
-                if (spoof_ftp || passFilter(msg))
+                if (spoof_ftp)
                 {
                     any = 1;
                     usb_midi_write_packed(msg);
@@ -73,6 +122,14 @@ void myMidiHostDevice::rx_data(const Transfer_t *transfer)
                 {
                     enqueueProcess(msg);
                 }
+
+                //----------------------
+                // output performance
+                //----------------------
+
+                if (!spoof_ftp && passFilter(msg))
+                    any = 1;
+
             }
         }
 
@@ -82,6 +139,7 @@ void myMidiHostDevice::rx_data(const Transfer_t *transfer)
 
     queue_Data_Transfer(rxpipe, rx_buffer, rx_size, this);
 }
+
 
 
 
