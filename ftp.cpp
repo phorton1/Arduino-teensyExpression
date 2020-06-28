@@ -12,6 +12,9 @@ note_t *tuning_note = 0;
 
 int ftp_battery_level = -1;
 int ftp_sensitivity[NUM_STRINGS] = {-1,-1,-1,-1,-1,-1};
+int ftp_poly_mode = 1;
+
+
 uint8_t ftp_get_sensitivy_command_string_number = 0;
 
 const int  string_base_notes[6] = {0x40, 0x3b, 0x37, 0x32, 0x2d, 0x28};

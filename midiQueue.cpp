@@ -657,17 +657,21 @@ void _processMessage(uint32_t i)
                 uint8_t pending_command_byte = GET_COMMAND_VALUE(pending_command);
                 uint8_t pending_command_value_byte = GET_COMMAND_VALUE(pending_command_value);
 
-                    // get the 8bit "command" from the 32bit midi message
+                // get the 8bit "command" from the 32bit midi message
 
-                // we used to sniff out the commands from the FTP Editor
-                // and make sense of certain replies from the host based
-                // on the commands the Editor was sending.
+                if (command == FTP_CMD_POLY_MODE)
+                {
+                    if (is_ftp_controller)
+                    {
+                        if (show_it)
+                            sprintf(buf2,"%s %s setting poly_mode=%02x",cmd_or_reply,command_name,p2);
+                        ftp_poly_mode = p2;
+                    }
+                    else if (show_it)
+                        sprintf(buf2,"%s %s ",cmd_or_reply,command_name);
 
-                // Now we ONLY take responses from the for certain things
-                // (i.e. getSensitivity message) if we have explicitly asked,
-                // and are waiting for them.
-
-                if (command == FTP_CMD_BATTERY_LEVEL) // we can parse this one because it doesn't require extra knowledge
+                }
+                else if (command == FTP_CMD_BATTERY_LEVEL) // we can parse this one because it doesn't require extra knowledge
                 {
                     show_it = show_it && getPref8(PREF_MONITOR_FTP_BATTERY);
                     if (is_ftp_controller)
@@ -678,7 +682,6 @@ void _processMessage(uint32_t i)
                     }
                     else if (show_it)
                         sprintf(buf2,"%s %s ",cmd_or_reply,command_name);
-
                 }
                 else if (command == FTP_CMD_GET_SENSITIVITY)
                 {

@@ -3,7 +3,7 @@
 
 #include "expSystem.h"
 
-#define NUM_SENSITIVITY_ITEMS 10
+#define NUM_SENSITIVITY_ITEMS 9
 
 
 class winFtpSensitivity : public expWindow
@@ -38,7 +38,6 @@ class winFtpSensitivity : public expWindow
         int ftp_dynamic_range;
         int ftp_dynamic_offset;
         int ftp_touch_sensitivity;
-        int ftp_poly_mode;
 };
 
 

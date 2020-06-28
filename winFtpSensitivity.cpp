@@ -19,7 +19,6 @@
 #define ITEM_DYNAMIC_RANGE     6
 #define ITEM_DYNAMIC_OFFSET    7
 #define ITEM_TOUCH_SENSITIVITY 8
-#define ITEM_POLY_MODE          9
 
 
 #define BUTTON_TUNER  0
@@ -35,7 +34,6 @@ winFtpSensitivity::winFtpSensitivity()
 	ftp_dynamic_range = 20;
 	ftp_dynamic_offset = 10;
 	ftp_touch_sensitivity = 4;
-	ftp_poly_mode = 1;
 }
 
 
@@ -71,7 +69,6 @@ void winFtpSensitivity::begin(bool warm)
 	sendFTPCommandAndValue(FTP_CMD_DYNAMICS_SENSITIVITY,ftp_dynamic_range);
 	sendFTPCommandAndValue(FTP_CMD_DYNAMICS_OFFSET,ftp_dynamic_offset);
 	sendFTPCommandAndValue(FTP_CMD_TOUCH_SENSITIVITY,ftp_touch_sensitivity);
-	sendFTPCommandAndValue(FTP_CMD_POLY_MODE,ftp_poly_mode);
 
 	// normal initialization
 
@@ -88,7 +85,7 @@ void winFtpSensitivity::begin(bool warm)
 	theButtons.setButtonType(BUTTON_TUNER,		BUTTON_TYPE_CLICK);
 	theButtons.setButtonType(THE_SYSTEM_BUTTON,	BUTTON_TYPE_CLICK, 	LED_GREEN);
 
-	theButtons.setButtonType(20,			BUTTON_TYPE_TOGGLE, LED_CYAN, LED_ORANGE);
+	// theButtons.setButtonType(20,			BUTTON_TYPE_TOGGLE, LED_CYAN, LED_ORANGE);
 	theButtons.setButtonType(24,			BUTTON_TYPE_CLICK,	LED_PURPLE);
 
 	if (!ftp_poly_mode)
@@ -139,13 +136,6 @@ void winFtpSensitivity::onButtonEvent(int row, int col, int event)
 			if (ftp_touch_sensitivity > 9) ftp_touch_sensitivity = 9;
 			sendFTPCommandAndValue(FTP_CMD_TOUCH_SENSITIVITY,ftp_touch_sensitivity);
 		}
-		else if (selected_item == ITEM_POLY_MODE)
-		{
-			ftp_poly_mode = ftp_poly_mode ? 0 : 1;
-			sendFTPCommandAndValue(FTP_CMD_POLY_MODE,ftp_poly_mode);
-			theButtons.select(20,!ftp_poly_mode);
-			showLEDs();
-		}
 		else
 		{
 			int value = ftp_sensitivity[selected_item];
@@ -169,12 +159,12 @@ void winFtpSensitivity::onButtonEvent(int row, int col, int event)
 	}
 
 
-	else if (num == 20)
-	{
-		arrayedButton *pb = theButtons.getButton(row,col);
-		ftp_poly_mode = !pb->isSelected();
-		sendFTPCommandAndValue(FTP_CMD_POLY_MODE,ftp_poly_mode);
-	}
+	// else if (num == 20)
+	// {
+	// 	arrayedButton *pb = theButtons.getButton(row,col);
+	// 	ftp_poly_mode = !pb->isSelected();
+	// 	sendFTPCommandAndValue(FTP_CMD_POLY_MODE,ftp_poly_mode);
+	// }
 	else if (num == 24)
 	{
 		#if 1
@@ -275,13 +265,8 @@ void winFtpSensitivity::drawBox(int string, int box32, int vel16)
 // virtual
 void winFtpSensitivity::updateUI()	// draw
 {
-	bool full_draw = 0;
-	if (draw_needed)
-	{
-		full_draw = 1;
-		draw_needed = 0;
-
-	}
+	bool full_draw = draw_needed;
+	draw_needed = 0;
 
 	int vel[6];
 	int velocity[6];
@@ -332,8 +317,6 @@ void winFtpSensitivity::updateUI()	// draw
 
 	    mylcd.Set_Text_Cursor(SENS_LEFT,SENS_BOTTOM + 8);
 		mylcd.print("Touch Sens");
-	    mylcd.Set_Text_Cursor(SENS_LEFT,SENS_BOTTOM + 3 + SENS_ROW_Y_OFFSET);
-		mylcd.print("Poly Mode");
 	}
 
 	bool selection_changed = last_selected_item != selected_item;
@@ -344,7 +327,6 @@ void winFtpSensitivity::updateUI()	// draw
 			i == ITEM_DYNAMIC_RANGE ? ftp_dynamic_range :
 			i == ITEM_DYNAMIC_OFFSET ? ftp_dynamic_offset :
 			i == ITEM_TOUCH_SENSITIVITY ? ftp_touch_sensitivity :
-			i == ITEM_POLY_MODE ? ftp_poly_mode :
 			ftp_sensitivity[i] + 1;
 
 

@@ -71,6 +71,7 @@ class expWindow
 
 class winFtpTuner;
 class winFtpSensitivity;
+class winFtpSettings;
 
 
 class expSystem
@@ -104,6 +105,7 @@ class expSystem
 
         winFtpTuner *getFtpTuner()  { return m_ftp_tuner; }
         winFtpSensitivity *getFtpSensitivity() { return m_ftp_sensitivity; }
+        winFtpSettings *getFtpSettings() { return m_ftp_settings; }
 
     private:
 
@@ -134,6 +136,7 @@ class expSystem
 
         winFtpTuner *m_ftp_tuner;
         winFtpSensitivity *m_ftp_sensitivity;
+        winFtpSettings *m_ftp_settings;
 
 };
 

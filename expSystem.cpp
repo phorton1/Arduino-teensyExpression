@@ -18,6 +18,7 @@
 #include "patchMidiHost.h"
 #include "winFtpTuner.h"
 #include "winFtpSensitivity.h"
+#include "winFtpSettings.h"
 
 
 #define BATTERY_CHECK_TIME  30000
@@ -180,6 +181,7 @@ expSystem::expSystem()
 
 	m_ftp_tuner = 0;
 	m_ftp_sensitivity = 0;
+	m_ftp_settings = 0;
 }
 
 
@@ -205,6 +207,7 @@ void expSystem::begin()
 
     m_ftp_tuner = new winFtpTuner();
     m_ftp_sensitivity = new winFtpSensitivity();
+	m_ftp_settings = new winFtpSettings();
 
     theButtons.init();
 	thePedals.init();
@@ -450,7 +453,7 @@ void expSystem::buttonEvent(int row, int col, int event)
 		}
 		else
 		{
-			startModal(m_ftp_sensitivity);	// m_ftp_tuner);
+			startModal(m_ftp_settings);	// m_ftp_tuner);
 		}
 	}
 

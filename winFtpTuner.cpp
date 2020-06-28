@@ -7,7 +7,7 @@
 #include "ftp.h"
 #include "ftp_defs.h"
 #include "winFtpSensitivity.h"
-
+#include "winFtpSettings.h"
 
 #define BUTTON_SENSITIVITY   0
 
@@ -59,7 +59,7 @@ void winFtpTuner::onButtonEvent(int row, int col, int event)
 		// updateUI() gets called between these
 		// two calls.
 
-		theSystem.swapModal(theSystem.getFtpSensitivity(),0);
+		theSystem.swapModal(theSystem.getFtpSettings(),0);
 	}
 }
 
