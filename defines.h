@@ -3,6 +3,7 @@
 
 #define VERSION   "1.2"
 
+#define NUM_PORTS           8       // ports defined in midiQueue.h
 #define NUM_PEDALS          4
 #define NUM_BUTTON_COLS     5
 #define NUM_BUTTON_ROWS     5

@@ -22,7 +22,7 @@
 
 
 #define BATTERY_CHECK_TIME  30000
-
+#define MIDI_ACTIVITY_TIMEOUT 90
 #define HOOK_TUNER_TO_DEFAULT_BUTTON   1
 
 
@@ -199,6 +199,11 @@ void expSystem::begin()
     addPatch(new patchTest());
     addPatch(new patchMidiHost());
 
+	for (int i=0; i<NUM_PORTS; i++)
+	{
+		midi_activity[i] = millis();
+		last_midi_activity[i] = 0;
+	}
 	for (int i=0; i<m_num_patches; i++)
 		patch_names[i] = m_patches[i]->short_name();
 
@@ -492,6 +497,8 @@ void expSystem::critical_timer_handler()
 		// if we are monitoring the input port, or its the remote FTP
 
 		int pindex = (msg >> 4) & PORT_INDEX_MASK;
+		theSystem.midiActivity(pindex);
+
 		if (getPref8(PREF_MONITOR_PORT0 + pindex) || (  		// if monitoring the port, OR
 			(getPref8(PREF_FTP_PORT) == FTP_PORT_REMOTE) &&     // if this is the PREF_FTP_PORT==2==Remote, AND
 			INDEX_CABLE(pindex)))                       		// cable=1
@@ -536,18 +543,22 @@ void expSystem::timer_handler()
 //-------------------------------
 // battery indicator
 
-#define BATTERY_X       426
+#define BATTERY_X       435
 #define BATTERY_Y       12
 #define BATTERY_FRAME   2
 #define BATTERY_WIDTH   36
 #define BATTERY_HEIGHT  16
 
+#define INDICATOR_Y      	 	20
+#define INDICATOR_RADIUS  	  	5
+#define INDICATOR_X 			280
+#define INDICATOR_PAIR_SPACING  40
+#define INDICATOR_SPACING    	15
 
 
 void expSystem::updateUI()
 {
 	// for time being, modal windows absorb everything
-
 	if (m_num_modals)
 	{
 		getTopModalWindow()->updateUI();
@@ -560,13 +571,12 @@ void expSystem::updateUI()
 		battery_time = 0;
 	}
 
-	bool full_draw = 0;
-	if (draw_needed)
-	{
-		draw_needed = 0;
-		full_draw = 1;
 
-		// title
+	bool full_draw = draw_needed;
+	draw_needed = 0;
+
+	if (full_draw)	// title
+	{
 
         mylcd.setFont(Arial_16_Bold);
         mylcd.Set_Text_Cursor(10,10);
@@ -575,9 +585,18 @@ void expSystem::updateUI()
         mylcd.Set_Draw_color(TFT_YELLOW);
 	    mylcd.Draw_Line(0,36,mylcd.Get_Display_Width()-1,36);
 
-		//----------------------------------
-		//  battery indicator
-		//----------------------------------
+		// midi indicator frames
+
+        mylcd.Set_Draw_color(TFT_WHITE);
+		for (int i=0; i<NUM_PORTS; i++)
+		{
+			mylcd.Fill_Circle(
+				INDICATOR_X + (i/2)*INDICATOR_PAIR_SPACING + (i&1)*INDICATOR_SPACING,
+				INDICATOR_Y,
+				INDICATOR_RADIUS + 1);
+		}
+
+		//  battery indicator frame
 
 		mylcd.Fill_Rect(
 			BATTERY_X,
@@ -636,8 +655,50 @@ void expSystem::updateUI()
 	}
 
 
+	// MIDI INDICATORS
+	// remap from by output-cable  Di0,Di1,Do0,Do1,Hi0,Hi1,Ho0,Ho1
+	// to by cable-output:         Di0,Do0, Di1,Do1,  Hi0,Ho0, Hi1,Ho1
+
+	unsigned now = millis();
+	for (int cable_pair=0; cable_pair<NUM_PORTS/2; cable_pair++)
+	{
+		for (int out=0; out<2; out++)
+		{
+			#define INDEX_MASK_HOST     0x04
+			#define INDEX_MASK_OUTPUT   0x02
+			#define INDEX_MASK_CABLE    0x01
+
+			int i = ((cable_pair<<1)&INDEX_MASK_HOST) + (out*INDEX_MASK_OUTPUT) + (cable_pair&1);
+
+			bool midi_on =
+				now > midi_activity[i] &&
+				now < midi_activity[i] + MIDI_ACTIVITY_TIMEOUT;
+
+			if (full_draw ||  midi_on != last_midi_activity[i])
+			{
+				last_midi_activity[i] = midi_on;
+				int color = midi_on ?
+					out ? TFT_RED : TFT_GREEN :
+					0;
+
+				mylcd.Set_Draw_color(color);
+				mylcd.Fill_Circle(
+					INDICATOR_X + cable_pair*INDICATOR_PAIR_SPACING + out*INDICATOR_SPACING,
+					INDICATOR_Y,
+					INDICATOR_RADIUS);
+			}
+		}
+	}
+
 	// current "process" function called from timer_handler()
 	// dequeueProcess();
 
     getCurPatch()->updateUI();
 }
+
+
+// void expSystem::midiActivity(int port_num)
+// {
+// 	midi_activity[port_num] = millis();
+// 	display(0,"midiActivity(%d)",port_num);
+// }

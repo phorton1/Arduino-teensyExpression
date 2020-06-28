@@ -90,7 +90,7 @@ class expSystem
         int getCurPatchNum()        { return m_cur_patch_num; }
         int getPrevConfigNum()      { return m_prev_patch_num; }
         expWindow *getCurPatch()    { return m_patches[m_cur_patch_num]; }
-        expWindow *getPatch(int i) { return m_patches[i]; }
+        expWindow *getPatch(int i)  { return m_patches[i]; }
 
         void pedalEvent(int num, int val);
         void rotaryEvent(int num, int val);
@@ -103,9 +103,12 @@ class expSystem
         void endModal(expWindow *win, uint32_t param);
         expWindow *getTopModalWindow();
 
-        winFtpTuner *getFtpTuner()  { return m_ftp_tuner; }
-        winFtpSensitivity *getFtpSensitivity() { return m_ftp_sensitivity; }
-        winFtpSettings *getFtpSettings() { return m_ftp_settings; }
+        winFtpTuner *getFtpTuner()              { return m_ftp_tuner; }
+        winFtpSensitivity *getFtpSensitivity()  { return m_ftp_sensitivity; }
+        winFtpSettings *getFtpSettings()        { return m_ftp_settings; }
+
+        inline void midiActivity(int port_num)  { midi_activity[port_num]=millis(); }
+
 
     private:
 
@@ -137,6 +140,9 @@ class expSystem
         winFtpTuner *m_ftp_tuner;
         winFtpSensitivity *m_ftp_sensitivity;
         winFtpSettings *m_ftp_settings;
+
+        unsigned midi_activity[NUM_PORTS];
+        bool last_midi_activity[NUM_PORTS];
 
 };
 

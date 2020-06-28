@@ -62,6 +62,8 @@ bool passFilter(uint32_t iii)
     // send it to the teensyduino
 
     usb_midi_write_packed(msg.i);
+    theSystem.midiActivity(INDEX_MASK_OUTPUT);
+        // it IS port one, cable 0
 
     // if "monitor performanc" pref is set
     // enqueue it for display as PORT_INDEX_DUINO_OUTPUT0
@@ -95,6 +97,9 @@ void myMidiHostDevice::rx_data(const Transfer_t *transfer)
             uint32_t msg = rx_buffer[i];
             if (msg)
             {
+                int pindex = ((msg >> 4) & PORT_INDEX_MASK) | INDEX_MASK_HOST;
+                theSystem.midiActivity(pindex);
+
                 //===========================================================
                 // WRITE THE MESSAGE DIRECTLY TO THE TEENSY_DUINO MIDI DEVICE
                 //===========================================================
@@ -104,6 +109,7 @@ void myMidiHostDevice::rx_data(const Transfer_t *transfer)
                 {
                     any = 1;
                     usb_midi_write_packed(msg);
+                    theSystem.midiActivity(pindex & ~INDEX_MASK_HOST);
                 }
 
                 //-------------------
@@ -113,8 +119,6 @@ void myMidiHostDevice::rx_data(const Transfer_t *transfer)
                 // or (b) if it is the ftp port
 
                 msg |= PORT_MASK_HOST;
-                int pindex = (msg >> 4) & PORT_INDEX_MASK;
-
                 if (getPref8(PREF_MONITOR_PORT0 + pindex) || (  // if monitoring the port, OR
                     (ftp_port == FTP_PORT_HOST) &&              // if this is the PREF_FTP_PORT==1==Host, AND
                      INDEX_CABLE(pindex)))                       // cable=1

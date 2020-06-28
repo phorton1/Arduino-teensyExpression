@@ -5,6 +5,7 @@
 #include "ftp.h"
 #include "ftp_defs.h"
 #include "myMidiHost.h"
+#include "expSystem.h"
 
 
 #define MAX_PROCESS_QUEUE   8192
@@ -100,6 +101,7 @@ void mySendDeviceProgramChange(uint8_t prog_num, uint8_t channel)
         0xC0 | (channel-1),
         prog_num,
         0);
+    theSystem.midiActivity(INDEX_MASK_OUTPUT);   // it IS port #2
     enqueueProcess(msg.i);
 }
 
@@ -111,6 +113,7 @@ void mySendDeviceControlChange(uint8_t cc_num, uint8_t value, uint8_t channel)
         0xB0 | (channel-1),
         cc_num,
         value);
+    theSystem.midiActivity(INDEX_MASK_OUTPUT);   // it IS port #2
     enqueueProcess(msg.i);
 }
 
@@ -195,6 +198,7 @@ void sendPendingCommand()
                 8,
                 1);
 
+            theSystem.midiActivity(INDEX_MASK_OUTPUT | INDEX_MASK_CABLE);   // it IS port #3
             enqueueProcess(pending_command | PORT_MASK_OUTPUT);
             enqueueProcess(pending_command_value | PORT_MASK_OUTPUT);
         }
@@ -202,6 +206,7 @@ void sendPendingCommand()
         {
             midi_host.write_packed(pending_command);
             midi_host.write_packed(pending_command_value);
+            theSystem.midiActivity(INDEX_MASK_HOST | INDEX_MASK_OUTPUT | INDEX_MASK_CABLE);   // it IS port #7
             enqueueProcess(pending_command | PORT_MASK_HOST | PORT_MASK_OUTPUT);
             enqueueProcess(pending_command_value | PORT_MASK_HOST | PORT_MASK_OUTPUT);
         }

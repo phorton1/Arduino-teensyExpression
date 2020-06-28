@@ -69,6 +69,8 @@
 #define INDEX_IS_OUTPUT(i)     (i & INDEX_MASK_OUTPUT)
 #define INDEX_CABLE(i)         (i & INDEX_MASK_CABLE)
 
+#define PORT_OF_MSG(i)       ((i>>4) & PORT_MASK))
+
 
 
 class msgUnion

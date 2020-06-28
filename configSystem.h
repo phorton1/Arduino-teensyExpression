@@ -18,8 +18,8 @@ class configSystem : public expWindow
 
     private:
 
-        virtual const char *name()          { return "SYSTEM CONFIGURATION"; }
-        virtual const char *short_name()    { return "Sys Config"; }
+        virtual const char *name()          { return "SYSTEM SETTINGS"; }
+        virtual const char *short_name()    { return "Sys Settings"; }
 
         virtual void begin(bool warm);
         virtual void updateUI();
