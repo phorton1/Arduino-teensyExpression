@@ -85,10 +85,20 @@ void createOptions()
 		new configOption(pedals,"Configure Pedal3 (Wah)",	0,PREF_NONE,configPedal);
 		new configOption(pedals,"Configure Pedal4 (Guitar)",	0,PREF_NONE,configPedal);
 
+		configOption *monitor = new configOption(rootOption,"Midi Monitor", 0,  PREF_MIDI_MONITOR);
+		new configOption(monitor,"Midi Monitor",	0,	PREF_MIDI_MONITOR);
+		new configOption(monitor,"Sysex",			0,	PREF_MONITOR_SYSEX);
+		new configOption(monitor,"Active Sense",	0,	PREF_MONITOR_ACTIVESENSE);
+		new configOption(monitor,"Perf CCs",		0,	PREF_MONITOR_PERFORMANCE_CCS);
+		new configOption(monitor,"Ftp Tuning",		0,	PREF_MONITOR_FTP_TUNING_MSGS);
+		new configOption(monitor,"Ftp Note Info",	0,	PREF_MONITOR_FTP_NOTE_INFO);
+		new configOption(monitor,"Ftp Volume",		0,	PREF_MONITOR_FTP_VOLUME);
+		new configOption(monitor,"Ftp Battery",		0,	PREF_MONITOR_FTP_BATTERY);
+
 		configOption *system = new configOption(rootOption,"System");
+		new configOption(system,"Debug Port",	OPTION_TYPE_NEEDS_REBOOT,	PREF_DEBUG_PORT);
 		new configOption(system,"Calibrate Touch");
 
-		new configOption(rootOption,"Debug Port",	OPTION_TYPE_NEEDS_REBOOT,	PREF_DEBUG_PORT);
 		new configOption(rootOption,"Factory Reset",OPTION_TYPE_FACTORY_RESET);
 
 	}

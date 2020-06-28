@@ -15,6 +15,7 @@ const char **pref_strings[NUM_EEPROM_USED];
 
 const char *off_on[]                  = {"Off","On"};
 const char *off_usb_serial[]          = {"Off","USB","Serial"};
+const char *off_debug_usb_serial[]    = {"Off","Debug Port","USB","Serial"};
 const char *default_off_usb_serial[]  = {"default","Off","USB","Serial"};
 const char *off_host_remote[]         = {"Off","Host","Remote"};
 const char *off_on_detail[]           = {"Off","On","Detail"};
@@ -57,40 +58,18 @@ void setDefaultPrefs()
 
     _setDefaultPref8(PREF_PATCH_NUM,         0,pref_max[PREF_PATCH_NUM], 1, pref_strings[PREF_PATCH_NUM]);
         // 0..0 - default(1) .. better be some patches!
+    _setDefaultPref8(PREF_DEBUG_PORT,        0,2,   1,  off_usb_serial);            // off, USB, Serial - default(USB)
+    _setDefaultPref8(PREF_SPOOF_FTP,         0,1,   0,  off_on);                    // off, on - default(off)
+    _setDefaultPref8(PREF_FTP_PORT,          0,2,   1,  off_host_remote);           // off, Host, Remote, default(Host)
 
-    _setDefaultPref8(PREF_DEBUG_PORT,        0,2,   1,  off_usb_serial);           // off, USB, Serial - default(USB)
-    _setDefaultPref8(PREF_SPOOF_FTP,         0,1,   0,  off_on);                   // off, on - default(off)
-    _setDefaultPref8(PREF_FTP_PORT,          0,2,   1,  off_host_remote);          // off, Host, Remote, default(Host)
-
-    _setDefaultPref8(PREF_FTP_TOUCH_SENS,    0,9,   4);                            // 0..9 - default(4)
-    _setDefaultPref8(PREF_FTP_DYN_RANGE,     0,10,  10);                           // 0..10 - default(10) - 0x0A..0x14 (10..20) default(2) weird - we map to 0..10, default(10)
-    _setDefaultPref8(PREF_FTP_DYN_OFFSET,    0,20,  10);                          // 0..20 - default(10)
-
-    _setDefaultPref8(PREF_PERF_FILTER,       0,1,   0,  off_on);     // off, on - default(off), filters all but notes and bends from channel 0
-    _setDefaultPref8(PREF_PERF_FILTER_BENDS, 0,1,   0,  off_on);     // off, on - default(off), filters bends too.
-
-    _setDefaultPref8(DEFAULT_PREF_MONITOR,            0,2,  1,  off_usb_serial);  // off, USB, Serial, 255=default    default(USB)
-    _setDefaultPref8(DEFAULT_PREF_SHOW_FILTERED,      0,1,  0,  off_on);          // off, on                 default(off)
-    _setDefaultPref8(DEFAULT_PREF_SYSEX,              0,2,  2,  off_on_detail);   // off, on, Detail         default(1==Detail)
-    _setDefaultPref8(DEFAULT_PREF_ACTIVESENSE,        0,1,  0,  off_on);          // off, on                 default(0==off)
-    _setDefaultPref8(DEFAULT_PREF_PERFORMANCE_CCS,    0,1,  1,  off_on);          // off, on,                default(1=on)
-    _setDefaultPref8(DEFAULT_PREF_FTP_TUNING_MSGS,    0,1,  1,  off_on);          // off, on                 default(1==on)
-    _setDefaultPref8(DEFAULT_PREF_FTP_NOTE_INFO,      0,1,  1,  off_on);          // off, on                 default(1==on)
-    _setDefaultPref8(DEFAULT_PREF_FTP_VOLUME,         0,1,  1,  off_on);          // off, on                 default(1==on)
-    _setDefaultPref8(DEFAULT_PREF_FTP_BATTERY,        0,1,  1,  off_on);          // off, on                 default(1==on)
-
-    for (int p=0; p<NUM_MIDI_PORTS; p++)
-    {
-        _setDefaultPref8(PORT_PREF_MONITOR(p),        -1,2, 1,  default_off_usb_serial);  // 255=default, off, USB, Serial, 255=default
-        _setDefaultPref8(PORT_PREF_SHOW_FILTERED(p),   0,1, 0,  off_on);          // off, on                 default(off)
-        _setDefaultPref8(PORT_PREF_SYSEX(p),           0,2, 2,  off_on_detail);   // off, on, Detail         default(1==Detail)
-        _setDefaultPref8(PORT_PREF_ACTIVESENSE(p),     0,1, 0,  off_on);          // off, on                 default(0==off)
-        _setDefaultPref8(PORT_PREF_PERFORMANCE_CCS(p), 0,1, 1,  off_on);          // off, on,                default(1=on)
-        _setDefaultPref8(PORT_PREF_FTP_TUNING_MSGS(p), 0,1, 1,  off_on);          // off, on                 default(1==on)
-        _setDefaultPref8(PORT_PREF_FTP_NOTE_INFO(p),   0,1, 1,  off_on);          // off, on                 default(1==on)
-        _setDefaultPref8(PORT_PREF_FTP_VOLUME(p),      0,1, 1,  off_on);          // off, on                 default(1==on)
-        _setDefaultPref8(PORT_PREF_FTP_BATTERY(p),     0,1, 1,  off_on);          // off, on                 default(1==on)
-    }
+    _setDefaultPref8(PREF_MIDI_MONITOR,            0,2,  1,  off_debug_usb_serial); // off, USB, Serial, 255=default    default(USB)
+    _setDefaultPref8(PREF_MONITOR_SYSEX,           0,2,  2,  off_on_detail);        // off, on, Detail         default(1==Detail)
+    _setDefaultPref8(PREF_MONITOR_ACTIVESENSE,     0,1,  0,  off_on);               // off, on                 default(0==off)
+    _setDefaultPref8(PREF_MONITOR_PERFORMANCE_CCS, 0,1,  1,  off_on);               // off, on,                default(1=on)
+    _setDefaultPref8(PREF_MONITOR_FTP_TUNING_MSGS, 0,1,  1,  off_on);               // off, on                 default(1==on)
+    _setDefaultPref8(PREF_MONITOR_FTP_NOTE_INFO,   0,1,  1,  off_on);               // off, on                 default(1==on)
+    _setDefaultPref8(PREF_MONITOR_FTP_VOLUME,      0,1,  1,  off_on);               // off, on                 default(1==on)
+    _setDefaultPref8(PREF_MONITOR_FTP_BATTERY,     0,1,  1,  off_on);               // off, on                 default(1==on)
 
     for (int i=0; i<NUM_PEDALS; i++)
     {
@@ -282,17 +261,4 @@ void setPref16(int pref, uint16_t val)
     uint16_t *p0 = (uint16_t *)&pref_cache[pref];
     uint16_t *p1 = (uint16_t *)&prefs[pref];
     *p0 = *p1 = val;
-}
-
-
-//extern
-uint8_t portMonitorPref(int p, int off)
-    // returns the preference setting for a port
-    // defering to the default settings if the port
-    // has it's main pref set to "default"
-{
-    uint8_t val = PORT_PREF_MONITOR(p);
-    if (val == 255)
-        return getPref8(DEFAULT_PREF_MONITOR + off);
-    return getPref8(PORT_PREF_MONITOR(p) + off);
 }

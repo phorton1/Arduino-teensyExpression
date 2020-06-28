@@ -14,17 +14,17 @@
 
 // display filters
 
-int  showSysex = 2;
-bool showActiveSense = 0;
-bool showTuningMessages = 1;
-bool showNoteInfoMessages = 1;
-    // Has a hard time running from the timer_handler()
-    // with all of the serial output, FTP barfs often.
-    // Especially with showSysex == 2
-bool showVolumeLevel = 1;
-bool showBatteryLevel = 1;
-    // useful to turn these off while trying to debug other messages
-bool showPerformanceCCs = 1;
+// int  showSysex = 2;
+// bool showActiveSense = 0;
+// bool showTuningMessages = 1;
+// bool showNoteInfoMessages = 1;
+//     // Has a hard time running from the timer_handler()
+//     // with all of the serial output, FTP barfs often.
+//     // Especially with showSysex == 2
+// bool showVolumeLevel = 1;
+// bool showBatteryLevel = 1;
+//     // useful to turn these off while trying to debug other messages
+// bool showPerformanceCCs = 1;
 
 
 // queues
@@ -379,10 +379,9 @@ void _processMessage(uint32_t i)
 
     // short ending on active sense filter
 
-    if (msg.isActiveSense() && !showActiveSense)
+    if (msg.isActiveSense() && !getPref8(PREF_MONITOR_ACTIVESENSE))
         return;
 
-    bool show_it = 1;
     char buf2[100] = {0};
     const char *s = "unknown";
     int type = msg.getMsgType();
@@ -390,6 +389,12 @@ void _processMessage(uint32_t i)
     const char *port_name = portName(pindex);
     bool is_ftp_port = isFtpPort(pindex);
     bool is_ftp_controller = isFtpController(pindex);
+    int monitor = getPref8(PREF_MIDI_MONITOR);   // off, DebugPort, USB, Serial   default(DebugPort)
+    Stream *out_stream =
+        monitor == 3 ? &Serial3 :
+        monitor == 2 ? &Serial :
+        monitor == 1 ? dbgSerial : 0;
+    bool show_it = out_stream;
 
     // colors
     //    sysex and performance stuff comes out in ligh_grey
@@ -443,24 +448,30 @@ void _processMessage(uint32_t i)
             (*buflen)++;
         }
 
-        if (is_done  && sysex_buffer[pindex][*buflen-1] != 0xf7)
-            warning(0,"sysex does not end with F7",0);
-
-        if (is_done && showSysex && dbgSerial)
+        if (is_done)
         {
-            sprintf(buf2,"\033[%d;%dm %s(%d,--)      sysex len=%d",
-                color,
-                bg_color,
-                port_name,
-                INDEX_CABLE(pindex),
-                sysex_buflen[pindex]);
-            dbgSerial->println(buf2);
-            if (showPatch(pindex,sysex_buffer[pindex],sysex_buflen[pindex]) ||
-                showSysex == 2)
-                display_bytes_long(0,0,sysex_buffer[pindex],sysex_buflen[pindex]);
+            if (sysex_buffer[pindex][*buflen-1] != 0xf7)
+                warning(0,"sysex does not end with F7",0);
 
-            ;
-        }
+            int show_sysex = getPref8(PREF_MONITOR_SYSEX);
+            if (out_stream && show_sysex)
+            {
+                sprintf(buf2,"\033[%d;%dm %s(%d,--)      sysex len=%d",
+                    color,
+                    bg_color,
+                    port_name,
+                    INDEX_CABLE(pindex),
+                    sysex_buflen[pindex]);
+                out_stream->println(buf2);
+
+                // if (showPatch(pindex,sysex_buffer[pindex],sysex_buflen[pindex]) ||
+                if (show_sysex == 2)
+                {
+                    display_bytes_long(0,0,sysex_buffer[pindex],sysex_buflen[pindex],out_stream);
+                }
+
+            }   // show_sysex
+        }   // is_done
 
         return;
     }
@@ -483,8 +494,6 @@ void _processMessage(uint32_t i)
             most_recent_note_val = msg.b[2];
             most_recent_note_vel = msg.b[3];
             color = ansi_color_light_red;
-            // color = ansi_color_red;
-            // bg_color = ansi_color_bg_white;
         }
         else if (type == 0x0a)
         {
@@ -506,7 +515,7 @@ void _processMessage(uint32_t i)
             s = "Pitch Bend";
             int value = p1 + (p2 << 7);
             value -= 8192;
-            sprintf(buf2,"value=%d",value);
+            if (show_it) sprintf(buf2,"value=%d",value);
             color = ansi_color_light_grey;  // understood
         }
         else if (msg.isActiveSense())
@@ -520,7 +529,7 @@ void _processMessage(uint32_t i)
         else if (type == 0x0b)
         {
             s = "ControlChange";
-            show_it = showPerformanceCCs || msg.getChannel() == 8;
+            show_it = show_it && (getPref8(PREF_MONITOR_PERFORMANCE_CCS) || msg.getChannel() == 8);
             const char *cmd_or_reply = is_ftp_controller ?
                 "reply" : "command";
 
@@ -532,20 +541,12 @@ void _processMessage(uint32_t i)
             if (is_ftp_controller && p1 == FTP_NOTE_INFO)    // 0x1e
             {
                 s = "NoteInfo";
-                show_it = showNoteInfoMessages;
+                show_it = show_it && getPref8(PREF_MONITOR_FTP_NOTE_INFO);
 
                 note_t *note = 0;
                 uint8_t string = p2>>4;
                 uint8_t vel = p2 & 0x0f;
                 color = most_recent_note_vel ? ansi_color_light_red : ansi_color_light_blue;
-
-                #if 0
-                    if (!most_recent_note_val)
-                        warning(0,"NoteInfo (B7 1E xy) not following a note!!",0);
-                    if (((bool)vel) != ((bool)most_recent_note_vel))
-                        warning(0,"expected NoteInfo (B7 1E %02x) vel(%02x) to correspond to most_recent_note_vel(%02x)",
-                            p2,vel,most_recent_note_vel);
-                #endif
 
                 if (most_recent_note_vel)
                 {
@@ -561,7 +562,8 @@ void _processMessage(uint32_t i)
 
                 most_recent_note_vel = 0;
                 most_recent_note_val = 0;
-                sprintf(buf2,"string=%d fret=%d vel=%d",string,note?note->fret:0,vel);
+                if (show_it)
+                    sprintf(buf2,"string=%d fret=%d vel=%d",string,note?note->fret:0,vel);
             }
 
             //-----------------------
@@ -574,7 +576,7 @@ void _processMessage(uint32_t i)
 
                 // hmm ...
 
-                show_it = showTuningMessages;
+                show_it = show_it && getPref8(PREF_MONITOR_FTP_TUNING_MSGS);
 
                 if (p1 == FTP_SET_TUNING)   // 0x1D
                 {
@@ -593,9 +595,11 @@ void _processMessage(uint32_t i)
 
                 // 0x00 = -40,  0x40 == 0, 0x80 == +40
                 int tuning = ((int) p2) - 0x40;      // 40 == 0,  0==-
-                sprintf(buf2,"tuning=%d",tuning);
                 if (tuning_note)
                     tuning_note->tuning = tuning;
+                if (show_it)
+                    sprintf(buf2,"tuning=%d",tuning);
+
             }
 
             //================================================================
@@ -640,9 +644,9 @@ void _processMessage(uint32_t i)
                 sprintf(buf2,"%s %s",cmd_or_reply,getFTPCommandName(p2));
 
                 if (p2 == FTP_CMD_BATTERY_LEVEL)
-                    show_it = showBatteryLevel;
+                    show_it = show_it && getPref8(PREF_MONITOR_FTP_BATTERY);
                 else if (p2 == FTP_CMD_VOLUME_LEVEL)
-                    show_it = showVolumeLevel;
+                    show_it = show_it && getPref8(PREF_MONITOR_FTP_VOLUME);
             }
             else if (is_ftp_port && p1 == FTP_COMMAND_VALUE)
             {
@@ -665,13 +669,14 @@ void _processMessage(uint32_t i)
 
                 if (command == FTP_CMD_BATTERY_LEVEL) // we can parse this one because it doesn't require extra knowledge
                 {
-                    show_it = showBatteryLevel;
+                    show_it = show_it && getPref8(PREF_MONITOR_FTP_BATTERY);
                     if (is_ftp_controller)
                     {
-                        sprintf(buf2,"%s %s setting battery_level=%02x",cmd_or_reply,command_name,p2);
+                        if (show_it)
+                            sprintf(buf2,"%s %s setting battery_level=%02x",cmd_or_reply,command_name,p2);
                         ftp_battery_level = p2;
                     }
-                    else
+                    else if (show_it)
                         sprintf(buf2,"%s %s ",cmd_or_reply,command_name);
 
                 }
@@ -682,10 +687,11 @@ void _processMessage(uint32_t i)
 
                     if (is_ftp_controller && pending_command_byte == FTP_CMD_GET_SENSITIVITY)
                     {
-                        sprintf(buf2,"%s %s setting string_sensitivity[%d]=%02x",cmd_or_reply,command_name,pending_command_value_byte,p2);
+                        if (show_it)
+                            sprintf(buf2,"%s %s setting string_sensitivity[%d]=%02x",cmd_or_reply,command_name,pending_command_value_byte,p2);
                         ftp_sensitivity[pending_command_value_byte] = p2;
                     }
-                    else
+                    else if (show_it)
                     {
                         // we can't parse this one because it requires extra knowledge
                         sprintf(buf2,"%s %s %s=%02x",cmd_or_reply,command_name,is_ftp_controller?"level":"string",p2);
@@ -693,19 +699,19 @@ void _processMessage(uint32_t i)
                 }
                 else if (command == FTP_CMD_VOLUME_LEVEL)
                 {
-                    show_it = showVolumeLevel;
+                    show_it = show_it && getPref8(PREF_MONITOR_FTP_VOLUME);
                 }
                 else if (command == FTP_CMD_SET_SENSITIVITY)  // we can parse this one because it doesn't require extra knowledge
                 {
                     int string = p2 >> 4;
                     int level  = p2 & 0xf;
-                    sprintf(buf2,"%s %s setting string_sensitivity[%d]=%d",cmd_or_reply,command_name,string,level);
                     if (is_ftp_controller)
                     {
-                        sprintf(buf2,"%s %s setting string_sensitivity[%d]=%d",cmd_or_reply,command_name,string,level);
+                        if (show_it)
+                            sprintf(buf2,"%s %s setting string_sensitivity[%d]=%d",cmd_or_reply,command_name,string,level);
                         ftp_sensitivity[string] = level;
                     }
-                    else
+                    else if (show_it)
                     {
                         sprintf(buf2,"%s %s string[%d]=%d",cmd_or_reply,command_name,string,level);
                     }
@@ -727,13 +733,12 @@ void _processMessage(uint32_t i)
             else if (0)
             {
                 color = ansi_color_light_grey;  // understood
-
             }
 
         }   // 0xB0 (controller) messages
 
 
-        if (show_it && dbgSerial)
+        if (show_it && out_stream)
         {
             char buf[200];
             sprintf(buf,"\033[%d;%dm %s(%d,%2d)  %02X  %-16s  %02x  %02x  %s",
@@ -750,11 +755,11 @@ void _processMessage(uint32_t i)
 
             #if 1
                 // putty fix for colors background colors wrapping
-                dbgSerial->print(buf);
-                dbgSerial->print("\033[37;40m");
-                dbgSerial->println();
+                out_stream->print(buf);
+                out_stream->print("\033[37;40m");
+                out_stream->println();
             #else
-                dbgSerial->println(buf);
+                out_stream->println(buf);
             #endif
 
         }   // show_it

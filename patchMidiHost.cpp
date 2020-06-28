@@ -23,9 +23,6 @@
 #define PAD2_SELECT  18
 
 
-
-
-
 //------------------------------------------------------------
 // life cycle
 //------------------------------------------------------------
@@ -82,11 +79,6 @@ void patchMidiHost::begin(bool warm)
 // virtual
 void patchMidiHost::end()
 {
-	showTuningMessages = 1;
-	showNoteInfoMessages = 1;
-	showVolumeLevel = 1;
-	showBatteryLevel = 1;
-	showPerformanceCCs = 1;
 }
 
 
@@ -163,23 +155,6 @@ void patchMidiHost::onButtonEvent(int row, int col, int event)
 
 			// display(0,"lcd ID=%08x",mylcd.Read_ID());
 			mylcd.dim();
-
-			if (showTuningMessages)
-			{
-				showTuningMessages = 0;
-				showNoteInfoMessages = 0;
-				showVolumeLevel = 0;
-				showBatteryLevel = 0;
-				showPerformanceCCs = 0;
-			}
-			else
-			{
-				showTuningMessages = 1;
-				showNoteInfoMessages = 1;
-				showVolumeLevel = 1;
-				showBatteryLevel = 1;
-				showPerformanceCCs = 1;
-			}
 		#endif
 	}
 }
