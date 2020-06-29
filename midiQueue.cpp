@@ -107,7 +107,7 @@ void mySendDeviceProgramChange(uint8_t prog_num, uint8_t channel)
 
 void mySendDeviceControlChange(uint8_t cc_num, uint8_t value, uint8_t channel)
 {
-    usbMIDI.sendProgramChange(cc_num, value, channel);
+    usbMIDI.sendControlChange(cc_num, value, channel);
     msgUnion msg(
         0x0B | PORT_MASK_OUTPUT,
         0xB0 | (channel-1),

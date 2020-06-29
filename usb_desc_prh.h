@@ -51,7 +51,7 @@
 // prh - doesnt work
 
 #define VENDOR_ID		        0x16C0
-#define PRODUCT_ID		        0x0489
+#define PRODUCT_ID		        0x0289  // changed from 489 2020-06-25
 #define BCD_DEVICE		        0x0211
 #define MANUFACTURER_NAME	    {'h','a','r','m','o','n','i','c','S','u','b','s','y','t','e','m','s'}    // prh changed
 #define MANUFACTURER_NAME_LEN	17
