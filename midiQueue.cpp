@@ -302,58 +302,6 @@ void dequeueProcess()
 }
 
 
-// patch display
-
-uint8_t patch_sig[6] = {0xF0, 0x00, 0x01, 0x6E, 0x01, 0x21};
-
-
-bool showPatch(
-    Stream *out_stream,
-    int color,
-    int bg_color,
-    bool is_ftp_controller,
-    uint8_t *patch_buf,
-    uint32_t buflen)
-    // returns true if there was an error
-{
-    uint8_t *p = patch_buf;
-    patch_sig[5] = is_ftp_controller ? 0x21 : 0x41;
-    if (buflen != 142) return false;      // patches are 42
-
-    for (int i=0; i<6; i++)
-    {
-        if (*p != patch_sig[i])
-        {
-            out_stream->printf("\033[%d;%dm    sysex of 142 that does not match patch_sig at byte(%d) sig(%02x) != patch(%02x)\n\r",
-                ansi_color_yellow,
-                ansi_color_black,
-                i,patch_sig[i],*p);
-            return true;
-        }
-        p++;
-    }
-
-    uint8_t bank_num = *p++;
-    uint8_t patch_num = *p++;
-    out_stream->printf("\033[%d;%dm    PATCH BANK(%d) PATCH(%d)\n\r",
-            color,bg_color,bank_num,patch_num);
-    if (bank_num > 1) return false;
-
-    p += 8;     // move to touch sensitivity
-    uint8_t touch_sense = *p;
-
-    p += 2;     // move to first split section
-    p += 6;     // move to dyn_sense
-
-    uint8_t dyn_sense = *p++;
-    uint8_t dyn_off  = *p++;
-
-    out_stream->printf("\033[%d;%dm        touch_sens=%d   dyn_sense=0x%02x  dyn_off=0x%02x\n\r",
-        color,bg_color,touch_sense,dyn_sense,dyn_off);
-
-    return false;
-}
-
 
 
 // port classification for _processOMessageg;
@@ -390,6 +338,89 @@ bool isFtpController(int idx)
 }
 
 
+//-------------------------------
+// standard controller names
+//-------------------------------
+
+const char *getStandardCCName(int i)
+   // from http://www.nortonmusic.com/midi_cc.html
+{
+    if (i==0  ) return "Bank Select (MSB)";
+    if (i==1  ) return "Modulation Wheel";
+    if (i==2  ) return "Breath controller";
+    if (i==4  ) return "Foot Pedal (MSB)";
+    if (i==5  ) return "Portamento Time (MSB)";
+    if (i==6  ) return "Data Entry (MSB)";
+    if (i==7  ) return "Volume (MSB)";
+    if (i==8  ) return "Balance (MSB)";
+    if (i==10 ) return "Pan position (MSB)";
+    if (i==11 ) return "Expression (MSB)";
+    if (i==12 ) return "Effect Control 1 (MSB)";
+    if (i==13 ) return "Effect Control 2 (MSB)";
+    if (i==16 ) return "General Purpose Slider 1";
+    if (i==17 ) return "Knob 1 or General Purpose Slider 2";
+    if (i==18 ) return "General Purpose Slider 3";
+    if (i==19 ) return "Knob 2 General Purpose Slider 4";
+    if (i==20 ) return "Knob 3";
+    if (i==21 ) return "Knob 4";
+    if (i==32 ) return "Bank Select (LSB) (see cc0)";
+    if (i==33 ) return "Modulation Wheel (LSB)";
+    if (i==34 ) return "Breath controller (LSB)";
+    if (i==36 ) return "Foot Pedal (LSB)";
+    if (i==37 ) return "Portamento Time (LSB)";
+    if (i==38 ) return "Data Entry (LSB)";
+    if (i==39 ) return "Volume (LSB)";
+    if (i==40 ) return "Balance (LSB)";
+    if (i==42 ) return "Pan position (LSB)";
+    if (i==43 ) return "Expression (LSB)";
+    if (i==44 ) return "Effect Control 1 (LSB)";
+    if (i==45 ) return "Effect Control 2 (LSB)";
+    if (i==64 ) return "Hold Pedal (on/off)";
+    if (i==65 ) return "Portamento (on/off)";
+    if (i==66 ) return "Sustenuto Pedal (on/off)";
+    if (i==67 ) return "Soft Pedal (on/off)";
+    if (i==68 ) return "Legato Pedal (on/off)";
+    if (i==69 ) return "Hold 2 Pedal (on/off)";
+    if (i==70 ) return "Sound Variation";
+    if (i==71 ) return "Resonance (aka Timbre)";
+    if (i==72 ) return "Sound Release Time";
+    if (i==73 ) return "Sound Attack Time";
+    if (i==74 ) return "Frequency Cutoff (aka Brightness)";
+    if (i==75 ) return "Sound Control 6";
+    if (i==76 ) return "Sound Control 7";
+    if (i==77 ) return "Sound Control 8";
+    if (i==78 ) return "Sound Control 9";
+    if (i==79 ) return "Sound Control 10";
+    if (i==80 ) return "Decay or General Purpose Button 1";
+    if (i==81 ) return "Hi Pass Filter Frequency or General Purpose Button 2";
+    if (i==82 ) return "General Purpose Button 3";
+    if (i==83 ) return "General Purpose Button 4";
+    if (i==91 ) return "Reverb Level";
+    if (i==92 ) return "Tremolo Level";
+    if (i==93 ) return "Chorus Level";
+    if (i==94 ) return "Celeste Level or Detune";
+    if (i==95 ) return "Phaser Level";
+    if (i==96 ) return "Data Button increment";
+    if (i==97 ) return "Data Button decrement";
+    if (i==98 ) return "Non-registered Parameter (LSB)";
+    if (i==99 ) return "Non-registered Parameter (MSB)";
+    if (i==100) return "Registered Parameter (LSB)";
+    if (i==101) return "Registered Parameter (MSB)";
+    if (i==120) return "All Sound Off";
+    if (i==121) return "All Controllers Off";
+    if (i==122) return "Local Keyboard (on/off)";
+    if (i==123) return "All Notes Off";
+    if (i==124) return "Omni Mode Off";
+    if (i==125) return "Omni Mode On";
+    if (i==126) return "Mono Operation";
+    if (i==127) return "Poly Operation";
+    return "undefined";
+}
+
+
+
+
+
 
 //===================================================================================
 // _processMessage
@@ -409,7 +440,7 @@ void _processMessage(uint32_t i)
         return;
 
     char buf2[100] = {0};
-    const char *s = "unknown";
+    const char *s = "unknown msg!!";
     int type = msg.getMsgType();
     int pindex = msg.portIndex();
     int channel = msg.getChannel();
@@ -496,8 +527,9 @@ void _processMessage(uint32_t i)
                     out_stream->println(buf2);
                 }
 
-                // if (is_ftp_port && getPref8(PREF_MONITOR_PARSE_FTP_PATCHES))
-                    showPatch(out_stream,color,bg_color,is_ftp_controller,buf,buf_len);
+                // if (is_ftp_port &&
+                if (getPref8(PREF_MONITOR_PARSE_FTP_PATCHES))
+                    showFtpPatch(out_stream,color,bg_color,is_ftp_controller,buf,buf_len);
 
                 if (show_sysex == 2)
                     display_bytes_long(0,0,buf,buf_len,out_stream);
@@ -841,11 +873,12 @@ void _processMessage(uint32_t i)
             }   // is_ftp_port && it's an FTP command_value (0x1f)
 
             // any other CC's are considered "performance" CCs at this time ???
+            // we at least try to get the "known" midi CC names
 
-            else if (0)
+            else
             {
-                color = ansi_color_light_grey;  // understood
-                show_it = show_it && getPref8(PREF_MONITOR_CCS);
+                s = "CC";
+                sprintf(buf2,"%-3d - %s",p1,getStandardCCName(p1));
             }
 
         }   // 0xB0 (controller) messages

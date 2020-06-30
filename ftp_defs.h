@@ -376,89 +376,156 @@
 // PATCHES
 //==============================================================================
 //==============================================================================
+// The CHECKSUM is simply the uint16_t sum of the bytes from bytes 1 thru 139,
+// which does not include the opening F0 in the sysex message, or the ending
+// checksum and endmidi(0xf7) ... spread into two 7 bit parts, in MSB order:
+//
+//    uint16_t checksum
+//    uint8_t  checksum_byte[2];
+//    checksum_byte[0] = (checksum >> 7) & 0x7f;
+//    checksum_byte[1] = checksum & 0x7f;
+
 
 typedef struct
     // Each data patch has an array of five of these substructures in it.
     // Unlike the UI, which puts the "pedal" split at the end, the "pedal"
     // is the 0th element in the array, and the splits 1-4 follow in slots
     // 1-4 in the array.
+    //
+    // I believe the controller split behavior comes into play if a note on a string within the split is struck,
+    // but still dont really understand if or when the split pgm_change, banks, reverb and volumes
+    // are sent by the controller.  I have only seen them sent in the context of the Windows editor.
+    //
+    // Also do not understand controller pedal behavior, if any.
+    // Perhaps the pedal behavior overrides the split behavior when the pedal is pressed?
+    //
+    // The user manual says: "Hold / Loop. Send CC 66 value 127, 0 on release, for hold/loop"
+    //
+    // PS: I'm afraid of an editor software update, much less a controller firmware update!
+
 {
 	uint8_t pgm_change;     // 0..127
 	uint8_t bank_lsb;       // 0..127
 	uint8_t bank_msb;       // 0..127
+        // it looks like these values are ONLY sent by the editor when you change patches.
+        // they DO not seem to be sent when you change to the patch in "hardware mode"
+        // same for "midi_volume" (which gets sent as CC 0x43 "Expression MSB") and
+        // "midi_reverb" (which gets sent as CC 4a) "Reverb Level.
+        // TODO: try sending program and bank changes to the controller in both modes
+
 	uint8_t pitch_bend;     // 0=auto, 1=smooth, 2=stepped, 3=trigger
 	uint8_t transpose;      // 24=none, plus or minus 24 1/2 steps (up or down 2 octaves)
 	uint8_t midi_volume;    // 0=unchecked, 1..126, weirdness at 127
                             // goes to zero and sets split bit in main patch max_volume
+
 	uint8_t dyn_sens;       // Dynamics Sensitivity 0x0A..0x14 (10..20) weird
 	uint8_t dyn_offs;       // Dynamic Offset 0..20
 	uint8_t midi_reverb;    // 0=unchecked, 1..126, weirdness at 127
-                            // goes to zero and sets split bit in main patch max_reverbe
+                            // goes to zero and sets split bit in main patch max_reverb
 } split_section_t;
 
 
 typedef struct  // 142 byte "data" packet (subpatch)
-    // This structure is stored in banks 0 and 1.  The "hardware poly" and
-    // "hardware mono" patches match this structure.  For each of these, there is
-    // another structure patch_buffer1, which I call the "name" patch, which is
+    // This structure is stored in banks 0 and 1.  For each of these, there is
+    // another structure patch_buffer1 (below), which I call the "name" patch, which is
     // just the header, the name length byte, the name, then  the checksum in a
     // similarly sized (142 byte) packet stored in banks 2 and 3.
     //
     // So the "data" for "Poly Program n" is in bank(0) patch(n-1) whereas it's "name"
     // is bank(2) patch(n-1) ... "Mono Program n" is in (1,n-1) and (3,n-1)
-
-    // It looks like the controller's "current active patch" is banks1/3 patch 127
+    //
+    // It looks like maybe the controller's "current active patch" is banks0/2 patch 127
     // When you change patches in the editor, it sends the patch you are editing
     // to those numbers, and only upon a "save" does it write it to the "real" location.
-
 {
 	uint8_t header1[6];	                // F0 00 01 6E 01 (21=reply, or 41=set)
 	uint8_t bank_num;                   // 0=hardware poly, 1=hardware mono
 	uint8_t patch_num;                  // patch number within bank (0..127 .. only to 112 for mono bank?!?)
 
 	uint8_t pedal_mode; 	            // HoldUp(2), HoldDown(3), Alternate(4), Loop(6), DontBlockNewNotes(1), BlockNewNotes(0)
+        // The controller use (or not) of the "Pedal" "split" might determined by
+        // the pedal_mode byte.
+        //
+        // 0 or 1 (DontBlock or Block) seem to indicate there is NO pedal split
+        // whereas the other four values appear to indicate there IS a pedal split
+        // still not clear on the semantics of WHAT a pedal split is ...
+        //
+        // it displays the extra set of pedal stuff, where, of course, poly_mode and touch_sens
+        // are really part of the patch
+        //
+        // see note below on split_section_t split[5]
+
 	uint8_t fret_range_low_up_12;       // the range of frets, from the lowest fret (open position) for hardware patches 1 & 2
 	uint8_t fret_range_high_down_34;    // the range of frets from 1f down to this number, for hardware patches 3 and 4.
 	uint8_t string_range_12; 		    // the strings covered by the red hardware patch1 (as opposed to yellow hardware patch 2)
 	uint8_t string_range_34;   		    // the strings covered by the blue hardware patch3 (as opposed to green hardware patch 4)
 	uint8_t azero0;                     // arpeggio mode which is "SEQUENTIAL" in all csv file examples
+
 	uint8_t arp_speed;                  // arpeggio speed gleened from csv file
 	uint8_t arp_length;	                // arp. length gleened from csv file (arpegio length?)
+        // these arpeggio value do not appear to be used (they do not appear to affect the behavior of the controller)
 
 	uint8_t touch_sens;                 // 0..4 "pick" 5-9 "fingerstyle"  Default(4)
 	uint8_t poly_mode;                  // 0=mono, 1=poly  (Default 1 for bank0, 0 for bank1)
 
 	split_section_t split[5];
+        // The presence (or absence) of a "Hardware Synth Plugin" for a particular split
+        // does NOT seem to be stored in the patch, as nothing in the patch changes when
+        // I add or remove one (to an otherwise untouched split number).
+        //
+        // Which means the Editor must be caching it on the Windows machine (in
+        // in User/name/AppData/Local/TriplePlay64/TriplePlay.settings).
+        // Ir might heuristically derive it if the data on the controller changes
+        // and it "loads" the patches from the controller .. or it might barf and
+        // overwrite the patches on the controller with whatever the editor has.
+        // Should be better tested with two seperate dongles and controllers ...
 
 	uint8_t azero1;         // a zero .. I have never seen this byte change
 	uint8_t seqbytes[64];   // 64 bytes from 0..0x3f .. I have never seen these bytes change
 	uint8_t program[8];	    // the word "Program " with trailing space ... I have never seen these bytes change
 	uint8_t azero2;         // a zero .. I have never seen this byte change
+
+    // weird use of overflow bit from splits
+
 	uint8_t max_volume;     // bitwise bits set if split midi_volume *would be* 127
                             // split1=0x08, split2=0x04, split3=0x02, split1=0x01, pedal=0x10
 	uint8_t max_reverb;     // bitwise bits set if split midi_reverbe *would be* 127
                             // split1=0x08, split2=0x04, split3=0x02, split1=0x01, pedal=0x10
+
 	uint8_t checksum[2];    // two byte checksum
 	uint8_t endmidi;        // 0xf7
 
-}   patch_buffer0_t;
+}   patch_buffer0_t;        // "data" patch in banks 0 and 1
+
+
+
+typedef struct
+{
+	uint8_t header1[6];	    // F0 00 01 6E 01 (21=reply, or 41=set)
+	uint8_t bank_num;       // 2 or 3 (2=hardware poly, 3=hardware mono)
+	uint8_t patch_num;      // patch number within bank (0..127 .. only to 112 for mono bank?!?)
+	uint8_t name_len; 	    // length of the name string
+    uint8_t name[130];      // max name length
+   	uint8_t checksum[2];    // two byte checksum
+	uint8_t endmidi;        // 0xf7
+}   patch_buffer1_t;        // "name" patches in banks 2 and 3
+
 
 
 const uint8_t FTP_CODE_READ_PATCH = 0x01;	// get patch from controller (short message)
-const uint8_t FTP_CODE_ACK = 0x11;			// ack from the controller
+const uint8_t FTP_CODE_ACK = 0x11;			// ack from the controller?
 const uint8_t FTP_CODE_WRITE_PATCH = 0x41;	// write patch to controller
 const uint8_t FTP_CODE_PATCH_REPLY = 0x21;	// patch request reply from controller
-const uint8_t FTP_CODE_PATCH_NAME  = 0x43;  // a 25 byte packet with the current patch name
+const uint8_t FTP_CODE_PATCH_NAME  = 0x43;  // a 25 byte informative packet with the current patch name
+    // implies the maximum length might be much less than the patch_buffer1_t can hold.
 
 // const uint8_t FTP_CODE_UNKNOWN = 0x02;		// ? clear the patch ?
 // const uint8_t FTP_CODE_ERROR1 = 0x12;		// ? error ?
 // const uint8_t FTP_CODE_ERROR2 = 0x22;		// ? Error from controller ?
 
-
-
-
 // uint8_t  ftpRequestPatch[]	= { 0xF0, 0x00, 0x01, 0x6E, 0x01, FTP_CODE_READ_PATCH, 0x00, 0x00, 0xf7 };
-         // bytes 6 and 7 (0 based) are the bank, and patch, respectively
+    // bytes 6 and 7 (0 based) are the bank, and patch, respectively
+    // this example gets 0,0
 
 
 

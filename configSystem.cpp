@@ -133,7 +133,6 @@ void createOptions()
 		new configOption(msg_types,"Aftertouch",	0,  PREF_MONITOR_AFTERTOUCH);
 		new configOption(msg_types,"Pitch Bend",	0,  PREF_MONITOR_PITCHBEND);
 
-
 		new configOption(ftp_specific,"ParsePatches", 0, PREF_MONITOR_PARSE_FTP_PATCHES);
 
 		new configOption(ftp_specific,"Note Info", 	0, PREF_MONITOR_FTP_NOTE_INFO);

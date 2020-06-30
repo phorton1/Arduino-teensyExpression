@@ -121,3 +121,202 @@ void deleteNote(uint8_t string)
     __enable_irq();
     delete note;
 }
+
+
+
+
+
+
+
+//-------------------------------------------------------------
+// patch display
+//-------------------------------------------------------------
+
+const char *pedalModeName(int i)
+{
+    if (i==0) return "BlockNew";
+    if (i==1) return "DontBlock";
+    if (i==2) return "HoldUp";
+    if (i==3) return "HoldDown";
+    if (i==4) return "Alternate";
+    if (i==5) return "huh?";
+    return "unknownPedalMode";
+}
+
+
+const char *pitchBendModeName(int i)
+{
+	if (i == 1) return "Smooth";
+	if (i == 2) return "Stepped";
+	if (i == 3) return "Trigger";
+	if (i == 0) return "Auto";
+    return "unknownPitchBendMode";
+}
+
+
+
+uint8_t patch_sig[6] = {0xF0, 0x00, 0x01, 0x6E, 0x01, 0x21};
+
+#define show                out_stream->printf
+#define colorHeader(i)      { show("\033[%d;%dm    ",color,bg_color);  for (int j=0; j<i; j++) show("    "); }
+#define warningHeader(i)    { show("\033[%d;%dm    ",ansi_color_yellow,ansi_color_bg_black);  for (int j=0; j<i; j++) show("    "); }
+
+
+bool showFtpPatch(
+    Stream *out_stream,
+    int color,
+    int bg_color,
+    bool is_ftp_controller,
+    uint8_t *patch_buf,
+    uint32_t buflen)
+    // returns true if there was an error
+{
+    uint8_t *p = patch_buf;
+    patch_sig[5] = is_ftp_controller ? 0x21 : 0x41;
+    if (buflen != 142) return false;      // patches are 42
+
+    for (int i=0; i<6; i++)
+    {
+        if (*p != patch_sig[i])
+        {
+            warningHeader(0);
+            show("sysex of 142 that does not match patch_sig at byte(%d) sig(%02x) != patch(%02x)\n\r",
+                i,patch_sig[i],*p);
+            return true;
+        }
+        p++;
+    }
+
+    uint8_t bank_num = *p++;
+    uint8_t patch_num = *p++;
+    colorHeader(0);
+    show("PATCH BANK(%d) PATCH(%d)\n\r",bank_num,patch_num);
+
+    // acting on presumption that banks 3-4 ONLY contain the name of the patch
+
+    if (bank_num > 1)
+    {
+        char name_buf[128];
+        memset(name_buf,0,128);
+        int name_len = *p++;
+        memcpy(name_buf,p,name_len);
+        colorHeader(1);
+        show("NAME: %s\n\r",name_buf);
+        return false;
+    }
+
+
+    patch_buffer0_t *patch = (patch_buffer0_t *) patch_buf;
+
+    colorHeader(1);
+    show("Pedal Mode(%d):%s\n\r",patch->pedal_mode,pedalModeName(patch->pedal_mode));
+
+    colorHeader(1);
+    show("Fret Range low(%d) high(%d)  String Range low(%d) high(%d)\n\r",
+         patch->fret_range_low_up_12,
+         patch->fret_range_high_down_34,
+         patch->string_range_12,
+         patch->string_range_34);
+
+    if (patch->azero0)
+    {
+        warningHeader(1);
+        show("unexpected azero0=0x%02x\n\r",patch->azero0);
+    }
+
+    colorHeader(1);
+    show("Unused arp_speed=%d  arp_length=%d\n\r",patch->arp_speed,patch->arp_length);
+
+    colorHeader(1);
+    show("TOUCH_SENSE=%d   POLY_MODE=%d\n\r",patch->touch_sens,patch->poly_mode);
+
+    if (patch->azero1)
+    {
+        warningHeader(1);
+        show("unexpected azero1=0x%02x\n\r",patch->azero1);
+    }
+
+    for (int i=0; i<64; i++)
+    {
+        if (patch->seqbytes[i] != i)
+        {
+            warningHeader(1);
+            show("unexpected segbytes[%d]=0x%02x\n\r",i,patch->seqbytes[i]);
+        }
+    }
+
+    if (patch->program[0] != 'P' ||
+        patch->program[1] != 'r' ||
+        patch->program[2] != 'o' ||
+        patch->program[3] != 'g' ||
+        patch->program[4] != 'r' ||
+        patch->program[5] != 'a' ||
+        patch->program[6] != 'm' ||
+        patch->program[7] != ' ')
+    {
+        warningHeader(1);
+        show("expected the word 'Program' and a space\n\r");
+        display_bytes_long(0,0,patch->program,8,out_stream);
+    }
+
+    if (patch->azero2)
+    {
+        warningHeader(1);
+        show("unexpected azero2=0x%02x\n\r",patch->azero2);
+    }
+
+    colorHeader(1);
+    show("max_volume=0x%02x  max_reverb=0x%02x\n\r",patch->max_volume,patch->max_reverb);
+
+    uint16_t checksum = 0;
+    int from = 1;
+    int to = 139;
+    for (int i=from; i<to; i++)
+    {
+        checksum += patch_buf[i];
+    }
+    uint8_t my_checksum[2];
+    my_checksum[1] = checksum & 0x7f;
+    my_checksum[0] = (checksum >> 7) & 0x7f;
+
+    // display(0,"sizeof=(sizeof(patch_buffer0_t)=%d  sysex check=%02x",sizeof(patch_buffer0_t),patch_buf[141]);
+    if (my_checksum[0] == patch->checksum[0] &&
+        my_checksum[1] == patch->checksum[1])
+    {
+        colorHeader(1);
+    }
+    else
+    {
+        warningHeader(1);
+    }
+    show("checksum(from %d to %d)=0x%02x%02x calculated=0x%04x my(%02x%02x) endmidi=0x%02x\n\r",
+        from,
+        to,
+        patch->checksum[0],
+        patch->checksum[1],
+        checksum,
+        my_checksum[0],
+        my_checksum[1],
+        patch->endmidi);
+
+    for (int i=0; i<5; i++)
+    {
+        colorHeader(1);
+        show("SPLIT(%d)\n\r",i);
+        split_section_t *split = &patch->split[i];
+
+        colorHeader(2);
+        show("pgm_change=%d bank_lsb=%d bank_msb=%d\n\r",split->pgm_change,split->bank_lsb,split->bank_msb);
+
+        colorHeader(2);
+        show("PITCH_BEND(%d)=%s   transpose=%d\n\r",split->pitch_bend,pitchBendModeName(split->pitch_bend),split->transpose);
+
+        colorHeader(2);
+        show("DYN_RANGE=%d DYN_OFFSET=%d\n\r",split->dyn_sens,split->dyn_offs);
+
+        colorHeader(2);
+        show("midi_volume=%d midi_reverb=%d\n\r",split->midi_volume,split->midi_reverb);
+    }
+
+    return false;
+}
