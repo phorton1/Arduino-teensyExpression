@@ -14,10 +14,7 @@
 #define FTP_SETTING_POLY_MODE             0
 #define FTP_SETTING_BEND_MODE             1
 #define FTP_SETTING_PERF_LAYER_TYPE       2
-#define FTP_SETTING_PERF_FILTER           3
-#define FTP_SETTING_PERF_FILTER_BENDS     4
-#define FTP_SETTING_MONITOR_PERFORMANCE   5
-#define FTP_NUM_SETTINGS                  6
+#define FTP_NUM_SETTINGS                  3
 
 class winFtpSettings : public expWindow
 {

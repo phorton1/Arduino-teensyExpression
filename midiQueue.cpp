@@ -165,7 +165,6 @@ void mySendFtpSysex(int length, uint8_t *buf)
             else
             {
                 midi_host.write_packed(msg.i);
-                display(0,"host_out %08x",msg.i | PORT_MASK_OUTPUT | PORT_MASK_HOST);
                 enqueueProcess(msg.i | PORT_MASK_OUTPUT | PORT_MASK_HOST);
             }
 

@@ -65,19 +65,13 @@ void createOptions()
 			PREF_BRIGHTNESS,
 			setLEDBrightness);
 
-		new configOption(rootOption,"Patch",		OPTION_TYPE_CONFIG_NUM,		PREF_PATCH_NUM);
-
-//      FTP
-//          Spoof FTP       ON/OFF
-//          FTP Port        None, Host, Remote
-//          Tuner           -> modal window
-//          Sensitivity     -> modal window
+		new configOption(rootOption,"Patch", OPTION_TYPE_CONFIG_NUM, PREF_PATCH_NUM);
 
 		configOption *optFTP = new configOption(rootOption,"FTP");
-		new configOption(optFTP,"Spoof FTP",	OPTION_TYPE_NEEDS_REBOOT,	PREF_SPOOF_FTP);
-		new ftpPortOption(optFTP,"FTP Port",	0,							PREF_FTP_PORT);
-		new configOption(optFTP,"FTP Tuner",	0,							PREF_NONE,		startFtpTuner);
-		new configOption(optFTP,"FTP Sensitivity",0,						PREF_NONE,		startFtpSensitivity);
+		new configOption (optFTP,"Spoof FTP",	   OPTION_TYPE_NEEDS_REBOOT, PREF_SPOOF_FTP);
+		new ftpPortOption(optFTP,"FTP Port",	   0,						 PREF_FTP_PORT);
+		new configOption (optFTP,"FTP Tuner",	   0,						 PREF_NONE,		startFtpTuner);
+		new configOption (optFTP,"FTP Sensitivity",0,						 PREF_NONE,		startFtpSensitivity);
 
 		// pedals
 
@@ -85,12 +79,12 @@ void createOptions()
 		new configOption(pedals,"Configure Pedal1 (Synth)",	0,PREF_NONE,configPedal);
 		new configOption(pedals,"Configure Pedal2 (Loop)",	0,PREF_NONE,configPedal);
 		new configOption(pedals,"Configure Pedal3 (Wah)",	0,PREF_NONE,configPedal);
-		new configOption(pedals,"Configure Pedal4 (Guitar)",	0,PREF_NONE,configPedal);
+		new configOption(pedals,"Configure Pedal4 (Guitar)",0,PREF_NONE,configPedal);
 
 		// midi monitor
 
 		configOption *monitor = new configOption(rootOption,"Midi Monitor", 0,  PREF_MIDI_MONITOR);
-		new configOption(monitor,"Midi Monitor",	0,	PREF_MIDI_MONITOR);
+		new configOption(monitor,"Midi Monitor", 0, PREF_MIDI_MONITOR);
 
 		configOption *mon_ports = new configOption(monitor,"Ports");
 		new configOption(mon_ports,"Duino Input 0",  0, PREF_MONITOR_DUINO_INPUT0);
@@ -122,33 +116,37 @@ void createOptions()
 
 		configOption *msg_types = new configOption(monitor,"Message Types");
 		configOption *ftp_specific = new configOption(msg_types,"FTP Specific");
-		new configOption(monitor,"Performance", 0, PREF_MONITOR_HOST_PERFORMANCE);
 
-		new configOption(msg_types,"Sysex",			0,	PREF_MONITOR_SYSEX);
-		new configOption(msg_types,"Active Sense",	0,	PREF_MONITOR_ACTIVESENSE);
-		new configOption(msg_types,"Note On",		0,  PREF_MONITOR_NOTE_ON);
-		new configOption(msg_types,"Note Off",		0,  PREF_MONITOR_NOTE_OFF);
-		new configOption(msg_types,"Velocity ",		0,  PREF_MONITOR_VELOCITY);
-		new configOption(msg_types,"Program Chg",	0,  PREF_MONITOR_PROGRAM_CHG);
-		new configOption(msg_types,"Aftertouch",	0,  PREF_MONITOR_AFTERTOUCH);
-		new configOption(msg_types,"Pitch Bend",	0,  PREF_MONITOR_PITCHBEND);
+		new configOption(msg_types,"Sysex",			  0,  PREF_MONITOR_SYSEX);
+		new configOption(msg_types,"Active Sense",	  0,  PREF_MONITOR_ACTIVESENSE);
+		new configOption(msg_types,"Note On",		  0,  PREF_MONITOR_NOTE_ON);
+		new configOption(msg_types,"Note Off",		  0,  PREF_MONITOR_NOTE_OFF);
+		new configOption(msg_types,"Velocity ",		  0,  PREF_MONITOR_VELOCITY);
+		new configOption(msg_types,"Program Chg",	  0,  PREF_MONITOR_PROGRAM_CHG);
+		new configOption(msg_types,"Aftertouch",	  0,  PREF_MONITOR_AFTERTOUCH);
+		new configOption(msg_types,"Pitch Bend",	  0,  PREF_MONITOR_PITCHBEND);
+		new configOption(msg_types,"Other CCs", 	  0,  PREF_MONITOR_CCS);
+		new configOption(msg_types,"Everything Else", 0,  PREF_MONITOR_EVERYTHING_ELSE);
 
-		new configOption(ftp_specific,"ParsePatches", 0, PREF_MONITOR_PARSE_FTP_PATCHES);
-
-		new configOption(ftp_specific,"Note Info", 	0, PREF_MONITOR_FTP_NOTE_INFO);
-		new configOption(ftp_specific,"Tuning Msgs",0, PREF_MONITOR_FTP_TUNING_MSGS);
-		new configOption(ftp_specific,"Commands", 	0, PREF_MONITOR_FTP_COMMANDS);
-		new configOption(ftp_specific,"Values", 	0, PREF_MONITOR_FTP_VALUES);
-		new configOption(ftp_specific,"Poly Mode", 	0, PREF_MONITOR_FTP_POLY_MODE);
-		new configOption(ftp_specific,"Bend Mode", 	0, PREF_MONITOR_FTP_BEND_MODE);
-		new configOption(ftp_specific,"Volume", 	0, PREF_MONITOR_FTP_VOLUME);
-		new configOption(ftp_specific,"Battery", 	0, PREF_MONITOR_FTP_BATTERY);
-		new configOption(ftp_specific,"Sensitivity",0, PREF_MONITOR_FTP_SENSITIVITY);
+		new configOption(ftp_specific,"ParsePatches", 	  0, PREF_MONITOR_PARSE_FTP_PATCHES);
+		new configOption(ftp_specific,"Note Info", 		  0, PREF_MONITOR_FTP_NOTE_INFO);
+		new configOption(ftp_specific,"Tuning Msgs",	  0, PREF_MONITOR_FTP_TUNING_MSGS);
+		new configOption(ftp_specific,"Commands", 		  0, PREF_MONITOR_FTP_COMMANDS);
+		new configOption(ftp_specific,"Values", 		  0, PREF_MONITOR_FTP_VALUES);
+		new configOption(ftp_specific,"Poly Mode", 		  0, PREF_MONITOR_FTP_POLY_MODE);
+		new configOption(ftp_specific,"Bend Mode", 		  0, PREF_MONITOR_FTP_BEND_MODE);
+		new configOption(ftp_specific,"Volume", 		  0, PREF_MONITOR_FTP_VOLUME);
+		new configOption(ftp_specific,"Battery", 		  0, PREF_MONITOR_FTP_BATTERY);
+		new configOption(ftp_specific,"Sensitivity",	  0, PREF_MONITOR_FTP_SENSITIVITY);
 		new configOption(ftp_specific,"Known Commands",   0, PREF_MONITOR_KNOWN_FTP_COMMANDS);
 		new configOption(ftp_specific,"Unknown Commands", 0, PREF_MONITOR_UNKNOWN_FTP_COMMANDS);
 
-		new configOption(msg_types,"Other CCs", 		0, PREF_MONITOR_CCS);
-		new configOption(msg_types,"Everything Else", 0, PREF_MONITOR_EVERYTHING_ELSE);
+		// performance filter
+
+		configOption *filter = new configOption(rootOption,"Perf Filter", 0, PREF_PERF_FILTER);
+		new configOption(filter,"Perf Filter",  0, PREF_PERF_FILTER);
+		new configOption(filter,"Filter Bends", 0, PREF_PERF_FILTER_BENDS);
+		new configOption(filter,"Monitor Perf", 0, PREF_MONITOR_PERFORMANCE);
 
 		// all other preferences
 

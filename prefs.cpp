@@ -62,32 +62,9 @@ void setDefaultPrefs()
     _setDefaultPref8(PREF_SPOOF_FTP,         0,1,   0,  off_on);                    // off, on - default(off)
     _setDefaultPref8(PREF_FTP_PORT,          0,2,   1,  off_host_remote);           // off, Host, Remote, default(Host)
 
-    // midi monitor prefs
-
-     _setDefaultPref8(PREF_MIDI_MONITOR,            0,3,  1,  off_debug_usb_serial); // off, USB, Serial, 255=default    default(USB)
-
-    _setDefaultPref8(PREF_MONITOR_DUINO_INPUT0,   0,1,  0, off_on);    // default(off)
-    _setDefaultPref8(PREF_MONITOR_DUINO_INPUT1,   0,1,  1, off_on);    // default(on)
-    _setDefaultPref8(PREF_MONITOR_DUINO_OUTPUT0,  0,1,  1, off_on);    // default(on)
-    _setDefaultPref8(PREF_MONITOR_DUINO_OUTPUT1,  0,1,  1, off_on);    // default(on)
-    _setDefaultPref8(PREF_MONITOR_HOST_INPUT0,    0,1,  0, off_on);    // default(off)
-    _setDefaultPref8(PREF_MONITOR_HOST_INPUT1,    0,1,  1, off_on);    // default(on)
-    _setDefaultPref8(PREF_MONITOR_HOST_OUTPUT0,   0,1,  0, off_on);    // default(off)
-    _setDefaultPref8(PREF_MONITOR_HOST_OUTPUT1,   0,1,  1, off_on);    // default(on)
-
-    _setDefaultPref8(PREF_MONITOR_HOST_PERFORMANCE,   0,1,  1, off_on);    // default(on)
-
-    for (int i=0; i<16; i++)
-        _setDefaultPref8(PREF_MONITOR_CHANNEL1+i, 0,1,  1,off_on);
-
-    _setDefaultPref8(PREF_MONITOR_SYSEX,           0,2,  2,  off_on_detail);        // off, on, Detail         default(1==Detail)
-    _setDefaultPref8(PREF_MONITOR_ACTIVESENSE,     0,1,  0,  off_on);               // off, on                 default(0==off)
-
-    for (int i=PREF_MONITOR_NOTE_ON; i<=PREF_MONITOR_EVERYTHING_ELSE; i++)
-        _setDefaultPref8(i,0,1,1,off_on);
-
-
+    //---------------
     // pedals
+    //---------------
 
     for (int i=0; i<NUM_PEDALS; i++)
     {
@@ -143,7 +120,40 @@ void setDefaultPrefs()
 
         }
     }
+
+    //----------------------
+    // midi monitor prefs
+    //----------------------
+
+    _setDefaultPref8(PREF_MIDI_MONITOR,            0,3,  1,  off_debug_usb_serial); // off, USB, Serial, 255=default    default(USB)
+
+    _setDefaultPref8(PREF_MONITOR_DUINO_INPUT0,   0,1,  0, off_on);    // default(off)
+    _setDefaultPref8(PREF_MONITOR_DUINO_INPUT1,   0,1,  1, off_on);    // default(on)
+    _setDefaultPref8(PREF_MONITOR_DUINO_OUTPUT0,  0,1,  1, off_on);    // default(on)
+    _setDefaultPref8(PREF_MONITOR_DUINO_OUTPUT1,  0,1,  1, off_on);    // default(on)
+    _setDefaultPref8(PREF_MONITOR_HOST_INPUT0,    0,1,  0, off_on);    // default(off)
+    _setDefaultPref8(PREF_MONITOR_HOST_INPUT1,    0,1,  1, off_on);    // default(on)
+    _setDefaultPref8(PREF_MONITOR_HOST_OUTPUT0,   0,1,  0, off_on);    // default(off)
+    _setDefaultPref8(PREF_MONITOR_HOST_OUTPUT1,   0,1,  1, off_on);    // default(on)
+
+    for (int i=0; i<16; i++)
+        _setDefaultPref8(PREF_MONITOR_CHANNEL1+i, 0,1,  1,off_on);
+
+    _setDefaultPref8(PREF_MONITOR_SYSEX,           0,2,  2,  off_on_detail);        // off, on, Detail         default(1==Detail)
+    _setDefaultPref8(PREF_MONITOR_ACTIVESENSE,     0,1,  0,  off_on);               // off, on                 default(0==off)
+
+    for (int i=PREF_MONITOR_NOTE_ON; i<=PREF_MONITOR_EVERYTHING_ELSE; i++)
+        _setDefaultPref8(i,0,1,1,off_on);
+
+    //----------------------
+    // performance filter
+    //----------------------
+
+    _setDefaultPref8(PREF_PERF_FILTER,          0,1,  1, off_on);    // default(on)
+    _setDefaultPref8(PREF_PERF_FILTER_BENDS,    0,1,  0, off_on);    // default(off)
+    _setDefaultPref8(PREF_MONITOR_PERFORMANCE,  0,1,  1, off_on);    // default(on)
 }
+
 
 
 // extern

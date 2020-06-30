@@ -30,7 +30,7 @@ bool passFilter(uint32_t iii)
 
     msgUnion msg(iii);
     int type = msg.getMsgType();
-    if (winFtpSettings::getSetting(FTP_SETTING_PERF_FILTER))        // filter is on
+    if (getPref8(PREF_PERF_FILTER))        // filter is on
     {
         // only accept messages from cable 0
 
@@ -39,7 +39,7 @@ bool passFilter(uint32_t iii)
 
         // only accept note on, note off, or pitchbends if the pref is cleared
 
-        bool filter_bends = winFtpSettings::getSetting(FTP_SETTING_PERF_FILTER_BENDS);
+        bool filter_bends = getPref8(PREF_PERF_FILTER_BENDS);
         if (type!=0x08 && type!=0x09 && (type!=0x0E || filter_bends))
             return 0;
     }
@@ -69,7 +69,7 @@ bool passFilter(uint32_t iii)
     // enqueue it for display as PORT_INDEX_DUINO_OUTPUT0
     // with the PORT_MASK_PERFORM flag to display it differently
 
-    if (winFtpSettings::getSetting(FTP_SETTING_MONITOR_PERFORMANCE))
+    if (getPref8(PREF_MONITOR_PERFORMANCE))
     {
         msg.i &= ~PORT_MASK;                            // clear the old port
         msg.i |= PORT_MASK_OUTPUT | PORT_MASK_PERFORM;  // output to teensyDuino0

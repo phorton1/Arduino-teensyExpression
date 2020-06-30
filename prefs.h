@@ -5,6 +5,12 @@
 
 #define PREF_NONE               -1
 
+//  values for PREF_FTP_PORT
+
+#define FTP_PORT_OFF            0
+#define FTP_PORT_HOST           1
+#define FTP_PORT_REMOTE         2
+
 //--------------------------------------------------------------------------------
 // SETTINGS (PREFERENCES) OPTIONS
 //--------------------------------------------------------------------------------
@@ -18,16 +24,12 @@
 
 #define FTP_OUTPUT_PORT    (getPref8(PREF_SPOOF_FTP) ? 1 : getPref8(PREF_FTP_PORT))
 
-#define FTP_PORT_OFF            0
-#define FTP_PORT_HOST           1
-#define FTP_PORT_REMOTE         2
-
 
 //--------------------------------
 // pedals
 //--------------------------------
 
-#define PREF_PEDAL0            (PREF_FTP_PORT + 2)      // skip a byte from header == 6 at this time
+#define PREF_PEDAL0    (PREF_FTP_PORT + 2)      // skip a byte from header == 6 at this time
 
 #define MAX_PEDAL_CURVES                3       // number of curves per pedal
 #define MAX_CURVE_POINTS                4       // number of points per curve
@@ -90,32 +92,12 @@
     // ports besides the FTP Controller port.  So it must be rechecked in the
     // monitor display method as well in case we don't want to SEE the FTP
     // controller messages.
-    //
-    // Nominally the Thru messages are NOT seperately monitored.  That is to say that
-    // we don't normally display every message that goes from the the duino to the host
-    // in spoof mode.  If not in spoof mode, by default, the hosted controller does
-    // NOT receive messages directly from the duino input port, and vice-versa, the
-    // duino port does not receive non-performances messages from the hosted controller.
 
-#define PREF_MONITOR_HOST_PERFORMANCE  (PREF_MONITOR_PORT0+8)
-    // whether to monitor performce output from midiHost which is
-    // exclusive of ftp spoof mode.
-
-
-#define PREF_MONITOR_CHANNEL1       (PREF_MONITOR_HOST_PERFORMANCE+1)      // monitor specific midi channels
+#define PREF_MONITOR_CHANNEL1       (PREF_MONITOR_PORT0+8)      // monitor specific midi channels
     // default:  all channels are monitored
 
-
-// The following list needs to be exclusive and complete, so that
-// turning them all off has the effect of not displaying anything.
-// The prefs mirror my midi parser implementation.
-
-
 #define PREF_MONITOR_SYSEX              (PREF_MONITOR_CHANNEL1+16)     // off, on, Detail         default(2=Detail)
-#define PREF_MONITOR_ACTIVESENSE        (PREF_MONITOR_SYSEX+1)        // off, on                 default(0==off)
-
-// following all default to "on"
-
+#define PREF_MONITOR_ACTIVESENSE        (PREF_MONITOR_SYSEX+1)         // off, on                 default(0==off)
 #define PREF_MONITOR_NOTE_ON            (PREF_MONITOR_SYSEX+2)
 #define PREF_MONITOR_NOTE_OFF           (PREF_MONITOR_SYSEX+3)
 #define PREF_MONITOR_VELOCITY           (PREF_MONITOR_SYSEX+4)      // "after touch poly"
@@ -124,24 +106,20 @@
 #define PREF_MONITOR_PITCHBEND          (PREF_MONITOR_SYSEX+7)
 
 // ftp specifics
+// one or both of the MONITOR_FTP_COMMANDS or VALUES must be ON
+// to see specific FTP commadns and replies
 
 #define PREF_MONITOR_FTP                (PREF_MONITOR_SYSEX+8)
-
 #define PREF_MONITOR_PARSE_FTP_PATCHES  (PREF_MONITOR_FTP+0)
 #define PREF_MONITOR_FTP_NOTE_INFO      (PREF_MONITOR_FTP+1)
 #define PREF_MONITOR_FTP_TUNING_MSGS    (PREF_MONITOR_FTP+2)
-
 #define PREF_MONITOR_FTP_COMMANDS       (PREF_MONITOR_FTP+3)
 #define PREF_MONITOR_FTP_VALUES         (PREF_MONITOR_FTP+4)
-    // one or both of the above must be ON to see specific messages below
-
 #define PREF_MONITOR_FTP_POLY_MODE      (PREF_MONITOR_FTP+5)
 #define PREF_MONITOR_FTP_BEND_MODE      (PREF_MONITOR_FTP+6)
-
 #define PREF_MONITOR_FTP_VOLUME         (PREF_MONITOR_FTP+7)
 #define PREF_MONITOR_FTP_BATTERY        (PREF_MONITOR_FTP+8)
 #define PREF_MONITOR_FTP_SENSITIVITY    (PREF_MONITOR_FTP+9)
-    // includes both forms of FTP message
 #define PREF_MONITOR_KNOWN_FTP_COMMANDS     (PREF_MONITOR_FTP+10)
 #define PREF_MONITOR_UNKNOWN_FTP_COMMANDS   (PREF_MONITOR_FTP+11)
 
@@ -151,41 +129,20 @@
     // general catch all
 
 
+//-----------------------
+// performance filter
+//-----------------------
 
-
-//-----------------------------
-// default patch settings
-//-----------------------------
-// these are the default settings for patches that don't use patchSettings
-// every patch change must at least calls setPatchSettings(0)
-// POLY_MODE and SPLITS are specific to patches.  Since patch
-// settings also include POLY_MODE and SPLITS, we define the offsets here.
-//
-// #define OFFSET_PATCH_USE_DEFAULT 0          // 0,1 - default = 1 (on patchSettings)
-// #define OFFSET_FTP_POLY_MODE     1          // 0=mono, 1=poly, default=mono (on patchSettings)
-//
-// #define OFFSET_FTP_TOUCH_SENS    2          // 0..9 - default(4)
-// #define OFFSET_FTP_DYN_RANGE     3          // 0..10 - default(10), we map to 0x0A..0x14 (10..20) in usage
-// #define OFFSET_FTP_DYN_OFFSET    4          // 0..20 - default(10)
-// #define OFFSET_PERF_FILTER       5          // off, on - default(off), filters all but notes and bends from channel 0
-// #define OFFSET_PERF_FILTER_BENDS 6          // off, on - default(off), filters bends too.
-// #define OFFSET_PERF_SPLITS       7          // off, 1+5, 2+3, 3+3, 4+2, 5+1  (number of strings in first split if any)
-//
-// #define PREF_FTP_PATCH_SETTING   3          // fake skip offset 0 and 1
-// #define PREF_FTP_TOUCH_SENS      (PREF_FTP_PATCH_SETTING + OFFSET_FTP_TOUCH_SENS)
-// #define PREF_FTP_DYN_RANGE       (PREF_FTP_PATCH_SETTING + OFFSET_FTP_DYN_RANGE)
-// #define PREF_FTP_DYN_OFFSET      (PREF_FTP_PATCH_SETTING + OFFSET_FTP_DYN_OFFSET)
-// #define PREF_PERF_FILTER         (PREF_FTP_PATCH_SETTING + OFFSET_PERF_FILTER)
-// #define PREF_PERF_FILTER_BENDS   (PREF_FTP_PATCH_SETTING + OFFSET_PERF_FILTER_BENDS)
-//
+#define PREF_PERF_FILTER                (PREF_MONITOR_EVERYTHING_ELSE + 1)
+#define PREF_PERF_FILTER_BENDS          (PREF_PERF_FILTER + 1)
+#define PREF_MONITOR_PERFORMANCE        (PREF_PERF_FILTER + 2)
 
 
 //-----------------------
 // total
 //-----------------------
 
-
-#define NUM_EEPROM_USED        (PREF_MONITOR_EVERYTHING_ELSE + 1)
+#define NUM_EEPROM_USED       (PREF_MONITOR_PERFORMANCE + 1)
 
 
 

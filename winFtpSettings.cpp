@@ -23,9 +23,6 @@ int winFtpSettings::ftp_settings[FTP_NUM_SETTINGS] = {
 	1,	// poly_mode
 	0,  // bend_mode
 	0,	// layer_type
-	1,	// perf_filter
-	0,	// filter_bends
-	1,	// monitor performance
 };
 
 
@@ -137,9 +134,6 @@ const char *getItemName(int i)
 	if (i==FTP_SETTING_POLY_MODE             ) return "Poly Mode";
 	if (i==FTP_SETTING_BEND_MODE             ) return "Bend Mode";
 	if (i==FTP_SETTING_PERF_LAYER_TYPE       ) return "Layer Type";
-	if (i==FTP_SETTING_PERF_FILTER           ) return "Perf Filter";
-	if (i==FTP_SETTING_PERF_FILTER_BENDS     ) return "Filter Bends";
-	if (i==FTP_SETTING_MONITOR_PERFORMANCE   ) return "Send to Monitor";
 	return "unknown item";
 }
 
