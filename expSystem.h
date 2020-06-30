@@ -73,6 +73,7 @@ class winFtpTuner;
 class winFtpSensitivity;
 class winFtpSettings;
 
+#define MIDI_ACTIVITY_INLINE  1
 
 class expSystem
 {
@@ -107,7 +108,15 @@ class expSystem
         winFtpSensitivity *getFtpSensitivity()  { return m_ftp_sensitivity; }
         winFtpSettings *getFtpSettings()        { return m_ftp_settings; }
 
-        inline void midiActivity(int port_num)  { midi_activity[port_num]=millis(); }
+        #if MIDI_ACTIVITY_INLINE
+            inline void midiActivity(int port_num) { midi_activity[port_num]=millis(); }
+        #else
+            void midiActivity(int port_num);
+        #endif
+
+
+        #if MIDI_ACTIVITY_INLINE
+        #endif
 
 
     private:

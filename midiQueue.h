@@ -135,6 +135,7 @@ extern void dequeueProcess();
 
 extern void mySendDeviceProgramChange(uint8_t prog_num, uint8_t channel);
 extern void mySendDeviceControlChange(uint8_t cc_num, uint8_t value, uint8_t channel);
+extern void mySendFtpSysex(int length, uint8_t *buf);
 
 
 

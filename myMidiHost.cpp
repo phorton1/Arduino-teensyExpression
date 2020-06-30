@@ -109,7 +109,7 @@ void myMidiHostDevice::rx_data(const Transfer_t *transfer)
                 {
                     any = 1;
                     usb_midi_write_packed(msg);
-                    theSystem.midiActivity(pindex & ~INDEX_MASK_HOST);
+                    theSystem.midiActivity((pindex & ~INDEX_MASK_HOST) | INDEX_MASK_OUTPUT);
                 }
 
                 //-------------------

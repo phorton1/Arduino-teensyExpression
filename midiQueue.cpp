@@ -118,6 +118,72 @@ void mySendDeviceControlChange(uint8_t cc_num, uint8_t value, uint8_t channel)
 }
 
 
+void mySendFtpSysex(int length, uint8_t *buf)
+    // called by me: midi_host.sendSysEx(sizeof(ftpRequestPatch),ftpRequestPatch,true);
+    // Pauls API: void sendSysEx(uint32_t length, const uint8_t *data, bool hasTerm=false, uint8_t cable=0)
+{
+    int ftp_output_port = FTP_OUTPUT_PORT;
+    if (ftp_output_port)            // Host or Remote
+    {
+        int pindex = INDEX_MASK_OUTPUT | INDEX_MASK_CABLE |
+            (ftp_output_port == 1 ? INDEX_MASK_HOST : 0);
+
+        msgUnion msg(0);
+        int len = length;
+        uint8_t *p = buf;
+        bool started = false;
+
+        msg.b[0] = 0x14;
+            // we are always writing to cable 1 (0x10)
+            // the 4 is the message type
+
+        bool flush_usb_midi = false;
+
+        while (len)
+        {
+            // create the 32 bit packet
+
+            int take = 3;
+            if (started && len <= 3)
+            {
+                take = len;
+                msg.b[0] = 0x15 + len-1;
+            }
+            for (int i=0; i<3; i++)
+            {
+                msg.b[i+1] = (i<take) ? *p++ : 0;
+            }
+            len -= take;
+            started = 1;
+
+            if (ftp_output_port == 2)   // Remote
+            {
+                flush_usb_midi = true;
+                usb_midi_write_packed(msg.i);
+                enqueueProcess(msg.i | PORT_MASK_OUTPUT);
+            }
+            else
+            {
+                midi_host.write_packed(msg.i);
+                display(0,"host_out %08x",msg.i | PORT_MASK_OUTPUT | PORT_MASK_HOST);
+                enqueueProcess(msg.i | PORT_MASK_OUTPUT | PORT_MASK_HOST);
+            }
+
+            theSystem.midiActivity(pindex);
+        }
+
+        if (flush_usb_midi)
+            usb_midi_flush_output();
+
+    }
+    else
+    {
+        warning(0,"PREF_FTP_PORT is NONE in mySendFtpSysex(%d)",length);
+    }
+}
+
+
+
 
 //-------------------------------------
 // outgoing Message Processing
@@ -214,7 +280,7 @@ void sendPendingCommand()
     }
     else
     {
-        display(0,"PREF_FTP_PORT is NONE in sendPendingCommand(%d) command(%08x) value(%08x)",command_retry_count,pending_command,pending_command_value);
+        warning(0,"PREF_FTP_PORT is NONE in sendPendingCommand(%d) command(%08x) value(%08x)",command_retry_count,pending_command,pending_command_value);
     }
     command_time = 0;
 }
@@ -456,8 +522,10 @@ void _processMessage(uint32_t i)
 
     bool show_it =
         out_stream &&
-        getPref8(PREF_MONITOR_PORT0 + pindex) &&
-        getPref8(PREF_MONITOR_CHANNEL1 + channel - 1);
+        getPref8(PREF_MONITOR_PORT0 + pindex);
+
+    // display(0,"show_it=%d pindex=%02x type=%d",show_it,pindex,type,channel);
+
 
     // colors
     //    sysex and performance stuff comes out in ligh_grey
@@ -545,6 +613,9 @@ void _processMessage(uint32_t i)
 
 	else
     {
+        show_it = show_it &&
+            (getPref8(PREF_MONITOR_CHANNEL1 + channel - 1));
+
         if (type == 0x08)
         {
             s = "Note Off";

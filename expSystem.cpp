@@ -487,17 +487,25 @@ void expSystem::critical_timer_handler()
 
     if (msg)
     {
+		int pindex = (msg >> 4) & PORT_INDEX_MASK;
+		theSystem.midiActivity(pindex);
+			// the message comes in on port index 0 or 1
+			// PORT_INDEX_DUINO_INPUT0 or PORT_INDEX_DUINO_INPUT1
+
 		// we only write it to the midi host if we are spoofing
 
 	    bool is_spoof = getPref8(PREF_SPOOF_FTP);
 		if (is_spoof)
+		{
 	        midi_host.write_packed(msg);
+			theSystem.midiActivity(pindex | INDEX_MASK_HOST | INDEX_MASK_OUTPUT);
+				// add the host and output bits to map it to port 6 or 7
+				// PORT_INDEX_HOST_OUTPUT0 or  PORT_INDEX_HOST_OUTPUT1
+		}
 
         // enqueue it for processing (display from device)
 		// if we are monitoring the input port, or its the remote FTP
 
-		int pindex = (msg >> 4) & PORT_INDEX_MASK;
-		theSystem.midiActivity(pindex);
 
 		if (getPref8(PREF_MONITOR_PORT0 + pindex) || (  		// if monitoring the port, OR
 			(getPref8(PREF_FTP_PORT) == FTP_PORT_REMOTE) &&     // if this is the PREF_FTP_PORT==2==Remote, AND
@@ -696,9 +704,10 @@ void expSystem::updateUI()
     getCurPatch()->updateUI();
 }
 
-
-// void expSystem::midiActivity(int port_num)
-// {
-// 	midi_activity[port_num] = millis();
-// 	display(0,"midiActivity(%d)",port_num);
-// }
+#if !MIDI_ACTIVITY_INLINE
+	void expSystem::midiActivity(int port_num)
+	{
+		midi_activity[port_num] = millis();
+		display(0,"midiActivity(%d)",port_num);
+	}
+#endif
