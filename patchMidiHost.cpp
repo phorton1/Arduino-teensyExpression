@@ -113,7 +113,14 @@ void patchMidiHost::onButtonEvent(int row, int col, int event)
 	else if (num == PAD1_LEFT || num == PAD1_RIGHT)
 	{
 		myIncDec(num==PAD1_RIGHT ? 1 : -1, &dbg_bank_num);
-		display(0,"setting bank_num to %02x",dbg_bank_num);
+		if (dbg_bank_num > 3)
+		{
+			display(0,"bank_num(%02x) will send 0x0C control message to midi channel %d",dbg_bank_num,dbg_bank_num-2);
+		}
+		else
+		{
+			display(0,"setting bank_num to %02x",dbg_bank_num);
+		}
 	}
 	else if (num == PAD2_UP || num == PAD2_DOWN)
 	{
@@ -130,10 +137,21 @@ void patchMidiHost::onButtonEvent(int row, int col, int event)
 	}
 	else if (num == PAD1_SELECT)
 	{
-		display(0,"getting patch(%d,%d)",dbg_bank_num,dbg_patch_num);
-		uint8_t  ftpRequestPatch[]	= { 0xF0, 0x00, 0x01, 0x6E, 0x01, FTP_CODE_READ_PATCH, dbg_bank_num, dbg_patch_num, 0xf7 };
-		mySendFtpSysex(sizeof(ftpRequestPatch),ftpRequestPatch);
-		// midi_host.sendSysEx(sizeof(ftpRequestPatch),ftpRequestPatch,true);
+		if (dbg_bank_num > 3)
+		{
+			display(0,"Sending C%d  patch change message to patch %d on channel %d",
+				dbg_bank_num-3,
+				dbg_patch_num,
+				dbg_bank_num-2);
+			mySendDeviceProgramChange(dbg_patch_num,dbg_bank_num-2);
+		}
+		else
+		{
+			display(0,"getting patch(%d,%d)",dbg_bank_num,dbg_patch_num);
+			uint8_t  ftpRequestPatch[]	= { 0xF0, 0x00, 0x01, 0x6E, 0x01, FTP_CODE_READ_PATCH, dbg_bank_num, dbg_patch_num, 0xf7 };
+			mySendFtpSysex(sizeof(ftpRequestPatch),ftpRequestPatch);
+			// midi_host.sendSysEx(sizeof(ftpRequestPatch),ftpRequestPatch,true);
+		}
 	}
 	else if (num == PAD2_SELECT)
 	{
