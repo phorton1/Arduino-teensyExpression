@@ -93,28 +93,51 @@ void _processMessage(uint32_t i);
 // immediate sends as device (cable0)
 //-------------------------------------
 
+void mySendMidiMessage(uint8_t msg_type, uint8_t channel, uint8_t p1, uint8_t p2)
+{
+    msgUnion msg(
+        msg_type,   //  | PORT_MASK_OUTPUT,
+        (msg_type<<4) | (channel-1),
+        p1,
+        p2);
+
+    usb_midi_write_packed(msg.i);
+    usb_midi_flush_output();
+    theSystem.midiActivity(INDEX_MASK_OUTPUT);
+    enqueueProcess(msg.i | PORT_MASK_OUTPUT);
+}
+
+
 void mySendDeviceProgramChange(uint8_t prog_num, uint8_t channel)
 {
-    usbMIDI.sendProgramChange(prog_num, channel);
-    msgUnion msg(
-        0x0C | PORT_MASK_OUTPUT,
-        0xC0 | (channel-1),
-        prog_num,
-        0);
-    theSystem.midiActivity(INDEX_MASK_OUTPUT);   // it IS port #2
-    enqueueProcess(msg.i);
+    #if 1
+        mySendMidiMessage(0x0C, channel, prog_num, 0);
+    #else
+        usbMIDI.sendProgramChange(prog_num, channel);
+        msgUnion msg(
+            0x0C | PORT_MASK_OUTPUT,
+            0xC0 | (channel-1),
+            prog_num,
+            0);
+        theSystem.midiActivity(INDEX_MASK_OUTPUT);   // it IS port #2
+        enqueueProcess(msg.i);
+    #endif
 }
 
 void mySendDeviceControlChange(uint8_t cc_num, uint8_t value, uint8_t channel)
 {
-    usbMIDI.sendControlChange(cc_num, value, channel);
-    msgUnion msg(
-        0x0B | PORT_MASK_OUTPUT,
-        0xB0 | (channel-1),
-        cc_num,
-        value);
-    theSystem.midiActivity(INDEX_MASK_OUTPUT);   // it IS port #2
-    enqueueProcess(msg.i);
+    #if 1
+        mySendMidiMessage(0x0B, channel, cc_num, value);
+    #else
+        usbMIDI.sendControlChange(cc_num, value, channel);
+        msgUnion msg(
+            0x0B | PORT_MASK_OUTPUT,
+            0xB0 | (channel-1),
+            cc_num,
+            value);
+        theSystem.midiActivity(INDEX_MASK_OUTPUT);   // it IS port #2
+        enqueueProcess(msg.i);
+    #endif
 }
 
 
@@ -680,6 +703,24 @@ void _processMessage(uint32_t i)
         {
             s = "ActiveSense";
             color = ansi_color_light_grey;  // understood
+        }
+
+        else if (p0 == 0xF8)
+        {
+            show_it = false;
+                // don't show the midi clock
+        }
+        else if (p0 == 0xFA)
+        {
+            s = "MIDI CLOCK START";
+        }
+        else if (p0 == 0xFA)
+        {
+            s = "MIDI CLOCK CONTINUE";
+        }
+        else if (p0 == 0xFA)
+        {
+            s = "MIDI CLOCK STOP";
         }
 
         // CONTROL CHANGES

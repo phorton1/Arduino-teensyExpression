@@ -133,11 +133,10 @@ extern void dequeueProcess();
     // and the return value is ignored, there are
     // no messages eneuqued for display
 
+extern void mySendFtpSysex(int length, uint8_t *buf);
+extern void mySendMidiMessage(uint8_t msg_type, uint8_t channel, uint8_t p1, uint8_t p2);
 extern void mySendDeviceProgramChange(uint8_t prog_num, uint8_t channel);
 extern void mySendDeviceControlChange(uint8_t cc_num, uint8_t value, uint8_t channel);
-extern void mySendFtpSysex(int length, uint8_t *buf);
-
-
 
 
 

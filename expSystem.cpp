@@ -492,6 +492,57 @@ void expSystem::critical_timer_handler()
 			// the message comes in on port index 0 or 1
 			// PORT_INDEX_DUINO_INPUT0 or PORT_INDEX_DUINO_INPUT1
 
+		// MIDI CLOCK MESSAGES
+
+        if (((msg >> 8) & 0xff) == 0xF8)
+        {
+            static int bpm_int = 0;
+            static int last_bpm = 0;
+            static int beat_counter = 0;
+            static elapsedMillis bpm_millis = 0;
+
+            if (beat_counter == 24)  // every 24 messages = 1 beat
+            {
+                float millis = bpm_millis;
+                float bpm = 60000 / millis  + 0.5;
+					// I *think* this is rock solid with Quantiloop
+					// without rounding, if it's truncated to 1 decimal place
+
+				bpm_int = bpm;
+					// I am going to use the nearest integer value
+					// so if I change the tempo once, I can only
+					// approximately return to the original tempo
+					// which is the case anyways cuz of audio_bus's
+					// implementation ...
+
+                if (bpm_int != last_bpm)
+                {
+                    last_bpm = bpm_int;
+                    display(0,"BPM_INT=%d",bpm_int);
+                }
+
+				// there is still the problem that Quantiloop (often)
+				// uses tempos less than 60 ..
+
+				// gonna try NOT syncing to the loop,
+				// but using 300 as a baseline tempo??!?!
+
+				// Means loop starts could be off by as much as 12 ms at 4/4 timing
+
+				// Using 1/4 time signature reduces that to 3 ms ..
+
+				// 300 bpm fortunately has an exact relation in audiobus
+				// which is CC value 105 = 300 bpm
+
+				// this gives me a little head room to speed up, and
+				// the ability to slow down drastically.
+
+                bpm_millis = 0;
+                beat_counter = 0;
+            }
+            beat_counter++;
+        }
+
 		// we only write it to the midi host if we are spoofing
 
 	    bool is_spoof = getPref8(PREF_SPOOF_FTP);

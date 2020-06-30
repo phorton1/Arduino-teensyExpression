@@ -8,6 +8,9 @@
 #include "ftp_defs.h"
 #include "myMidiHost.h"
 #include "midiQueue.h"
+#include "oldRig_defs.h"
+
+#define TEST_TEMPO  1
 
 
 #define PAD1_UP      1
@@ -155,10 +158,33 @@ void patchMidiHost::onButtonEvent(int row, int col, int event)
 	}
 	else if (num == PAD2_SELECT)
 	{
-		const char *name = getFTPCommandName(dbg_command);
-		if (!name) name = "unknown";
-		display(0,"sending command(0x%02x=%s)  param(%02x)",dbg_command,name,dbg_param);
-		sendFTPCommandAndValue(dbg_command,dbg_param);
+		#if TEST_TEMPO
+
+			// first of all, sending CC zero sets to 60pm
+			//   - and quantiloop often uses tempos below that
+			// looks like an exponential operation
+
+			// 60, 62, 65, 67, 69, 71, 74,
+			// 350
+
+			// 290/128  = 2.265625 per increment
+			// 60 + (2.226) * param
+
+			#define FACTOR (290.0/127.0)
+			float calc_temp = dbg_param;
+			calc_temp = 60.0 + (calc_temp * FACTOR) + 0.5;
+
+			display(0,"Sending CC(%d) For Tempo %d",dbg_param,((int)calc_temp));
+			mySendDeviceControlChange(NEW_AUDIOBUS_CC_TEMPO, dbg_param, NEW_SELECT_RIG_CHANNEL);
+
+		#else
+
+			const char *name = getFTPCommandName(dbg_command);
+			if (!name) name = "unknown";
+			display(0,"sending command(0x%02x=%s)  param(%02x)",dbg_command,name,dbg_param);
+			sendFTPCommandAndValue(dbg_command,dbg_param);
+
+		#endif
 	}
 	else if (num == 24)
 	{
@@ -169,6 +195,21 @@ void patchMidiHost::onButtonEvent(int row, int col, int event)
 	else if (num == 20)
 	{
 		#if 1
+
+			// SWAP APPS on IPAD
+			static int dbg_prog_num = 0;
+			// for now I just wanna swap between audiobus and sampletank
+			// dbg_prog_num = (dbg_prog_num + 1) % 4;
+
+			dbg_prog_num = dbg_prog_num ? 0 : 3;
+
+			mySendMidiMessage(0x09, NEW_SELECT_RIG_CHANNEL, dbg_prog_num + 1, 0x7f);
+			mySendMidiMessage(0x08, NEW_SELECT_RIG_CHANNEL, dbg_prog_num + 1, 0);
+				// send a NOTE_ON message (with 7f velocity) to channel 9 with the
+				// note 1==Audiobus, 2=Tonestack, 3=SampleTank, 4=Quantiloop, followed
+				// by a NOTE_OFF
+
+		#elif 0
 
 			arrayedButton *pb = theButtons.getButton(row,col);
 			bool poly_mode = !pb->isSelected();
