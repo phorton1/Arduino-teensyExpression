@@ -1,5 +1,30 @@
 #include <myDebug.h>
 
+// 2020-07-13   This is the best solution to moving the pedal so far.
+//
+// Note that the pedal is geared 50:1 on a 12V 3000RPM motor, and
+// 26.5 degrees = 0.736 revolutions, the main gear is 80, so
+// 5.88 teeth are moving past the motor gear, which has 12 teeth,
+// and turns just about 1/2 revolution.    Thus for the entire
+// control range, I am turning the inside motor about 25 times.
+//
+// Even with "user" values, I am trying to control down the inside
+// motor down to 1/5th of a revolution, an to achieve 0..1023 accuracy,
+// I would have to control the motor to 25/1024 == 1/40th of a revolution.
+//
+// This is clearly not a good design.  Worm gear with clutch is how
+// they do it in the big leagues, and it would be slow. Another idea
+// I've played with is dueling solenoids.   One way or the other,
+// it's a thorny issue.
+//
+// I'm checking this in with the idea that when the teensyExpression box
+// wants to change the value, the arduino stop sending continuous control
+// output messages, and sends a confirmation, of sorts, when it is done
+// moving.  The teensy can far better control scaled values and things
+// like overshoot mean that you definitely DONT want the live output
+// of a mechanized move connected to a live audio output.
+
+
 #define DATA_OUT_PIN     5
 #define DATA_IN_PIN      3
     // The nano only supports pin interrupts on pins 2&3
@@ -38,6 +63,7 @@
     int finish_count = 0;
     bool overload_noted = 0;
     uint32_t move_time = 0;
+    int32_t move_start = 0;
     #define MOVE_TIMEOUT    2000
 
 
@@ -69,6 +95,19 @@
         if (output > OUTPUT_THRESHOLD  && output < MIN_OUTPUT) output = MIN_OUTPUT;
         if (output < -MAX_OUTPUT) output = -MAX_OUTPUT;
         if (output < -OUTPUT_THRESHOLD  && output > -MIN_OUTPUT) output = -MIN_OUTPUT;
+
+        #define MIN_MOVE_POSITION  6
+        #define MAX_MOVE_POSITION  1017
+
+        if ((setpoint <= MIN_MOVE_POSITION || setpoint >= MAX_MOVE_POSITION) && (
+           (setpoint>move_start && input>=MAX_MOVE_POSITION) ||
+           (setpoint<move_start && input<=MIN_MOVE_POSITION)))
+        {
+                reset();
+                int v = analogRead(PEDAL_IN_PIN);
+                display(0,"stop finish value=%d user(%d)",v,map(v,0,1023,0,127));
+                return;
+        }
 
         if (output < OUTPUT_THRESHOLD &&
             abs(err) < SUCCESS_THRESHOLD)
@@ -102,6 +141,7 @@
         last_time = 0;
         finish_count = 0;
         move_time = 0;
+        move_start = 0;
         analogWrite(PEDAL_OUT_PIN1,0);
         analogWrite(PEDAL_OUT_PIN2,0);
         display(0,"reset",0);
@@ -177,6 +217,7 @@ void movePedalTo(int32_t value)
 
     display(0,"MOVE FROM %ld TO %ld  value=%d",input,setpoint,value);
     running = 1;
+    move_start = input;
     move_time = millis();
 }
 
