@@ -33,6 +33,8 @@
 
 #define JUST_COMMS   0
 #define MOVE_PEDAL_TO_RECEIVED_BYTE   1
+#define SEND_CONTINUOUS_CONTROL       1
+#define CONTROL_SEND_TIME             10     // no more than once every 50 ms
 
 
 #if !JUST_COMMS
@@ -41,6 +43,15 @@
     #define PEDAL_IN_PIN                A7
     #define PEDAL_OUT_PIN1              9     // PWM output to Motor Controller (L293, L9110 or similar)
     #define PEDAL_OUT_PIN2              10
+
+    #define PEDAL_READS_PER_SAMPLE      10
+
+    int cur_sample = 0;
+    int working_sample = 0;
+    int num_pedal_reads = 0;
+
+    int last_send_value = 0;
+    uint32_t last_send_time = 0;
 
     #define MAX_OUTPUT   160
     #define MIN_OUTPUT   80
@@ -104,8 +115,7 @@
            (setpoint<move_start && input<=MIN_MOVE_POSITION)))
         {
                 reset();
-                int v = analogRead(PEDAL_IN_PIN);
-                display(0,"stop finish value=%d user(%d)",v,map(v,0,1023,0,127));
+                display(0,"stop finish value=%d user(%d)",cur_sample,map(cur_sample,0,1023,0,127));
                 return;
         }
 
@@ -116,8 +126,8 @@
             if (finish_count > 5)
             {
                 reset();
-                int v = analogRead(PEDAL_IN_PIN);
-                display(0,"finish value=%d user(%d)",v,map(v,0,1023,0,127));
+                display(0,"finish value=%d user(%d)",cur_sample,map(cur_sample,0,1023,0,127));
+                return;
             }
         }
         else
@@ -131,6 +141,12 @@
 
     void reset()
     {
+        cur_sample = 0;
+        working_sample = 0;
+        num_pedal_reads = 0;
+        last_send_value = -1;
+        last_send_time = millis();
+
         running = false;
 
         input = 0;
@@ -203,24 +219,29 @@ void setup()
 // loop()
 //------------------------------
 
-void movePedalTo(int32_t value)
-{
-    if (value > 1023)
-        value = 1023;
+#if !JUST_COMMS
+    void movePedalTo(int32_t value)
+    {
+        if (value > 1023)
+            value = 1023;
 
-    theAmpMeter.clearOverload();
-    overload_noted = 0;
-    setpoint = value;
+        theAmpMeter.clearOverload();
+        overload_noted = 0;
+        setpoint = value;
 
-    input = analogRead(PEDAL_IN_PIN);
-    last_time = millis();
+        input = cur_sample;
+        last_time = millis();
 
-    display(0,"MOVE FROM %ld TO %ld  value=%d",input,setpoint,value);
-    running = 1;
-    move_start = input;
-    move_time = millis();
-}
+        display(0,"MOVE FROM %ld TO %ld  value=%d",input,setpoint,value);
+        running = 1;
+        move_start = input;
+        move_time = millis();
+    }
+#endif
 
+#define ARDUINO_DELAY            100
+#define ARDUINO_START_IN_DELAY   (6 * ARDUINO_DELAY / 5)
+#define ARDUINO_OUT_DELAY        (4 * ARDUINO_DELAY / 5)
 
 
 void arduinoReceiveByte()
@@ -232,19 +253,24 @@ void arduinoReceiveByte()
 {
     if (data_dir)
         return;
-    delayMicroseconds(120);
+    delayMicroseconds(ARDUINO_START_IN_DELAY);
     int value = 0;
     for (int i=0; i<8; i++)
     {
         value = (value << 1) | digitalRead(DATA_IN_PIN);
-        delayMicroseconds(100);
+        delayMicroseconds(ARDUINO_DELAY);
     }
     int stop_bit = digitalRead(DATA_IN_PIN);
     if (stop_bit)
     {
         display(0,"ARDUINO RECEIVED byte=0x%02x  stop=%d",value,stop_bit);
         #if MOVE_PEDAL_TO_RECEIVED_BYTE
-            value = map(value,0,127,0,1023);
+            if (value == 0)
+                value = 0;
+            else if (value == 127)
+                value = 1023;
+            else
+                value = map(value,0,127,0,1023);
             movePedalTo(value);
         #endif
     }
@@ -256,28 +282,25 @@ void arduinoSendByte(int byte)
     data_dir = 1;
     display(0,"arduinoSendByte(0x%02x)",byte);
     digitalWrite(DATA_OUT_PIN,1);        // start bit
-    delayMicroseconds(80);
+    delayMicroseconds(ARDUINO_OUT_DELAY);
     for (int i=0; i<8; i++)
     {
         digitalWrite(DATA_OUT_PIN,(byte >> (7-i)) & 0x01);      // MSb first
-        delayMicroseconds(80);
+        delayMicroseconds(ARDUINO_OUT_DELAY);
     }
     digitalWrite(DATA_OUT_PIN,1);        // stop bit
-    delayMicroseconds(100);
+    delayMicroseconds(ARDUINO_DELAY);
     digitalWrite(DATA_OUT_PIN,0);        // finished
-    delayMicroseconds(100);              // delay before enabling our input interrupt
+    delayMicroseconds(ARDUINO_DELAY);              // delay before enabling our input interrupt
     data_dir = 0;
 }
 
 
 
-int last_in_value = 0;
-
-
 
 void loop()
 {
-    #if !JUST_COMMS
+    #if 0   // !JUST_COMMS
         theAmpMeter.task();
         if (!overload_noted && theAmpMeter.overload())
         {
@@ -310,8 +333,7 @@ void loop()
         }
         else if (c == 'v')
         {
-            int value = analogRead(PEDAL_IN_PIN);
-            display(0,"current value=%d  user(%d)",value,map(value,0,1023,0,127));
+            display(0,"current value=%d  user(%d)",cur_sample,map(cur_sample,0,1023,0,127));
         }
         else if (c == 13)
         {
@@ -334,37 +356,70 @@ void loop()
 #if !JUST_COMMS
 
     //-----------------------------------
+    // pedal
+    //-----------------------------------
+
+    num_pedal_reads++;
+    working_sample += analogRead(PEDAL_IN_PIN);
+    if (num_pedal_reads >= PEDAL_READS_PER_SAMPLE)
+    {
+        cur_sample = (working_sample + PEDAL_READS_PER_SAMPLE/2) / PEDAL_READS_PER_SAMPLE;
+        num_pedal_reads = 0;
+        working_sample = 0;
+    }
+
+    //-----------------------------------
     // motor
     //-----------------------------------
 
-    if (running)
+    if (!num_pedal_reads)   // on each sample
     {
-        if (move_time && millis() > move_time + MOVE_TIMEOUT)
+        if (running)
         {
-            my_error("MOVE TIMED OUT",0);
-            reset();
-            return;
-        }
+            if (move_time && millis() > move_time + MOVE_TIMEOUT)
+            {
+                my_error("MOVE TIMED OUT",0);
+                reset();
+                return;
+            }
 
-        input = analogRead(PEDAL_IN_PIN);
-        computePID();
+            input = cur_sample;
+            computePID();
 
-        if (output > 0)
-        {
-            analogWrite(PEDAL_OUT_PIN1,output);
-            analogWrite(PEDAL_OUT_PIN2,0);
+            if (output > 0)
+            {
+                analogWrite(PEDAL_OUT_PIN1,output);
+                analogWrite(PEDAL_OUT_PIN2,0);
+            }
+            else if (output < 0)
+            {
+                analogWrite(PEDAL_OUT_PIN1,0);
+                analogWrite(PEDAL_OUT_PIN2,-output);
+            }
+            else
+            {
+                analogWrite(PEDAL_OUT_PIN1,0);
+                analogWrite(PEDAL_OUT_PIN2,0);
+            }
         }
-        else if (output < 0)
+    #if SEND_CONTINUOUS_CONTROL
+        else if (millis() > last_send_time + CONTROL_SEND_TIME)
         {
-            analogWrite(PEDAL_OUT_PIN1,0);
-            analogWrite(PEDAL_OUT_PIN2,-output);
+            int user = map(cur_sample,0,1023,0,127);
+            if (user > 127) user = 127;
+            if (user != last_send_value)
+            {
+                display(0,"sending cur_sample(%d) user(%d)",cur_sample,user);
+                last_send_value = user;
+                arduinoSendByte(user);
+            }
+            last_send_time = millis();
         }
-        else
-        {
-            analogWrite(PEDAL_OUT_PIN1,0);
-            analogWrite(PEDAL_OUT_PIN2,0);
-        }
+    #endif
     }
+
+
+
 #endif
 
 }   // loop()

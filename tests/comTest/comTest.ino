@@ -33,17 +33,21 @@ void setup()
 }
 
 
+#define TEENSY_DELAY            100
+#define TEENSY_START_IN_DELAY   (6 * TEENSY_DELAY / 5)
+#define TEENSY_END_OUT_DELAY    (4 * TEENSY_DELAY / 5)
+
 
 void teensyReceiveByte()
     // quick and dirty, timings derived empirically to
     // match the arduino code's arbitrary constants.
 {
-    delayMicroseconds(120);
+    delayMicroseconds(TEENSY_START_IN_DELAY);
     int value = 0;
     for (int i=0; i<8; i++)
     {
         value = (value << 1) | digitalRead(DATA_PIN);
-        delayMicroseconds(100);
+        delayMicroseconds(TEENSY_DELAY);
     }
     int stop_bit = digitalRead(DATA_PIN);
     digitalWrite(DATA_PIN,0);
@@ -58,17 +62,17 @@ void teensySendByte(int byte)
     display(0,"teensySendByte(0x%02x)",byte);
     pinMode(DATA_PIN,OUTPUT);
     digitalWrite(DATA_PIN,0);        // start bit
-    delayMicroseconds(100);
+    delayMicroseconds(TEENSY_DELAY);
     digitalWrite(DATA_PIN,1);        // start bit
-    delayMicroseconds(100);
+    delayMicroseconds(TEENSY_DELAY);
 
     for (int i=0; i<8; i++)
     {
         digitalWrite(DATA_PIN,(byte >> (7-i)) & 0x01);      // MSb first
-        delayMicroseconds(100);
+        delayMicroseconds(TEENSY_DELAY);
     }
     digitalWrite(DATA_PIN,1);        // stop bit
-    delayMicroseconds(80);
+    delayMicroseconds(TEENSY_END_OUT_DELAY);
     digitalWrite(DATA_PIN,0);        // finished
 
     pinMode(DATA_PIN,INPUT);
@@ -82,10 +86,8 @@ void teensySendByte(int byte)
 // loop()
 //------------------------------
 
-#define MOVE_PEDAL  1
-#if MOVE_PEDAL
-    int move_value = 0;
-#endif
+int move_value = 0;
+
 
 void loop()
 {
@@ -106,34 +108,31 @@ void loop()
     {
         char c = Serial.read();
 
-        #ifdef MOVE_PEDAL
-            if (c == 13)
-            {
-                Serial.print(c);
-                if (move_value > 127)
-                    move_value = 127;
-                display(0,"MOVING PEDAL TO user(%d)",move_value);
-                teensySendByte(move_value);
-                move_value = 0;
-            }
-            else if (c >= '0' && c <= '9')
-            {
-                Serial.print(c);
-                move_value = move_value * 10 + c - '0';
+        if (c == 'b')
+        {
+            static int byte_val = 0xAA;
+            teensySendByte(byte_val++);
+            if (byte_val > 255) byte_val = 0;
+        }
+        else if (c == 13)
+        {
+            Serial.print(c);
+            if (move_value > 127)
+                move_value = 127;
+            display(0,"MOVING PEDAL TO user(%d)",move_value);
+            teensySendByte(move_value);
+            move_value = 0;
+        }
+        else if (c >= '0' && c <= '9')
+        {
+            Serial.print(c);
+            move_value = move_value * 10 + c - '0';
 
-            }
-            else if (c == 10)
-            {
-                Serial.print(c);
-            }
-        #else
-            if (c == 'b')
-            {
-                static int byte_val = 0xAA;
-                teensySendByte(byte_val++);
-                if (byte_val > 255) byte_val = 0;
-            }
-        #endif
+        }
+        else if (c == 10)
+        {
+            Serial.print(c);
+        }
     }
 
 }   // loop()
