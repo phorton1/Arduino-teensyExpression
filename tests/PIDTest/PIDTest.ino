@@ -41,8 +41,8 @@
     #include "ampMeter.h"
 
     #define PEDAL_IN_PIN                A7
-    #define PEDAL_OUT_PIN1              9     // PWM output to Motor Controller (L293, L9110 or similar)
-    #define PEDAL_OUT_PIN2              10
+    #define PEDAL_OUT_PIN1              10     // PWM output to Motor Controller (L293, L9110 or similar)
+    #define PEDAL_OUT_PIN2              9
 
     #define PEDAL_READS_PER_SAMPLE      10
 
@@ -263,7 +263,7 @@ void arduinoReceiveByte()
     int stop_bit = digitalRead(DATA_IN_PIN);
     if (stop_bit)
     {
-        display(0,"ARDUINO RECEIVED byte=0x%02x  stop=%d",value,stop_bit);
+        display(0,"ARDUINO RECEIVED byte=0x%02x  dec(%d)  stop=%d",value,value,stop_bit);
         #if MOVE_PEDAL_TO_RECEIVED_BYTE
             if (value == 0)
                 value = 0;
@@ -280,7 +280,7 @@ void arduinoReceiveByte()
 void arduinoSendByte(int byte)
 {
     data_dir = 1;
-    display(0,"arduinoSendByte(0x%02x)",byte);
+    display(0,"arduinoSendByte(0x%02x) dec(%d)",byte,byte);
     digitalWrite(DATA_OUT_PIN,1);        // start bit
     delayMicroseconds(ARDUINO_OUT_DELAY);
     for (int i=0; i<8; i++)

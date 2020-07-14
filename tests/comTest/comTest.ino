@@ -26,7 +26,7 @@ void setup()
     uint32_t timeout = millis();
     while (!Serial && millis() < timeout + 1000) {}
     display(0,"comTest started",0);
-    pinMode(DATA_PIN,INPUT);
+    pinMode(DATA_PIN,INPUT_PULLDOWN);
     attachInterrupt(digitalPinToInterrupt(DATA_PIN), teensyReceiveByte, RISING );
 
     pinMode(13,OUTPUT);
@@ -53,13 +53,13 @@ void teensyReceiveByte()
     digitalWrite(DATA_PIN,0);
         // this appeared to be needed to drive the signal low
         // or else a 2nd interrupt was always triggered
-    display(0,"TEENSY RECEIVED byte=0x%02x  stop=%d",value,stop_bit);
+    display(0,"TEENSY RECEIVED byte=0x%02x  dec(%d)  stop=%d",value,value,stop_bit);
 }
 
 
 void teensySendByte(int byte)
 {
-    display(0,"teensySendByte(0x%02x)",byte);
+    display(0,"teensySendByte(0x%02x) dec(%d)",byte,byte);
     pinMode(DATA_PIN,OUTPUT);
     digitalWrite(DATA_PIN,0);        // start bit
     delayMicroseconds(TEENSY_DELAY);
