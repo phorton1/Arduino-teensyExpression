@@ -88,6 +88,10 @@ class expressionPedal
         unsigned m_settle_time;
         int      m_value;           // 0..127
         int      m_last_value;      // display helper
+
+
+        static void teensyReceiveByte();
+        static void teensySendByte(int byte);
 };
 
 

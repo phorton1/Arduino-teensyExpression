@@ -32,7 +32,7 @@
     // in ampMeter.cpp
 
 #define JUST_COMMS   0
-#define MOVE_PEDAL_TO_RECEIVED_BYTE   1
+#define MOVE_PEDAL_TO_RECEIVED_BYTE   0
 #define SEND_CONTINUOUS_CONTROL       1
 #define CONTROL_SEND_TIME             10     // no more than once every 50 ms
 

@@ -15,6 +15,8 @@
 #define DATA_PIN              23
     // bi-directional
 
+bool analog_mode = 0;
+
 
 //------------------------------
 // setup()
@@ -76,7 +78,8 @@ void teensySendByte(int byte)
     digitalWrite(DATA_PIN,0);        // finished
 
     pinMode(DATA_PIN,INPUT);
-    attachInterrupt(digitalPinToInterrupt(DATA_PIN), teensyReceiveByte, RISING );
+    if (!analog_mode)
+        attachInterrupt(digitalPinToInterrupt(DATA_PIN), teensyReceiveByte, RISING );
 }
 
 
@@ -108,7 +111,16 @@ void loop()
     {
         char c = Serial.read();
 
-        if (c == 'b')
+        if (c == 'a')
+        {
+            Serial.println(c);
+            analog_mode = !analog_mode;
+            display(0,"turning ANALOG MODE %s",analog_mode?"ON":"OFF");
+            pinMode(DATA_PIN,INPUT_PULLDOWN);
+            if (!analog_mode)
+                attachInterrupt(digitalPinToInterrupt(DATA_PIN), teensyReceiveByte, RISING );
+        }
+        else if (c == 'b')
         {
             static int byte_val = 0xAA;
             teensySendByte(byte_val++);
@@ -132,6 +144,30 @@ void loop()
         else if (c == 10)
         {
             Serial.print(c);
+        }
+    }
+
+    if (analog_mode)
+    {
+        #define SAMPLES_PER_CALC   10
+
+        static int calc_val = 0;
+        static int count_val = 0;
+        static int last_val = 0;
+
+        count_val ++;
+        calc_val += analogRead(DATA_PIN);
+        if (count_val == SAMPLES_PER_CALC)
+        {
+            count_val = 0;
+            int val = calc_val / SAMPLES_PER_CALC;
+            calc_val = 0;
+            if (val<last_val-10 || val>last_val+10)
+
+            {
+                last_val = val;
+                display(0,"analog value=%d",val);
+            }
         }
     }
 

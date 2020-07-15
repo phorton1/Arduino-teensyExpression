@@ -4,6 +4,9 @@
 #include "expSystem.h"
 #include "oldRig_defs.h"
 
+#define IS_AUTO_PEDAL   0
+    // set to 5 or something for old behavior
+
 
 #define HYSTERISIS   30
     // in raw 0..1023 units
@@ -35,6 +38,8 @@ void pedalManager::task()
 
 
 
+
+
 //------------------------------------
 // expressionPedal
 //------------------------------------
@@ -60,7 +65,17 @@ void expressionPedal::init(
     m_valid = false;
     m_last_value = -1;
 
-    pinMode(m_pin,INPUT_PULLDOWN);
+    if (m_num == IS_AUTO_PEDAL)
+    {
+        display(0,"setting pedal(%d) on pin %d to autoPedal",m_num,m_pin);
+        pinMode(m_pin,INPUT);
+        attachInterrupt(digitalPinToInterrupt(m_pin), teensyReceiveByte, RISING );
+    }
+    else
+    {
+        pinMode(m_pin,INPUT_PULLDOWN);
+    }
+
 
 }
 
@@ -68,6 +83,9 @@ void expressionPedal::init(
 
 void expressionPedal::poll()
 {
+    if (m_num == IS_AUTO_PEDAL)
+        return;
+
     bool raw_changed = false;
     int raw_value = analogRead(m_pin);
     unsigned time = millis();
@@ -207,4 +225,57 @@ void expressionPedal::poll()
     }
 
     m_valid = true;
+}
+
+
+
+#define TEENSY_DELAY            100
+#define TEENSY_START_IN_DELAY   (6 * TEENSY_DELAY / 5)
+#define TEENSY_END_OUT_DELAY    (4 * TEENSY_DELAY / 5)
+
+
+void expressionPedal::teensyReceiveByte()
+    // quick and dirty, timings derived empirically to
+    // match the arduino code's arbitrary constants.
+{
+    expressionPedal *pedal0 = thePedals.getPedal(0);
+
+    delayMicroseconds(TEENSY_START_IN_DELAY);
+    int value = 0;
+    for (int i=0; i<8; i++)
+    {
+        value = (value << 1) | digitalRead(pedal0->m_pin);
+        delayMicroseconds(TEENSY_DELAY);
+    }
+    int stop_bit = digitalRead(pedal0->m_pin);
+    digitalWrite(pedal0->m_pin,0);
+        // this appeared to be needed to drive the signal low
+        // or else a 2nd interrupt was always triggered
+    display(0,"TEENSY RECEIVED byte=0x%02x  dec(%d)  stop=%d",value,value,stop_bit);
+    pedal0->m_value = value;
+}
+
+
+void expressionPedal::teensySendByte(int byte)
+{
+    expressionPedal *pedal0 = thePedals.getPedal(0);
+
+    display(0,"teensySendByte(0x%02x) dec(%d)",byte,byte);
+    pinMode(pedal0->m_pin,OUTPUT);
+    digitalWrite(pedal0->m_pin,0);        // start bit
+    delayMicroseconds(TEENSY_DELAY);
+    digitalWrite(pedal0->m_pin,1);        // start bit
+    delayMicroseconds(TEENSY_DELAY);
+
+    for (int i=0; i<8; i++)
+    {
+        digitalWrite(pedal0->m_pin,(byte >> (7-i)) & 0x01);      // MSb first
+        delayMicroseconds(TEENSY_DELAY);
+    }
+    digitalWrite(pedal0->m_pin,1);        // stop bit
+    delayMicroseconds(TEENSY_END_OUT_DELAY);
+    digitalWrite(pedal0->m_pin,0);        // finished
+
+    pinMode(pedal0->m_pin,INPUT);
+    attachInterrupt(digitalPinToInterrupt(pedal0->m_pin), teensyReceiveByte, RISING );
 }
