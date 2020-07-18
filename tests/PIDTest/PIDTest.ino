@@ -37,6 +37,9 @@
 #define CONTROL_SEND_TIME             10     // no more than once every 50 ms
 
 
+
+
+
 #if !JUST_COMMS
     #include "ampMeter.h"
 
@@ -310,6 +313,54 @@ void loop()
         }
     #endif
 
+
+    #define MIN_EXERSIZE   10
+    #define MAX_EXERSIZE   700
+    #define EXERSIZE_FORCE 255
+    #define EXERSIZE_DELAY 500      // ms
+    static bool in_exersize = 1;
+    static uint32_t exersize_time = 1;
+    static int exersize_direction = 0;
+
+    if (in_exersize)
+    {
+        running = in_exersize;
+
+        display(0,"cur_sample=%d",cur_sample);
+        delay(5);
+        if (millis() > exersize_time + EXERSIZE_DELAY)
+        {
+            if (exersize_time)
+            {
+                if (!exersize_direction || exersize_direction == -1)
+                {
+                    display(0,"exersize forward",0);
+                    exersize_direction = 1;
+                    output = EXERSIZE_FORCE;
+                    setpoint = MAX_EXERSIZE;
+                }
+                else
+                {
+                    display(0,"exersize back",0);
+                    exersize_direction = -1;
+                    output = -EXERSIZE_FORCE;
+                    setpoint = -MAX_EXERSIZE;
+                }
+                exersize_time = 0;
+            }
+        }
+
+        if (!exersize_time &&
+            ((exersize_direction>0 && cur_sample >= MAX_EXERSIZE) ||
+            (exersize_direction<0 && cur_sample <= MIN_EXERSIZE)))
+        {
+            output = 0;
+            exersize_time = millis();
+            display(0,"changing exersize direciton",0);
+        }
+    }
+
+
     //----------------------------
     // Serial port
     //----------------------------
@@ -318,7 +369,16 @@ void loop()
     {
         char c = Serial.read();
 
-        if (c == 'b')
+        if (c == 'x')
+        {
+            in_exersize = !in_exersize;
+            running = in_exersize;
+            analogWrite(PEDAL_OUT_PIN1,0);
+            analogWrite(PEDAL_OUT_PIN2,0);
+            display(0,"in_exersize=%d",in_exersize);
+            exersize_time = millis();
+        }
+        else if (c == 'b')
         {
             arduinoSendByte(byte_val++);
             if (byte_val > 255) byte_val = 0;
@@ -384,7 +444,8 @@ void loop()
             }
 
             input = cur_sample;
-            computePID();
+            if (!in_exersize)
+                computePID();
 
             if (output > 0)
             {
