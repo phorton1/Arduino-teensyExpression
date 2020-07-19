@@ -65,12 +65,16 @@ void setDefaultPrefs()
     //---------------
     // pedals
     //---------------
+    // the prefs store the regular pedal calibrations
+    // the auto pedal calibrations are always 0,127
 
     for (int i=0; i<NUM_PEDALS; i++)
     {
-        _setDefaultPref16(PREF_PEDAL(i) + PREF_PEDAL_CALIB_MIN_OFFSET,    0,1023,   0);             // default 0
-        _setDefaultPref16(PREF_PEDAL(i) + PREF_PEDAL_CALIB_MAX_OFFSET,    0,1023,   1023);          // default 1023
-        _setDefaultPref8 (PREF_PEDAL(i) + PREF_PEDAL_CURVE_TYPE_OFFSET,   0,2,      0,curve_types); // 0=linear, 1=asymptotic, 2=scurve - default(0) == num_points
+        bool is_auto = i==1 ? 1 : 0;
+        _setDefaultPref8 (PREF_PEDAL(i) + PREF_PEDAL_AUTO_OFFSET,         0,1,      is_auto,off_on);    // 0=linear, 1=asymptotic, 2=scurve - default(0) == num_points
+        _setDefaultPref8 (PREF_PEDAL(i) + PREF_PEDAL_CURVE_TYPE_OFFSET,   0,2,      0,curve_types);     // 0=linear, 1=asymptotic, 2=scurve - default(0) == num_points
+        _setDefaultPref16(PREF_PEDAL(i) + PREF_PEDAL_CALIB_MIN_OFFSET,    0,1023,   0);                 // default 0
+        _setDefaultPref16(PREF_PEDAL(i) + PREF_PEDAL_CALIB_MAX_OFFSET,    0,1023,   1023);              // default 1023
 
         int out_byte = PREF_PEDAL(i) + PREF_PEDAL_POINTS_OFFSET;
 

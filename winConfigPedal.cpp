@@ -23,11 +23,12 @@
 #define CANCEL_BUTTON  3
 #define NEXT_PEDAL_BUTTON  0
 
-#define NUM_FIXED_ITEMS   2
-#define ITEM_CALIBRATE    0
-#define ITEM_CURVE_TYPE   1
+#define ITEM_AUTO         0
+#define ITEM_CALIBRATE    1
+#define ITEM_CURVE_TYPE   2
+#define NUM_FIXED_ITEMS   3
 
-
+#define CALIB_SAFETY_MARGIN   10
 
 // virtual
 const char *winConfigPedal::name()
@@ -64,6 +65,7 @@ void winConfigPedal::begin(bool warm)
     m_display_pedal_value = -1;
     m_in_calibrate = 0;
 
+    m_cur_auto = getPref8(PREF_PEDAL(m_pedal_num) + PREF_PEDAL_AUTO_OFFSET);
     m_cur_curve = getPref8(PREF_PEDAL(m_pedal_num) + PREF_PEDAL_CURVE_TYPE_OFFSET);
     m_curve_names = getPrefStrings(PREF_PEDAL(m_pedal_num) + PREF_PEDAL_CURVE_TYPE_OFFSET);
     getPrefPedalPoints();
@@ -218,6 +220,16 @@ void winConfigPedal::onButtonEvent(int row, int col, int event)
             m_cur_point = m_cur_item - NUM_FIXED_ITEMS;
             m_display_item = -1;
         }
+        else if (m_cur_item == ITEM_AUTO)
+        {
+            m_cur_auto = !m_cur_auto;
+            setPrefPedalAuto(m_pedal_num,m_cur_auto);
+            thePedals.getPedal(m_pedal_num)->setAuto();
+            thePedals.getPedal(m_pedal_num)->invalidate();
+            setPrefPedalCurve(m_pedal_num, m_cur_curve);
+            setEditPoints();
+            m_display_curve = -1;
+        }
         else if (m_cur_item == ITEM_CURVE_TYPE)
         {
             m_cur_curve = (m_cur_curve + 1) % MAX_PEDAL_CURVES;
@@ -227,15 +239,26 @@ void winConfigPedal::onButtonEvent(int row, int col, int event)
         }
         else if (m_cur_item == ITEM_CALIBRATE)
         {
-            if (m_in_calibrate)
+            if (m_cur_auto)
             {
-                m_in_calibrate = 0;
+                if (!m_in_calibrate)
+                {
+                    m_in_calibrate = 1;
+                    thePedals.getPedal(m_pedal_num)->autoCalibrate();      // send calibrate command
+                }
             }
             else
             {
-                m_in_calibrate = 1;
-                setPrefPedalCalibMin(m_pedal_num,1023);
-                setPrefPedalCalibMax(m_pedal_num,0);
+                if (m_in_calibrate)
+                {
+                    m_in_calibrate = 0;
+                }
+                else
+                {
+                    m_in_calibrate = 1;
+                    setPrefPedalCalibMin(m_pedal_num,1023);
+                    setPrefPedalCalibMax(m_pedal_num,0);
+                }
             }
             m_display_curve = -1;
             clearPrevPoints();
@@ -299,7 +322,11 @@ const char *getPointName(int curve, int point)
 void winConfigPedal::showSelectedItem(int item, int selected)
 {
     const char *name = "huh?";
-    if (item == ITEM_CALIBRATE)
+    if (item == ITEM_AUTO)
+    {
+        name = m_cur_auto ? "AUTO" : "regular";
+    }
+    else if (item == ITEM_CALIBRATE)
     {
         name = "calib";
     }
@@ -409,17 +436,23 @@ void winConfigPedal::updateUI()
     bool calib_changed = m_in_calibrate && raw_value != last_raw_value;
     if (full_redraw || calib_changed)
     {
+        if (m_in_calibrate && m_cur_auto && !thePedals.getPedal(m_pedal_num)->inAutoCalibrate())
+        {
+            display(0,"ending auto calibrate",0);
+            m_in_calibrate = 0;
+        }
+
         int text_y = Y_OFFSET + 4*RIGHT_LINE_HEIGHT;
         if (!full_redraw)
             mylcd.Fill_Rect(RIGHT_COL,text_y,RIGHT_WIDTH,2*RIGHT_LINE_HEIGHT,0);
         int color = m_in_calibrate ? TFT_GREEN : TFT_YELLOW;
 
-        if (calib_changed)
+        if (calib_changed && !m_cur_auto)
         {
             if (raw_value < getPrefPedalCalibMin(m_pedal_num))
-                setPrefPedalCalibMin(m_pedal_num,raw_value);
+                setPrefPedalCalibMin(m_pedal_num,raw_value + CALIB_SAFETY_MARGIN);
             if (raw_value > getPrefPedalCalibMax(m_pedal_num))
-                setPrefPedalCalibMax(m_pedal_num,raw_value);
+                setPrefPedalCalibMax(m_pedal_num,raw_value - CALIB_SAFETY_MARGIN);
         }
 
         mylcd.setFont(m_in_calibrate ? Arial_12_Bold : Arial_12);
@@ -429,7 +462,7 @@ void winConfigPedal::updateUI()
             0,
             false,
             "%d",
-            getPrefPedalCalibMin(m_pedal_num));
+            m_cur_auto ? 0 : getPrefPedalCalibMin(m_pedal_num));
         text_y += RIGHT_LINE_HEIGHT;
 
         mylcd.printf_justified(RIGHT_COL,text_y,RIGHT_WIDTH,RIGHT_LINE_HEIGHT,
@@ -438,7 +471,7 @@ void winConfigPedal::updateUI()
             0,
             false,
             "%d",
-            getPrefPedalCalibMax(m_pedal_num));
+            m_cur_auto ? 127 : getPrefPedalCalibMax(m_pedal_num));
     }
 
     // selected item

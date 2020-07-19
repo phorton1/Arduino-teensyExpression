@@ -16,6 +16,14 @@
 
 pedalManager thePedals;
 
+typedef void (*isr_fxn)();
+
+void pedal_isr0()       { thePedals.getPedal(0)->teensyReceiveByte(); }
+void pedal_isr1()       { thePedals.getPedal(1)->teensyReceiveByte(); }
+void pedal_isr2()       { thePedals.getPedal(2)->teensyReceiveByte(); }
+void pedal_isr3()       { thePedals.getPedal(3)->teensyReceiveByte(); }
+isr_fxn pedal_isrs[NUM_PEDALS] = {pedal_isr0, pedal_isr1, pedal_isr2, pedal_isr3};
+
 
 //------------------------------------
 // pedalManager
@@ -65,30 +73,72 @@ void expressionPedal::init(
     m_valid = false;
     m_last_value = -1;
 
-    if (m_num == IS_AUTO_PEDAL)
+    setAuto();
+}
+
+
+
+void expressionPedal::setAuto()
+{
+    m_auto_value = 0;
+    m_auto = getPrefPedalAuto(m_num);
+    m_in_auto_calibrate = 0;
+
+    if (m_auto)
     {
-        display(0,"setting pedal(%d) on pin %d to autoPedal",m_num,m_pin);
+        display(0,"AUTO_PEDAL(%d) pin=%d",m_num,m_pin);
         pinMode(m_pin,INPUT);
-        attachInterrupt(digitalPinToInterrupt(m_pin), teensyReceiveByte, RISING );
+        attachInterrupt(digitalPinToInterrupt(m_pin), pedal_isrs[m_num], RISING );
     }
     else
     {
+        display(0,"REGULAR_PEDAL(%d)",m_num);
         pinMode(m_pin,INPUT_PULLDOWN);
     }
+}
 
+void expressionPedal::autoCalibrate()
+{
+    if (m_auto)
+    {
+        m_raw_value = -1;
+        m_in_auto_calibrate = 1;
+        teensySendByte(0xF1);      // send calibrate command
+    }
+    else
+    {
+        my_error("Attempt to autoCalibrate when pedal(%d) is not m_auto",m_num);
+    }
+}
+
+void expressionPedal::setAutoRawValue(int value)
+{
+    if (m_auto)
+    {
+        if (value > 127) value = 127;
+        if (value < 0) value = 0;
+        teensySendByte(value);      // send calibrate command
+    }
+    else
+    {
+        my_error("Attempt to setAutoRawValue(%d==0x%02x) when pedal is not m_auto",value,value,m_num);
+    }
 
 }
 
 
 
+
+
 void expressionPedal::poll()
 {
-    if (m_num == IS_AUTO_PEDAL)
+    if (m_in_auto_calibrate)
         return;
 
     bool raw_changed = false;
-    int raw_value = analogRead(m_pin);
+    int raw_value = m_auto ? m_auto_value : analogRead(m_pin);
     unsigned time = millis();
+    int use_hysterisis = m_auto ? 0 : HYSTERISIS;
 
     // display(0,"poll(%d) raw_value=%d",m_num,raw_value);
 
@@ -96,14 +146,14 @@ void expressionPedal::poll()
 
     if (!m_direction)
     {
-        if (raw_value > m_raw_value + HYSTERISIS)
+        if (raw_value > m_raw_value + use_hysterisis)
         {
             m_direction = 1;
             m_raw_value = raw_value;
             m_settle_time = time;
             raw_changed = 1;
         }
-        else if (raw_value < m_raw_value - HYSTERISIS)
+        else if (raw_value < m_raw_value - use_hysterisis)
         {
             m_direction = -1;
             m_raw_value = raw_value;
@@ -238,44 +288,46 @@ void expressionPedal::teensyReceiveByte()
     // quick and dirty, timings derived empirically to
     // match the arduino code's arbitrary constants.
 {
-    expressionPedal *pedal0 = thePedals.getPedal(0);
-
     delayMicroseconds(TEENSY_START_IN_DELAY);
     int value = 0;
     for (int i=0; i<8; i++)
     {
-        value = (value << 1) | digitalRead(pedal0->m_pin);
+        value = (value << 1) | digitalRead(m_pin);
         delayMicroseconds(TEENSY_DELAY);
     }
-    int stop_bit = digitalRead(pedal0->m_pin);
-    digitalWrite(pedal0->m_pin,0);
+    int stop_bit = digitalRead(m_pin);
+    digitalWrite(m_pin,0);
         // this appeared to be needed to drive the signal low
         // or else a 2nd interrupt was always triggered
-    display(0,"TEENSY RECEIVED byte=0x%02x  dec(%d)  stop=%d",value,value,stop_bit);
-    pedal0->m_value = value;
+    display(0,"TEENSY RECEIVED pedal=%d byte=0x%02x  dec(%d)  stop=%d",m_num,value,value,stop_bit);
+    m_auto_value = value;
+    m_in_auto_calibrate = 0;
 }
 
 
 void expressionPedal::teensySendByte(int byte)
 {
-    expressionPedal *pedal0 = thePedals.getPedal(0);
-
-    display(0,"teensySendByte(0x%02x) dec(%d)",byte,byte);
-    pinMode(pedal0->m_pin,OUTPUT);
-    digitalWrite(pedal0->m_pin,0);        // start bit
+    if (!m_auto)
+    {
+        my_error("Attempt to call teensySendByte(0x%02x) when pedal(%d) is not m_auto",byte,m_num);
+        return;
+    }
+    display(0,"teensySendByte(%d, 0x%02x) dec(%d)",m_num,byte,byte);
+    pinMode(m_pin,OUTPUT);
+    digitalWrite(m_pin,0);                  // start bit
     delayMicroseconds(TEENSY_DELAY);
-    digitalWrite(pedal0->m_pin,1);        // start bit
+    digitalWrite(m_pin,1);                  // start bit
     delayMicroseconds(TEENSY_DELAY);
 
     for (int i=0; i<8; i++)
     {
-        digitalWrite(pedal0->m_pin,(byte >> (7-i)) & 0x01);      // MSb first
+        digitalWrite(m_pin,(byte >> (7-i)) & 0x01);      // MSb first
         delayMicroseconds(TEENSY_DELAY);
     }
-    digitalWrite(pedal0->m_pin,1);        // stop bit
+    digitalWrite(m_pin,1);        // stop bit
     delayMicroseconds(TEENSY_END_OUT_DELAY);
-    digitalWrite(pedal0->m_pin,0);        // finished
+    digitalWrite(m_pin,0);        // finished
 
-    pinMode(pedal0->m_pin,INPUT);
-    attachInterrupt(digitalPinToInterrupt(pedal0->m_pin), teensyReceiveByte, RISING );
+    pinMode(m_pin,INPUT);
+    attachInterrupt(digitalPinToInterrupt(m_pin), pedal_isrs[m_num], RISING );
 }

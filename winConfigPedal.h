@@ -31,6 +31,7 @@ class winConfigPedal : public expWindow
         int m_pedal_num;
         bool m_redraw_curve;
 
+        bool m_cur_auto;      // getPref8(PREF_PEDAL(m_pedal_num) + PREF_PEDAL_AUTO_OFFSET)  0..1
         int m_cur_curve;      // getPref8(PREF_PEDAL(m_pedal_num) + PREF_PEDAL_CURVE_TYPE_OFFSET)  0..2
         int m_num_points;     // m_cur_curve + 2
         int m_num_items;      // m_num_points + 1
