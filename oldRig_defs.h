@@ -1,27 +1,126 @@
 #ifndef __oldRig_defs_h_
 #define __oldRig_defs_h_
 
+
+//-------------------------------------------
+// Changing between Old Rig and New Rig
+//-------------------------------------------
+// Most of the behavior of the iPad can be changed by merely sending a
+// 0xCn patch change message on Channel 9 (0xC8) where "patch 0" is the
+// old rig, and "patch 1" is the new rig.
+//
+// OLD RIG
+//       sampleTank does not change between old and new rigs, per se
+//       audiobus has sampleTank and toneStack routed to Quantiloop
+//           we adjust "synth" overall and guitar volume manually in AudioBus
+//           “Settings – Sync Settings – Ableton Link” disabled
+//               - may be able to leave it enable for Old Rig
+//       toneStack has a foot pedal Volume control
+//       quantiLoop - OUTPUT MONITOR IS SET TO MAXIMUM VALUE and
+//           we control QL volume by sending CC7 to all four tracks
+//           Tempo: (may be able to use New Rig Settings for Old Rig)
+//              - “Force Link Tempo” ON for both Old and New rigs
+//              - Disable “Ableton Link”
+//              - Sync To: None
+//
+// NEW RIG
+//       audiobus has ST, TS, and QL all routed to output
+//           the Synth, Master Loop, and Guitar volumes are controlled in Audiobus
+//           on CC's 50,51, and 52
+//           “Settings – Sync Settings – Ableton Link” enabled
+//               - may be able to leave it enabled for Old Rig too.
+//       toneStack does not have a foot pedal Volume control
+//       quantiloop - MONITOR OUTPUT IS TURNED OFF (set to minimum value)
+//           we control individual track volumes on CCs 75-78
+//           Tempo:
+//              - “Force Link Tempo” ON for both Old and New rigs
+//              - Enable “Ableton Link”
+//              - Sync To: Audiobus
+//       TURNS DOWN THE AUDIOBUS SYNTH VOLUME (and moves the pedal if Auto)
+//            and SENDS OUT DEFAULT "VOLUME" CC7's to all channels (based on
+//            FTP polymode each time a patch is selected.
+//
+//-------------------------------------------------------------------------
+// Therefore:
+//
+// "rig" PATCH CHANGE sent out in oldRig and newRig::begin() last one wins,
+//      NOT SENT OUT IF NO RIG IS ENTERED .... and ...
+//
+// PEDAL CC's
+//      The PEDAL cc's for New Rig vs Old Rig are system modal.
+//      The system defaults to the Old Rig CC numbers.
+//      Whichever configuration (old vs new) is selected last
+//           sets the CC numbers into the pedals during begin().
+//
+// FOR COMPATABILITY WITH OLD RIG
+//       The volumes of individual patches with multi's in SampleTank
+//       synth patches are at 0 when selected.
+//
+//       I had been using the "Master Volume" on these to set the relative
+//       volume - to normalize patches so they sound similar at similar
+//       CC7 volume levels, but as of now, all patches have their master
+//       volume set to 10 (full unity gain).
+//
+//       This may still make sense. It gives a "locked" relative volume
+//       that is independent of the individual patch "volume", and
+//       independent of my program, or it's need to change things.
+//
+//       Since I am now controlling the "synth volume" in AudioBus, the new
+//       semantic of the "volume" on an individual voice is that it is the
+//       CONTROLLABLE relative volume, within the multi patch, of each voice,
+//       that can be received on CC7 for each channel in the multi.
+//
+//       Thus the "master" volumes can be set to give reasonable behavior
+//       at a given "volume" (say, 0.70) across all voices in all patches,
+//       so that the voice is generally in a usable range.  For live effects,
+//       like fading a single voice in a multi, independent of the final
+//       output synth volume, or the "relative stable" "master" volume,
+//       I can control the "volume" of each voice/channel with CC7.
+//
+//       Therefore, in the "New Rig" when I change to a given multi,
+//       CC7 of 0.7*127 (or whatever is the default normal volume)
+//       needs to be sent out to all channels in the multi .. which
+//       in turn depends on the poly-mode of the FTP ...
+//
+//       And still gotta watch out for stray CC7's sent by the FTP
+//       like when you change polymode ... maybe !?!?
+
+
 //----------------------------
 // AudioBus
 //----------------------------
 
+#define IPAD_RIG_NONE  -1
+#define IPAD_RIG_OLD   0
+#define IPAD_RIG_NEW   1
+extern int g_ipad_is_new_rig;
+    // defaults to -1
+    // 0 == old rig
+    // 1 == new rig
+
+
+
+
+
 #define NEW_SELECT_RIG_CHANNEL    9
-    // The rig selection is orchestrated by sending a simple 0xCn patch
+    // Rig selection on the iPad is orchestrated by sending a simple 0xCn patch
     // change message on channel 9 (0xC8) where "patch 0" is the old rig,
-    // and "patch 1" is the new rig.  AudioBus, ToneStack, and Quantiloop
-    // are all setup to accept patch changes on channel 9, and fortunately
-    // do not change out of the range of defined presets, and do not seem
-    // to respond badly to setting the patch to the one it's already at.
+    // and "patch 1" is the new rig
     //
-    // Thus we can send "patch 2" to Quantiloop, additionally, to switch
-    // to "Serial" mode (as "patch 1" on QL is the "old rig paralell" patch.
+    // AudioBus, ToneStack, and Quantiloop are all setup to accept patch
+    // changes on channel 9, and fortunately do not change out of the range
+    // of defined presets, and do not seem to respond badly to setting the patch
+    // to the one it's already at.  So as currently configured, once we have
+    // established/ "new rig" by sending the "patch 1" change, we can then
+    // subsequently switch between QL "Parellel" and "Serial" modes by sending
+    // "patch 1" and "patch 2" messages, respectively, on channel 9.
 
 #define NEW_PATCH_NUM_OLD_RIG  0
 #define NEW_PATCH_NUM_NEW_RIG  1
 #define NEW_PATCH_NUM_QUANTILOOP_PARALLEL  NEW_PATCH_NUM_NEW_RIG
 #define NEW_PATCH_NUM_QUANTILOOP_SERIAL  2
 
-
+#define AUDIO_BUS_CONTROL_CHANNEL       9       // also 9
 #define NEW_AUDIOBUS_CC_SYNTH_VOLUME    50
 #define NEW_AUDIOBUS_CC_LOOP_VOLUME     51
 #define NEW_AUDIOBUS_CC_GUITAR_VOLUME   52
@@ -38,6 +137,9 @@
 //----------------
 // synth
 //----------------
+
+#define SYNTH_DEFAULT_VOICE_VOLUME   (0.7 * 127)
+
 
 #define SYNTH_PROGRAM_CHANNEL       7       // 1 based
     // program change come on specific channels
@@ -71,6 +173,17 @@
 // For time being, all sample tank master volumes are set to the
 // default of 1.0 (full on), so I don't have to edit each single
 // everytime I add a new one to a multi.
+
+
+
+typedef struct
+    // structure common to New and Old rig patches
+{
+    int prog_num;
+    const char *short_name;
+    const char *long_name;
+}   synthPatch_t;
+
 
 
 //----------------

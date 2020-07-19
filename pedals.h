@@ -51,9 +51,15 @@ class expressionPedal
         bool inAutoCalibrate()      { return m_in_auto_calibrate; }
         bool isAuto()               { return m_auto; }
         void setAutoRawValue(int i);
-
+        int getAutoRawValue()       { return m_auto_value; }
 
         // midi
+
+        void setCCs(int channel, int cc_num)
+        {
+            m_cc_channel = channel;
+            m_cc_num = cc_num;
+        }
 
         int getCCChannel()              { return m_cc_channel; }
         int getCCNum()                  { return m_cc_num; }

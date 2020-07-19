@@ -70,7 +70,7 @@ void setDefaultPrefs()
 
     for (int i=0; i<NUM_PEDALS; i++)
     {
-        bool is_auto = i==1 ? 1 : 0;
+        bool is_auto = i==0 ? 1 : 0;
         _setDefaultPref8 (PREF_PEDAL(i) + PREF_PEDAL_AUTO_OFFSET,         0,1,      is_auto,off_on);    // 0=linear, 1=asymptotic, 2=scurve - default(0) == num_points
         _setDefaultPref8 (PREF_PEDAL(i) + PREF_PEDAL_CURVE_TYPE_OFFSET,   0,2,      0,curve_types);     // 0=linear, 1=asymptotic, 2=scurve - default(0) == num_points
         _setDefaultPref16(PREF_PEDAL(i) + PREF_PEDAL_CALIB_MIN_OFFSET,    0,1023,   0);                 // default 0

@@ -1,4 +1,4 @@
-#include "patchOldRig.h"
+#include "patchNewRig.h"
 #include <myDebug.h>
 #include "defines.h"
 #include "myLeds.h"
@@ -6,11 +6,6 @@
 #include "pedals.h"
 #include "buttons.h"
 #include "midiQueue.h"
-
-// global shared between old an new rig to determine if ipad rig change message needs to be sent
-
-int g_ipad_is_new_rig = IPAD_RIG_NONE;
-#define IPAD_RIG_NONE  -1
 
 
 #define GROUP_LOOPER 	7
@@ -24,6 +19,8 @@ int g_ipad_is_new_rig = IPAD_RIG_NONE;
 #define FIRST_LOOP_BUTTON   	20
 #define LAST_LOOP_BUTTON    	24
 
+
+
 #define BUTTON_TYPE_LOOPER      (BUTTON_EVENT_PRESS | BUTTON_EVENT_RELEASE | BUTTON_MASK_TOUCH | BUTTON_MASK_RADIO | BUTTON_GROUP(GROUP_LOOPER) )
 #define BUTTON_TYPE_LOOP_CLEAR  (BUTTON_EVENT_CLICK | BUTTON_EVENT_LONG_CLICK | BUTTON_MASK_TOUCH | BUTTON_MASK_RADIO | BUTTON_GROUP(GROUP_LOOPER) )
 
@@ -32,7 +29,9 @@ int g_ipad_is_new_rig = IPAD_RIG_NONE;
 // SampleTank
 //--------------------
 
-synthPatch_t patchOldRig::synth_patch[NUM_BUTTON_COLS * 3] = {
+
+
+synthPatch_t patchNewRig::synth_patch[NUM_BUTTON_COLS * 3] = {
     {SYNTH_PATCH_BASS_MINUS,     "BASS_MINUS",  "P Bass Finger"},  // should be MM Bass Finger
     {SYNTH_PATCH_BRASS1,         "BRASS1",      "Drama Brass"},
     {SYNTH_PATCH_VOICES1,        "VOICES1",     "Vocal Oh"},
@@ -53,12 +52,11 @@ synthPatch_t patchOldRig::synth_patch[NUM_BUTTON_COLS * 3] = {
 };
 
 
-
 //----------------
 // toneStack
 //----------------
 
-int patchOldRig::guitar_effect_ccs[NUM_BUTTON_COLS] = {
+int patchNewRig::guitar_effect_ccs[NUM_BUTTON_COLS] = {
     GUITAR_DISTORTION_EFFECT_CC,
     GUITAR_WAH_EFFECT_CC,
     GUITAR_FLANGER_EFFECT_CC,
@@ -71,7 +69,7 @@ int patchOldRig::guitar_effect_ccs[NUM_BUTTON_COLS] = {
 // Quantiloop
 //----------------
 
-int patchOldRig::loop_ccs[NUM_BUTTON_COLS] =
+int patchNewRig::loop_ccs[NUM_BUTTON_COLS] =
 {
     LOOP_CONTROL_TRACK1,
     LOOP_CONTROL_TRACK2,
@@ -87,10 +85,12 @@ int patchOldRig::loop_ccs[NUM_BUTTON_COLS] =
 
 
 //====================================================================
-// patchOldRig
+// patchNewRig
 //====================================================================
 
-patchOldRig::patchOldRig()
+
+
+patchNewRig::patchNewRig()
 {
     m_cur_patch_num = -1;    // 0..14
 	for (int i=0; i<NUM_BUTTON_ROWS * NUM_BUTTON_COLS; i++)
@@ -102,7 +102,7 @@ patchOldRig::patchOldRig()
 
 
 // virtual
-void patchOldRig::end()
+void patchNewRig::end()
 {
 	// save off the button states
 	for (int i=0; i<NUM_BUTTON_ROWS * NUM_BUTTON_COLS; i++)
@@ -114,25 +114,25 @@ void patchOldRig::end()
 
 
 // virtual
-void patchOldRig::begin(bool warm)
+void patchNewRig::begin(bool warm)
 {
     expWindow::begin(warm);
 
 	// if the ipad rig needs to be changed, send the appropriate message
 
-	if (g_ipad_is_new_rig != IPAD_RIG_OLD)
+	if (g_ipad_is_new_rig != IPAD_RIG_NEW)
 	{
-		g_ipad_is_new_rig = IPAD_RIG_OLD;
-		mySendDeviceProgramChange(NEW_PATCH_NUM_OLD_RIG, NEW_SELECT_RIG_CHANNEL);
+		g_ipad_is_new_rig = IPAD_RIG_NEW;
+		mySendDeviceProgramChange(NEW_PATCH_NUM_NEW_RIG, NEW_SELECT_RIG_CHANNEL);
 	}
 
-	// set system modal pedal CC's (to each program) upon entry
 
-	thePedals.getPedal(0)->setCCs(SYNTH_VOLUME_CHANNEL,   SYNTH_VOLUME_CC);
-	thePedals.getPedal(1)->setCCs(LOOP_CONTROL_CHANNEL,   LOOP_VOLUME_CC);
-	thePedals.getPedal(2)->setCCs(GUITAR_EFFECTS_CHANNEL, GUITAR_WAH_CONTROL_CC);
-	thePedals.getPedal(3)->setCCs(GUITAR_VOLUME_CHANNEL,  GUITAR_VOLUME_CC);
+	// set system modal pedal CC's for the new rig (audiobus) upon entry
 
+	thePedals.getPedal(0)->setCCs(AUDIO_BUS_CONTROL_CHANNEL,    NEW_AUDIOBUS_CC_SYNTH_VOLUME);
+	thePedals.getPedal(1)->setCCs(AUDIO_BUS_CONTROL_CHANNEL,    NEW_AUDIOBUS_CC_LOOP_VOLUME);
+	thePedals.getPedal(2)->setCCs(GUITAR_EFFECTS_CHANNEL, 		GUITAR_WAH_CONTROL_CC);
+	thePedals.getPedal(3)->setCCs(AUDIO_BUS_CONTROL_CHANNEL,    NEW_AUDIOBUS_CC_GUITAR_VOLUME);
 
 	m_last_patch_num = -1;
     m_full_redraw = 1;
@@ -163,7 +163,7 @@ void patchOldRig::begin(bool warm)
 
 
 // virtual
-void patchOldRig::onButtonEvent(int row, int col, int event)
+void patchNewRig::onButtonEvent(int row, int col, int event)
 {
 	// save the button state at any given time
 
@@ -175,8 +175,60 @@ void patchOldRig::onButtonEvent(int row, int col, int event)
     if (row < 3)
     {
         m_cur_patch_num = num;	// my patch number
-		int prog_num = synth_patch[m_cur_patch_num].prog_num;	// device patch numbr
+		int prog_num = synth_patch[m_cur_patch_num].prog_num;	// device patch number
+
+		// in New rig, we turn down the synth volume on Audio Bus on a patch change
+		// and if the synth pedal(0) is Auto we send it to zero too ..
+
+		expressionPedal *pedal = thePedals.getPedal(0);		// 0 == Synth Pedal
+		mySendDeviceControlChange(
+			pedal->getCCNum(),
+			0,
+			pedal->getCCChannel());
+
+		// send out the patch change message to Sample Tank first ....
+
         mySendDeviceProgramChange(prog_num, SYNTH_PROGRAM_CHANNEL);
+
+		// move the pedal if it's auto ...
+
+		if (pedal->isAuto())
+		{
+			pedal->setAutoRawValue(0);
+				// we don't need to back map through the curve for setting zero, fortunately
+
+			// wait up to 1.5 second for change to complete
+			// doesnt work because we are in a timer interrupt ...
+			//    and I don't yet want to mess with changing priority of teensyReceiveByte
+			//    (and am not even sure if that will work) so that it operates at a higher
+			//    priority than the non-critical timer_handler()
+			//
+			// 		elapsedMillis  pedal_wait = 0;
+			// 		while (pedal->getAutoRawValue() && pedal_wait < 1500) { delay(10); }
+			// 		if (pedal->getAutoRawValue())
+			// 		{
+			// 			warning(0,"Synth Pedal did not get to zero.  value=%d",pedal->getAutoRawValue());
+			// 		}
+		}
+
+		// then aftr giving as much time to sample tank as possible (by default) ...
+		//
+		// in New Rig we also set each voice in the multi to the default
+		// volume (around 0.7).  For now we are only doing it for channel 1
+		// but this would need to be done for all 6 channels in poly mode
+
+		mySendDeviceControlChange(
+			SYNTH_VOLUME_CC,  				// 7
+			SYNTH_DEFAULT_VOICE_VOLUME,		// 0.7 * 127
+			SYNTH_VOLUME_CHANNEL);			// 1
+
+
+		#if 0
+			// experimental ... bring synth pedal back to 0.7*127 (no back mapping through curves)
+			delay(1000);
+			pedal->setAutoRawValue(SYNTH_DEFAULT_VOICE_VOLUME);
+		#endif
+
     }
     else if (row == 3)
     {
@@ -244,7 +296,7 @@ void patchOldRig::onButtonEvent(int row, int col, int event)
 
 
 // virtual
-void patchOldRig::updateUI()
+void patchNewRig::updateUI()
 {
     bool draw_full = false;
     if (m_full_redraw)

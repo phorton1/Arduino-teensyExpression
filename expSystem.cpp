@@ -14,6 +14,7 @@
 
 #include "configSystem.h"
 #include "patchOldRig.h"
+#include "patchNewRig.h"
 #include "patchTest.h"
 #include "patchMidiHost.h"
 #include "winFtpTuner.h"
@@ -196,6 +197,7 @@ void expSystem::begin()
 {
     addPatch(new configSystem());
     addPatch(new patchOldRig());
+    addPatch(new patchNewRig());
     addPatch(new patchTest());
     addPatch(new patchMidiHost());
 
