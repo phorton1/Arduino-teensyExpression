@@ -624,7 +624,7 @@ void expSystem::updateUI()
 		// return;
 	}
 
-	if (battery_time > BATTERY_CHECK_TIME)
+	if (getPref8(PREF_FTP_PORT) && battery_time > BATTERY_CHECK_TIME)
 	{
 	    sendFTPCommandAndValue(FTP_CMD_BATTERY_LEVEL, 0);
 		battery_time = 0;
