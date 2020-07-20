@@ -46,6 +46,9 @@ void setup()
 
 #define PEDAL_READS_PER_SAMPLE      10
 
+#define DETENT_WINDOW       10
+#define DETENT_MAGNET       20
+#define DETENT_FORCE        255
 
 
 int cur_sample = 0;
@@ -103,12 +106,6 @@ void loop()
     // move pedal on each full sample
     //-----------------------------------
 
-    #define DETENT_WINDOW       20
-    #define DETENT_MAGNET       30
-    #define DETENT_FORCE        160
-    #define DETENT_IN_SCALE     3       // per unit
-
-
     if (!num_pedal_reads)
     {
         int force = DETENT_FORCE;
@@ -122,33 +119,13 @@ void loop()
             display(0,"backwards in(%d) %d",count++,cur_sample);
         }
         else if
-            (cur_sample <= detent_pos-DETENT_WINDOW-DETENT_MAGNET &&
-             cur_sample >= detent_pos-DETENT_WINDOW-DETENT_MAGNET*2)
-        {
-            direction = -1;
-            int amount = abs(cur_sample - (detent_pos-DETENT_WINDOW-DETENT_MAGNET));
-            force = DETENT_FORCE - amount * DETENT_IN_SCALE;
-            if (force < 0) force = 0;
-            display(0,"backwards out(%d) %d  force=%d",count++,cur_sample,force);
-        }
-        else if
             (cur_sample <= detent_pos-DETENT_WINDOW &&
              cur_sample >= detent_pos-DETENT_WINDOW-DETENT_MAGNET)
         {
             direction = 1;
             display(0,"forwards in(%d) %d",count++,cur_sample);
         }
-        else if
-            (cur_sample >= detent_pos+DETENT_WINDOW+DETENT_MAGNET &&
-             cur_sample <= detent_pos+DETENT_WINDOW+DETENT_MAGNET*2)
-        {
-            direction = 1;
-            int amount = abs(cur_sample - (detent_pos+DETENT_WINDOW+DETENT_MAGNET));
-            force = DETENT_FORCE - amount * DETENT_IN_SCALE;
-            if (force < 0) force = 0;
-            display(0,"forwards out(%d) %d  force=%d",count++,cur_sample,force);
-        }
-        else
+        else    // just displays moves
         {
             static int last_pos = 0;
             if (cur_sample > last_pos + 4 ||
