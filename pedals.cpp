@@ -31,10 +31,10 @@ isr_fxn pedal_isrs[NUM_PEDALS] = {pedal_isr0, pedal_isr1, pedal_isr2, pedal_isr3
 
 void pedalManager::init()
 {
-    m_pedals[0].init(0, PIN_EXPR1, "Synth",  SYNTH_VOLUME_CHANNEL,   SYNTH_VOLUME_CC);
-    m_pedals[1].init(1, PIN_EXPR2, "Loop",   LOOP_CONTROL_CHANNEL,   LOOP_VOLUME_CC);
-    m_pedals[2].init(2, PIN_EXPR3, "Wah",    GUITAR_EFFECTS_CHANNEL, GUITAR_WAH_CONTROL_CC);
-    m_pedals[3].init(3, PIN_EXPR4, "Guitar", GUITAR_VOLUME_CHANNEL,  GUITAR_VOLUME_CC);
+    m_pedals[PEDAL_SYNTH ].init(PEDAL_SYNTH,  PIN_EXPR1, "Synth",  SYNTH_VOLUME_CHANNEL,   SYNTH_VOLUME_CC);
+    m_pedals[PEDAL_LOOP  ].init(PEDAL_LOOP,   PIN_EXPR2, "Loop",   LOOP_CONTROL_CHANNEL,   LOOP_VOLUME_CC);
+    m_pedals[PEDAL_WAH   ].init(PEDAL_WAH,    PIN_EXPR3, "Wah",    GUITAR_EFFECTS_CHANNEL, GUITAR_WAH_CONTROL_CC);
+    m_pedals[PEDAL_GUITAR].init(PEDAL_GUITAR, PIN_EXPR4, "Guitar", GUITAR_VOLUME_CHANNEL,  GUITAR_VOLUME_CC);
 }
 
 

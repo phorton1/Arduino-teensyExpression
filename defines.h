@@ -16,6 +16,11 @@
 #define BUTTON_ROW(i)      ((i) / NUM_BUTTON_COLS)
 #define BUTTON_COL(i)      ((i) % NUM_BUTTON_COLS)
 
+#define PEDAL_SYNTH     0
+#define PEDAL_LOOP      1
+#define PEDAL_WAH       2
+#define PEDAL_GUITAR    3
+
 
 //----------------------------------------------------------------------
 // PIN USAGE

@@ -86,6 +86,7 @@
 //       like when you change polymode ... maybe !?!?
 
 
+
 //----------------------------
 // AudioBus
 //----------------------------
@@ -97,9 +98,6 @@ extern int g_ipad_is_new_rig;
     // defaults to -1
     // 0 == old rig
     // 1 == new rig
-
-
-
 
 
 #define NEW_SELECT_RIG_CHANNEL    9
@@ -121,9 +119,9 @@ extern int g_ipad_is_new_rig;
 #define NEW_PATCH_NUM_QUANTILOOP_SERIAL  2
 
 #define AUDIO_BUS_CONTROL_CHANNEL       9       // also 9
-#define NEW_AUDIOBUS_CC_SYNTH_VOLUME    50
-#define NEW_AUDIOBUS_CC_LOOP_VOLUME     51
-#define NEW_AUDIOBUS_CC_GUITAR_VOLUME   52
+#define NEW_AUDIOBUS_CC_GUITAR_VOLUME   50
+#define NEW_AUDIOBUS_CC_SYNTH_VOLUME    51
+#define NEW_AUDIOBUS_CC_LOOP_VOLUME     52
 
 #define NEW_AUDIOBUS_NOTE_SHOW_AUDIOBUS     1
 #define NEW_AUDIOBUS_NOTE_SHOW_TONESTACK    2

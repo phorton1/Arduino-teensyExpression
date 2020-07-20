@@ -126,13 +126,12 @@ void patchNewRig::begin(bool warm)
 		mySendDeviceProgramChange(NEW_PATCH_NUM_NEW_RIG, NEW_SELECT_RIG_CHANNEL);
 	}
 
-
 	// set system modal pedal CC's for the new rig (audiobus) upon entry
 
-	thePedals.getPedal(0)->setCCs(AUDIO_BUS_CONTROL_CHANNEL,    NEW_AUDIOBUS_CC_SYNTH_VOLUME);
-	thePedals.getPedal(1)->setCCs(AUDIO_BUS_CONTROL_CHANNEL,    NEW_AUDIOBUS_CC_LOOP_VOLUME);
-	thePedals.getPedal(2)->setCCs(GUITAR_EFFECTS_CHANNEL, 		GUITAR_WAH_CONTROL_CC);
-	thePedals.getPedal(3)->setCCs(AUDIO_BUS_CONTROL_CHANNEL,    NEW_AUDIOBUS_CC_GUITAR_VOLUME);
+	thePedals.getPedal(PEDAL_SYNTH )->setCCs(AUDIO_BUS_CONTROL_CHANNEL,    NEW_AUDIOBUS_CC_SYNTH_VOLUME);
+	thePedals.getPedal(PEDAL_LOOP  )->setCCs(AUDIO_BUS_CONTROL_CHANNEL,    NEW_AUDIOBUS_CC_LOOP_VOLUME);
+ 	thePedals.getPedal(PEDAL_WAH   )->setCCs(GUITAR_EFFECTS_CHANNEL, 	   GUITAR_WAH_CONTROL_CC);
+	thePedals.getPedal(PEDAL_GUITAR)->setCCs(AUDIO_BUS_CONTROL_CHANNEL,    NEW_AUDIOBUS_CC_GUITAR_VOLUME);
 
 	m_last_patch_num = -1;
     m_full_redraw = 1;
@@ -174,13 +173,15 @@ void patchNewRig::onButtonEvent(int row, int col, int event)
 
     if (row < 3)
     {
+		// we are relying on the quantiloop patch's track volume settings
+
         m_cur_patch_num = num;	// my patch number
 		int prog_num = synth_patch[m_cur_patch_num].prog_num;	// device patch number
 
 		// in New rig, we turn down the synth volume on Audio Bus on a patch change
 		// and if the synth pedal(0) is Auto we send it to zero too ..
 
-		expressionPedal *pedal = thePedals.getPedal(0);		// 0 == Synth Pedal
+		expressionPedal *pedal = thePedals.getPedal(PEDAL_SYNTH);	// Synth Pedal
 		mySendDeviceControlChange(
 			pedal->getCCNum(),
 			0,

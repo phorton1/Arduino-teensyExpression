@@ -60,7 +60,7 @@ void setDefaultPrefs()
         // 0..0 - default(1) .. better be some patches!
     _setDefaultPref8(PREF_DEBUG_PORT,        0,2,   1,  off_usb_serial);            // off, USB, Serial - default(USB)
     _setDefaultPref8(PREF_SPOOF_FTP,         0,1,   0,  off_on);                    // off, on - default(off)
-    _setDefaultPref8(PREF_FTP_PORT,          0,2,   1,  off_host_remote);           // off, Host, Remote, default(Host)
+    _setDefaultPref8(PREF_FTP_PORT,          0,2,   2,  off_host_remote);           // off, Host, Remote, default(Remote)
 
     //---------------
     // pedals
@@ -68,13 +68,19 @@ void setDefaultPrefs()
     // the prefs store the regular pedal calibrations
     // the auto pedal calibrations are always 0,127
 
+    #define PEDAL_CALIB_WITH_1K_OUTPUT_RESISTOR    770
+        // every time it seems to get lower.
+        // this is about the value I get with the rig plugged into the old grey box ...
+        // at a voltage of 4.60-4.98V ... not sure why adding 1K dropped 1/5th of the
+        // range ... might have been a bit much.
+
     for (int i=0; i<NUM_PEDALS; i++)
     {
-        bool is_auto = i==0 ? 1 : 0;
+        bool is_auto = i==PEDAL_SYNTH ? 1 : 0;
         _setDefaultPref8 (PREF_PEDAL(i) + PREF_PEDAL_AUTO_OFFSET,         0,1,      is_auto,off_on);    // 0=linear, 1=asymptotic, 2=scurve - default(0) == num_points
         _setDefaultPref8 (PREF_PEDAL(i) + PREF_PEDAL_CURVE_TYPE_OFFSET,   0,2,      0,curve_types);     // 0=linear, 1=asymptotic, 2=scurve - default(0) == num_points
         _setDefaultPref16(PREF_PEDAL(i) + PREF_PEDAL_CALIB_MIN_OFFSET,    0,1023,   0);                 // default 0
-        _setDefaultPref16(PREF_PEDAL(i) + PREF_PEDAL_CALIB_MAX_OFFSET,    0,1023,   1023);              // default 1023
+        _setDefaultPref16(PREF_PEDAL(i) + PREF_PEDAL_CALIB_MAX_OFFSET,    0,1023,   PEDAL_CALIB_WITH_1K_OUTPUT_RESISTOR);    // default 890 (1023)
 
         int out_byte = PREF_PEDAL(i) + PREF_PEDAL_POINTS_OFFSET;
 

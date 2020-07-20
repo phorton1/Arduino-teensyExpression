@@ -128,10 +128,10 @@ void patchOldRig::begin(bool warm)
 
 	// set system modal pedal CC's (to each program) upon entry
 
-	thePedals.getPedal(0)->setCCs(SYNTH_VOLUME_CHANNEL,   SYNTH_VOLUME_CC);
-	thePedals.getPedal(1)->setCCs(LOOP_CONTROL_CHANNEL,   LOOP_VOLUME_CC);
-	thePedals.getPedal(2)->setCCs(GUITAR_EFFECTS_CHANNEL, GUITAR_WAH_CONTROL_CC);
-	thePedals.getPedal(3)->setCCs(GUITAR_VOLUME_CHANNEL,  GUITAR_VOLUME_CC);
+	thePedals.getPedal(PEDAL_SYNTH )->setCCs(SYNTH_VOLUME_CHANNEL,   SYNTH_VOLUME_CC);
+	thePedals.getPedal(PEDAL_LOOP  )->setCCs(LOOP_CONTROL_CHANNEL,   LOOP_VOLUME_CC);
+	thePedals.getPedal(PEDAL_WAH   )->setCCs(GUITAR_EFFECTS_CHANNEL, GUITAR_WAH_CONTROL_CC);
+	thePedals.getPedal(PEDAL_GUITAR)->setCCs(GUITAR_VOLUME_CHANNEL,  GUITAR_VOLUME_CC);
 
 
 	m_last_patch_num = -1;
