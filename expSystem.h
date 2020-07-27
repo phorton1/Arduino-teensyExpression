@@ -115,8 +115,8 @@ class expSystem
         #endif
 
 
-        #if MIDI_ACTIVITY_INLINE
-        #endif
+        int getTempo()      { return m_tempo; }
+
 
 
     private:
@@ -152,6 +152,8 @@ class expSystem
 
         unsigned midi_activity[NUM_PORTS];
         bool last_midi_activity[NUM_PORTS];
+
+        int m_tempo;
 
 };
 

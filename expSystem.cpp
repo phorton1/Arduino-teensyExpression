@@ -22,10 +22,10 @@
 #include "winFtpSettings.h"
 
 
-#define BATTERY_CHECK_TIME  30000
-#define MIDI_ACTIVITY_TIMEOUT 90
-#define HOOK_TUNER_TO_DEFAULT_BUTTON   1
-
+#define GET_TEMPO_FROM_CLOCK           	1
+#define BATTERY_CHECK_TIME  			30000
+#define MIDI_ACTIVITY_TIMEOUT 			90
+#define HOOK_TUNER_TO_DEFAULT_BUTTON    1
 
 
 // Fishman TriplePlay MIDI HOST Spoof Notes
@@ -166,6 +166,9 @@ void expWindow::endModal(uint32_t param)
 
 expSystem::expSystem()
 {
+	m_tempo = 0;
+
+
     m_num_patches = 0;
     m_cur_patch_num = -1;
     m_prev_patch_num = 0;
@@ -495,55 +498,30 @@ void expSystem::critical_timer_handler()
 			// PORT_INDEX_DUINO_INPUT0 or PORT_INDEX_DUINO_INPUT1
 
 		// MIDI CLOCK MESSAGES
+		#if GET_TEMPO_FROM_CLOCK
+			if (((msg >> 8) & 0xff) == 0xF8)
+			{
+				static int beat_counter = 0;
+				static elapsedMillis bpm_millis = 0;
+				if (beat_counter == 24)  // every 24 messages = 1 beat
+				{
+					float millis = bpm_millis;
+					float bpm = 60000 / millis  + 0.5;
+						// I *think* this is rock solid with Quantiloop
+						// without rounding, if it's truncated to 1 decimal place
+					m_tempo = bpm;
+						// I am going to use the nearest integer value
+						// so if I change the tempo once, I can only
+						// approximately return to the original tempo
+						// which is the case anyways cuz of audio_bus's
+						// implementation ...
+					bpm_millis = 0;
+					beat_counter = 0;
+				}
+				beat_counter++;
+			}
+		#endif 	// GET_TEMPO_FROM_CLOCK
 
-        if (((msg >> 8) & 0xff) == 0xF8)
-        {
-            static int bpm_int = 0;
-            static int last_bpm = 0;
-            static int beat_counter = 0;
-            static elapsedMillis bpm_millis = 0;
-
-            if (beat_counter == 24)  // every 24 messages = 1 beat
-            {
-                float millis = bpm_millis;
-                float bpm = 60000 / millis  + 0.5;
-					// I *think* this is rock solid with Quantiloop
-					// without rounding, if it's truncated to 1 decimal place
-
-				bpm_int = bpm;
-					// I am going to use the nearest integer value
-					// so if I change the tempo once, I can only
-					// approximately return to the original tempo
-					// which is the case anyways cuz of audio_bus's
-					// implementation ...
-
-                if (bpm_int != last_bpm)
-                {
-                    last_bpm = bpm_int;
-                    display(0,"BPM_INT=%d",bpm_int);
-                }
-
-				// there is still the problem that Quantiloop (often)
-				// uses tempos less than 60 ..
-
-				// gonna try NOT syncing to the loop,
-				// but using 300 as a baseline tempo??!?!
-
-				// Means loop starts could be off by as much as 12 ms at 4/4 timing
-
-				// Using 1/4 time signature reduces that to 3 ms ..
-
-				// 300 bpm fortunately has an exact relation in audiobus
-				// which is CC value 105 = 300 bpm
-
-				// this gives me a little head room to speed up, and
-				// the ability to slow down drastically.
-
-                bpm_millis = 0;
-                beat_counter = 0;
-            }
-            beat_counter++;
-        }
 
 		// we only write it to the midi host if we are spoofing
 
@@ -638,7 +616,6 @@ void expSystem::updateUI()
 
 	if (full_draw)	// title
 	{
-
         mylcd.setFont(Arial_16_Bold);
         mylcd.Set_Text_Cursor(10,10);
         mylcd.Set_Text_colour(TFT_YELLOW);
@@ -750,6 +727,31 @@ void expSystem::updateUI()
 			}
 		}
 	}
+
+	// tempo
+
+	#if GET_TEMPO_FROM_CLOCK
+		static int last_tempo = 0;
+		if (m_tempo != last_tempo)
+		{
+			last_tempo = m_tempo;
+			mylcd.setFont(Arial_14_Bold);
+			mylcd.Set_Text_colour(TFT_WHITE);
+			mylcd.printf_justified(
+				10,
+				200,
+				50,
+				30,
+				LCD_JUST_CENTER,
+				TFT_WHITE,
+				TFT_BLACK,
+				true,
+				"%d",
+				m_tempo);
+			display(0,"m_tempo=%d",m_tempo);
+		}
+	#endif
+
 
 	// current "process" function called from timer_handler()
 	// dequeueProcess();
