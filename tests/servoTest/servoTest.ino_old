@@ -1,0 +1,151 @@
+#include <myDebug.h>
+#include <Servo.h>
+
+#define PEDAL_IN_PIN     A7
+#define SERVO_ENABLE_PIN            5
+#define SERVO_PWM_PIN               9
+
+#define PEDAL_READS_PER_SAMPLE      10
+
+int cur_sample = 0;
+int working_sample = 0;
+int num_pedal_reads = 0;
+
+
+Servo servo;
+
+// servo to pedal
+//
+// 39  == 1023
+// 180 == 252
+
+#define PEDAL_MIN    320
+#define PEDAL_MAX    1023
+#define SERVO_MIN    50
+#define SERVO_MAX    170
+
+int pedalToUser(int pedal)
+{
+    int user = map(pedal,PEDAL_MIN,PEDAL_MAX,0,127);
+    if (user > 127) user=127;
+    if (user < 0) user = 0;
+    return user;
+}
+
+
+int userToServo(int user)
+{
+    int servo = map(user,0,127,SERVO_MAX,SERVO_MIN);
+    if (servo > SERVO_MAX) servo = SERVO_MAX;
+    if (servo < SERVO_MIN) servo = SERVO_MIN;
+    display(0,"userToServo(%d)=%d",user,servo);
+    return servo;
+}
+
+
+
+void setup()
+{
+    Serial.begin(115200);
+    uint32_t timeout = millis();
+    while (!Serial && millis() < timeout + 1000) {}
+    display(0,"servoTest started",0);
+
+    digitalWrite(SERVO_ENABLE_PIN,0);
+    pinMode(SERVO_ENABLE_PIN,OUTPUT);
+    digitalWrite(SERVO_ENABLE_PIN,0);
+    servo.attach(SERVO_PWM_PIN);
+
+    pinMode(PEDAL_IN_PIN,INPUT);
+}
+
+
+
+//------------------------------
+// loop()
+//------------------------------
+
+
+void loop()
+{
+    //----------------------------
+    // Serial port
+    //----------------------------
+
+    static uint32_t pulse_time = 0;
+    static uint32_t off_time = 0;
+
+    if (pulse_time && millis() > pulse_time + 30)
+    {
+        pulse_time = 0;
+        digitalWrite(SERVO_ENABLE_PIN,0);
+        off_time = millis();
+    }
+    if (off_time && millis() > off_time + 20)
+    {
+        off_time = 0;
+        digitalWrite(SERVO_ENABLE_PIN,1);
+        pulse_time = millis();
+    }
+
+    if (Serial.available())
+    {
+        static int position = 0;
+        static bool enable = 0;
+
+        char c = Serial.read();
+        if (c == 'b')
+        {
+            display(0,"pulse",0);
+            digitalWrite(SERVO_ENABLE_PIN,1);
+            pulse_time = millis();
+        }
+        else if (c == 'e')
+        {
+            pulse_time = 0;
+            off_time = 0;
+
+            enable = !enable;
+            display(0,"set enable=%d",enable);
+            digitalWrite(SERVO_ENABLE_PIN,enable);
+        }
+        else if (c == 13)
+        {
+            Serial.print(c);
+            display(0,"set position=%d",position);
+            servo.write(position);
+            position = 0;
+        }
+        else if (c >= '0' && c <= '9')
+        {
+            Serial.print(c);
+            position = position * 10 + c - '0';
+        }
+        else if (c == 10)
+        {
+            Serial.print(c);
+        }
+    }
+
+
+    // pedal
+
+    num_pedal_reads++;
+    working_sample += analogRead(PEDAL_IN_PIN);
+    if (num_pedal_reads >= PEDAL_READS_PER_SAMPLE)
+    {
+        cur_sample = (working_sample + PEDAL_READS_PER_SAMPLE/2) / PEDAL_READS_PER_SAMPLE;
+        num_pedal_reads = 0;
+        working_sample = 0;
+
+        static int last_aample = 0;
+        if (last_aample != cur_sample)
+        {
+            last_aample = cur_sample;
+            display(0,"sample=%d",cur_sample);
+        }
+    }
+
+
+
+}   // loop()
