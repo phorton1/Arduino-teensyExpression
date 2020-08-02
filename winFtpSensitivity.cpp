@@ -7,7 +7,6 @@
 #include "ftp.h"
 #include "ftp_defs.h"
 #include "myMidiHost.h"
-#include "winFtpTuner.h"
 
 
 #define KEYPAD_UP      7
@@ -20,8 +19,6 @@
 #define ITEM_DYNAMIC_OFFSET    7
 #define ITEM_TOUCH_SENSITIVITY 8
 
-
-#define BUTTON_TUNER  0
 
 
 //------------------------------------------------------------
@@ -81,8 +78,6 @@ void winFtpSensitivity::begin(bool warm)
 	theButtons.setButtonType(KEYPAD_RIGHT,	BUTTON_TYPE_CLICK);
 	theButtons.setButtonType(KEYPAD_SELECT,	BUTTON_TYPE_CLICK, 	LED_GREEN);
 
-
-	theButtons.setButtonType(BUTTON_TUNER,		BUTTON_TYPE_CLICK);
 	theButtons.setButtonType(THE_SYSTEM_BUTTON,	BUTTON_TYPE_CLICK, 	LED_GREEN);
 
 	// theButtons.setButtonType(20,			BUTTON_TYPE_TOGGLE, LED_CYAN, LED_ORANGE);
@@ -152,10 +147,6 @@ void winFtpSensitivity::onButtonEvent(int row, int col, int event)
 			 num == KEYPAD_SELECT)
 	{
 		endModal(237);
-	}
-	else if (num == BUTTON_TUNER)
-	{
-		theSystem.swapModal(theSystem.getFtpTuner(),0);
 	}
 
 

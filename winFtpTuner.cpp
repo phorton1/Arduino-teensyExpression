@@ -6,10 +6,7 @@
 #include "buttons.h"
 #include "ftp.h"
 #include "ftp_defs.h"
-#include "winFtpSensitivity.h"
-#include "winFtpSettings.h"
 
-#define BUTTON_SENSITIVITY   0
 
 
 //------------------------------------------------------------
@@ -41,7 +38,6 @@ void winFtpTuner::begin(bool warm)
 	init();
 	expWindow::begin(warm);
 	theButtons.setButtonType(THE_SYSTEM_BUTTON,BUTTON_EVENT_CLICK,LED_GREEN);
-	theButtons.setButtonType(BUTTON_SENSITIVITY,BUTTON_EVENT_CLICK,LED_BLUE);
 	showLEDs();
 }
 
@@ -52,15 +48,6 @@ void winFtpTuner::onButtonEvent(int row, int col, int event)
 	int num = row * NUM_BUTTON_ROWS + col;
 	if (num == THE_SYSTEM_BUTTON)
 		endModal(0);
-	else if (num == BUTTON_SENSITIVITY)
-	{
-		// not so easy to swap modal windows
-		// and since we're in a button event,
-		// updateUI() gets called between these
-		// two calls.
-
-		theSystem.swapModal(theSystem.getFtpSettings(),0);
-	}
 }
 
 

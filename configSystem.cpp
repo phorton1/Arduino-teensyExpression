@@ -38,9 +38,9 @@ configOption *optBrightness = 0;
 #include "winConfigPedal.h"
 
 void startFtpTuner(int i)
-	{ theSystem.startModal(theSystem.getFtpTuner()); }
+	{ theSystem.startModal(new winFtpTuner()); }
 void startFtpSensitivity(int i)
-	{ theSystem.startModal(theSystem.getFtpSensitivity()); }
+	{ theSystem.startModal(new winFtpSensitivity()); }
 void configPedal(int i)
 	{ theSystem.startModal(new winConfigPedal(i)); }
 

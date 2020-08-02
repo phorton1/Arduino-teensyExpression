@@ -14,18 +14,14 @@
 
 #include "configSystem.h"
 #include "patchOldRig.h"
-#include "patchNewRig.h"
+
 #include "patchTest.h"
 #include "patchMidiHost.h"
-#include "winFtpTuner.h"
-#include "winFtpSensitivity.h"
-#include "winFtpSettings.h"
 
 
 #define GET_TEMPO_FROM_CLOCK           	1
 #define BATTERY_CHECK_TIME  			30000
 #define MIDI_ACTIVITY_TIMEOUT 			90
-#define HOOK_TUNER_TO_DEFAULT_BUTTON    1
 
 
 // Fishman TriplePlay MIDI HOST Spoof Notes
@@ -54,8 +50,8 @@
 // HOST    myMidiHost : public USBHost_t36.h MIDIDevice
 //
 //      myMidiHost
-//      Variable Name:  midi1
-//      Derivees from USBHost_t36.h MIDIDevice
+//      Variable Name:  midi_host
+//      Derives from USBHost_t36.h MIDIDevice
 //      Which has been modified to expose protected vars
 //         and make a method rx_data() virtual
 //      Spoof requires setting MIDI4+SERIAL in Arduino IDE
@@ -88,7 +84,7 @@
 // called from loop().   That whole thing could be cleaned up to work with
 // a single queue of 32 bit words, and to decode and show the queued messages
 // separately for display.
-//
+
 
 
 //-------------------------------------
@@ -168,7 +164,6 @@ expSystem::expSystem()
 {
 	m_tempo = 0;
 
-
     m_num_patches = 0;
     m_cur_patch_num = -1;
     m_prev_patch_num = 0;
@@ -182,10 +177,6 @@ expSystem::expSystem()
 
     for (int i=0; i<MAX_EXP_PATCHES; i++)
         m_patches[i] = 0;
-
-	m_ftp_tuner = 0;
-	m_ftp_sensitivity = 0;
-	m_ftp_settings = 0;
 }
 
 
@@ -200,7 +191,6 @@ void expSystem::begin()
 {
     addPatch(new configSystem());
     addPatch(new patchOldRig());
-    addPatch(new patchNewRig());
     addPatch(new patchTest());
     addPatch(new patchMidiHost());
 
@@ -214,10 +204,6 @@ void expSystem::begin()
 
 	setPrefMax(PREF_PATCH_NUM,m_num_patches-1);
 	setPrefStrings(PREF_PATCH_NUM,patch_names);
-
-    m_ftp_tuner = new winFtpTuner();
-    m_ftp_sensitivity = new winFtpSensitivity();
-	m_ftp_settings = new winFtpSettings();
 
     theButtons.init();
 	thePedals.init();
@@ -298,12 +284,7 @@ void expSystem::activatePatch(int i)
 
     // add the system long click handler
 
-	#if HOOK_TUNER_TO_DEFAULT_BUTTON
-		theButtons.setButtonType(THE_SYSTEM_BUTTON,BUTTON_EVENT_CLICK | BUTTON_EVENT_LONG_CLICK, LED_PURPLE);
-		showLEDs();
-    #else
-		theButtons.getButton(0,THE_SYSTEM_BUTTON)->m_event_mask |= BUTTON_EVENT_LONG_CLICK;
-	#endif
+	theButtons.getButton(0,THE_SYSTEM_BUTTON)->m_event_mask |= BUTTON_EVENT_LONG_CLICK;
 }
 
 
@@ -349,7 +330,6 @@ void expSystem::swapModal(expWindow *win, uint32_t param)
 		return;
 	}
 
-
 	// ok, so the modal windows should start with a clean slate of
 	// no buttons, but how does the client restore them?
 	// by changing all the calls to expWindow::begin() to have
@@ -394,13 +374,7 @@ void expSystem::endModal(expWindow *win, uint32_t param)
 	{
 		// returning to a patch window
 		// reset the system button handler
-
-		#if HOOK_TUNER_TO_DEFAULT_BUTTON
-			theButtons.setButtonType(THE_SYSTEM_BUTTON,BUTTON_EVENT_CLICK | BUTTON_EVENT_LONG_CLICK, LED_PURPLE);
-			showLEDs();
-		#else
-			theButtons.getButton(0,THE_SYSTEM_BUTTON)->m_event_mask |= BUTTON_EVENT_LONG_CLICK;
-		#endif
+		theButtons.getButton(0,THE_SYSTEM_BUTTON)->m_event_mask |= BUTTON_EVENT_LONG_CLICK;
 	}
 
 	new_win->onEndModal(win,param);
@@ -452,19 +426,11 @@ void expSystem::buttonEvent(int row, int col, int event)
 
 	else if (row == 0 &&
 		 	 col == THE_SYSTEM_BUTTON &&
- 			 m_cur_patch_num && (
-			  HOOK_TUNER_TO_DEFAULT_BUTTON ||
-			  event == BUTTON_EVENT_LONG_CLICK))
+ 			 m_cur_patch_num &&
+			 event == BUTTON_EVENT_LONG_CLICK)
 	{
-		if (event == BUTTON_EVENT_LONG_CLICK)
-		{
-			setLED(0,4,LED_PURPLE);
-			activatePatch(0);
-		}
-		else
-		{
-			startModal(m_ftp_settings);	// m_ftp_tuner);
-		}
+		setLED(0,4,LED_PURPLE);
+		activatePatch(0);
 	}
 
 	// else let the window have it
@@ -509,7 +475,7 @@ void expSystem::critical_timer_handler()
 					float bpm = 60000 / millis  + 0.5;
 						// I *think* this is rock solid with Quantiloop
 						// without rounding, if it's truncated to 1 decimal place
-					m_tempo = bpm;
+					theSystem.m_tempo = bpm;
 						// I am going to use the nearest integer value
 						// so if I change the tempo once, I can only
 						// approximately return to the original tempo

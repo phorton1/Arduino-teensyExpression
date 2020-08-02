@@ -3,7 +3,7 @@
 #include "prefs.h"
 #include "defines.h"
 #include "midiQueue.h"
-#include "winFtpSettings.h"
+#include "expSystem.h"
 
 
 // #define HOST_CABLE_BIT  0x80
@@ -44,20 +44,7 @@ bool passFilter(uint32_t iii)
             return 0;
     }
 
-    // layers are independent of filter, though bends may be gone by now
-
-    int layer_type = winFtpSettings::getSetting(FTP_SETTING_PERF_LAYER_TYPE);
-    if (layer_type)
-    {
-        int channel = msg.getChannel() - 1;
-
-        if (type==0x0E && (channel != 0 && channel != layer_type))
-            return 0;
-
-        int new_channel = channel >= layer_type ? 1 : 0;
-        msg.i &= ~0x0f00;           // clear the old channel
-        msg.i |= new_channel << 8;  // set the new channel
-    }
+    // prh 2020-08-02 - removed initial hack of layer filters
 
     // send it to the teensyduino
 

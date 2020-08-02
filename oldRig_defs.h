@@ -1,89 +1,68 @@
 #ifndef __oldRig_defs_h_
 #define __oldRig_defs_h_
 
-
-//-------------------------------------------
-// Changing between Old Rig and New Rig
-//-------------------------------------------
-// Most of the behavior of the iPad can be changed by merely sending a
-// 0xCn patch change message on Channel 9 (0xC8) where "patch 0" is the
-// old rig, and "patch 1" is the new rig.
+// prh 2020-08-02
 //
-// OLD RIG
-//       sampleTank does not change between old and new rigs, per se
-//       audiobus has sampleTank and toneStack routed to Quantiloop
-//           we adjust "synth" overall and guitar volume manually in AudioBus
-//           “Settings – Sync Settings – Ableton Link” disabled
-//               - may be able to leave it enable for Old Rig
-//       toneStack has a foot pedal Volume control
-//       quantiLoop - OUTPUT MONITOR IS SET TO MAXIMUM VALUE and
-//           we control QL volume by sending CC7 to all four tracks
-//           Tempo: (may be able to use New Rig Settings for Old Rig)
-//              - “Force Link Tempo” ON for both Old and New rigs
-//              - Disable “Ableton Link”
-//              - Sync To: None
+// Got rid of the notion of the "new rig" working by effecting synth,
+// guitar, and loop volumes via CC's to AudioBus's mixer.  I did not
+// like the exponential curves presented by AudioBus's mixer.
 //
-// NEW RIG
+// I NEED to make some progress and implement:
+//
+//     - relative volumes for Quantiloop tracks
+//     - utilization of FTP polymode vis-a-vis SampleTank patches
+//       which also requires, at a minimum, sending synth volume
+//       CC's for channels 1 thru 6 when in polymode.
+//
+// and would LIKE to:
+//
+//     - "wrap up" using teensyEpression with the "old rig",
+//     - clean up the "public" fusion presentation
+//     - make an initial set of readme's for the source
+//     - remove unused myDebug libraries from public presentation
+//     - create thingeeverse page
+//     - do at least one decent recording on youtube, with emotion
+//     - do at least one youtube technical presentation video
+//     - create hackaday page
+//
+// and:
+//
+//     - create a public presentation of progress on the foot pedal
+//     - create hackaday, thingeeverse, and maybe youtube pages for that
+//     - get back to the rPi looper, implement *at least* pre-sampling
+//       and cross fading of tracks so as to
+//     - update the vGuitar project (and or create "looper" hackaday project),
+//       so that I can ...
+//     - do an initial implementation of the serial teensyExpression --> rPi tech
+//     - so that I create a youtube video with an initial demo of that and
+//     - record at least one more decent recording and/or youtube videoo
+//       using the rpi Looper
+//
+// NEW THINGS
+//
+//     FTP polymode patches
+//     polymode aware synth volume
+//        possibly "latching" pedal controls
+//     relative volumes for Quantiloop tracks
+//     change programs on iPad
+//     re-bury FTP tuner and sensitivity in settings so
+//        single press upper right button is patch (rig) specific
+//     sequential vs. parallel modes in quantiloop
+//     tempo experiments?
+//
+// OTHER IDEAS
+//
+//     midi event recorder / sequencer
+//
+// TEMPO still requires:
+//
 //       audiobus has ST, TS, and QL all routed to output
-//           the Synth, Master Loop, and Guitar volumes are controlled in Audiobus
-//           on CC's 50,51, and 52
 //           “Settings – Sync Settings – Ableton Link” enabled
-//               - may be able to leave it enabled for Old Rig too.
-//       toneStack does not have a foot pedal Volume control
-//       quantiloop - MONITOR OUTPUT IS TURNED OFF (set to minimum value)
-//           we control individual track volumes on CCs 75-78
-//           Tempo:
-//              - “Force Link Tempo” ON for both Old and New rigs
-//              - Enable “Ableton Link”
-//              - Sync To: Audiobus
-//       TURNS DOWN THE AUDIOBUS SYNTH VOLUME (and moves the pedal if Auto)
-//            and SENDS OUT DEFAULT "VOLUME" CC7's to all channels (based on
-//            FTP polymode each time a patch is selected.
-//
-//-------------------------------------------------------------------------
-// Therefore:
-//
-// "rig" PATCH CHANGE sent out in oldRig and newRig::begin() last one wins,
-//      NOT SENT OUT IF NO RIG IS ENTERED .... and ...
-//
-// PEDAL CC's
-//      The PEDAL cc's for New Rig vs Old Rig are system modal.
-//      The system defaults to the Old Rig CC numbers.
-//      Whichever configuration (old vs new) is selected last
-//           sets the CC numbers into the pedals during begin().
-//
-// FOR COMPATABILITY WITH OLD RIG
-//       The volumes of individual patches with multi's in SampleTank
-//       synth patches are at 0 when selected.
-//
-//       I had been using the "Master Volume" on these to set the relative
-//       volume - to normalize patches so they sound similar at similar
-//       CC7 volume levels, but as of now, all patches have their master
-//       volume set to 10 (full unity gain).
-//
-//       This may still make sense. It gives a "locked" relative volume
-//       that is independent of the individual patch "volume", and
-//       independent of my program, or it's need to change things.
-//
-//       Since I am now controlling the "synth volume" in AudioBus, the new
-//       semantic of the "volume" on an individual voice is that it is the
-//       CONTROLLABLE relative volume, within the multi patch, of each voice,
-//       that can be received on CC7 for each channel in the multi.
-//
-//       Thus the "master" volumes can be set to give reasonable behavior
-//       at a given "volume" (say, 0.70) across all voices in all patches,
-//       so that the voice is generally in a usable range.  For live effects,
-//       like fading a single voice in a multi, independent of the final
-//       output synth volume, or the "relative stable" "master" volume,
-//       I can control the "volume" of each voice/channel with CC7.
-//
-//       Therefore, in the "New Rig" when I change to a given multi,
-//       CC7 of 0.7*127 (or whatever is the default normal volume)
-//       needs to be sent out to all channels in the multi .. which
-//       in turn depends on the poly-mode of the FTP ...
-//
-//       And still gotta watch out for stray CC7's sent by the FTP
-//       like when you change polymode ... maybe !?!?
+//       quantiloop
+//           “Force Link Tempo” ON for both Old and New rigs
+//           Enable “Ableton Link”
+//           Sync To: Audiobus
+
 
 
 

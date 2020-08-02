@@ -9,10 +9,6 @@
 
 // global shared between old an new rig to determine if ipad rig change message needs to be sent
 
-int g_ipad_is_new_rig = IPAD_RIG_NONE;
-#define IPAD_RIG_NONE  -1
-
-
 #define GROUP_LOOPER 	7
 #define GROUP_SYNTH		1
 #define GROUP_GUITAR	2
@@ -117,22 +113,6 @@ void patchOldRig::end()
 void patchOldRig::begin(bool warm)
 {
     expWindow::begin(warm);
-
-	// if the ipad rig needs to be changed, send the appropriate message
-
-	if (g_ipad_is_new_rig != IPAD_RIG_OLD)
-	{
-		g_ipad_is_new_rig = IPAD_RIG_OLD;
-		mySendDeviceProgramChange(NEW_PATCH_NUM_OLD_RIG, NEW_SELECT_RIG_CHANNEL);
-	}
-
-	// set system modal pedal CC's (to each program) upon entry
-
-	thePedals.getPedal(PEDAL_SYNTH )->setCCs(SYNTH_VOLUME_CHANNEL,   SYNTH_VOLUME_CC);
-	thePedals.getPedal(PEDAL_LOOP  )->setCCs(LOOP_CONTROL_CHANNEL,   LOOP_VOLUME_CC);
-	thePedals.getPedal(PEDAL_WAH   )->setCCs(GUITAR_EFFECTS_CHANNEL, GUITAR_WAH_CONTROL_CC);
-	thePedals.getPedal(PEDAL_GUITAR)->setCCs(GUITAR_VOLUME_CHANNEL,  GUITAR_VOLUME_CC);
-
 
 	m_last_patch_num = -1;
     m_full_redraw = 1;

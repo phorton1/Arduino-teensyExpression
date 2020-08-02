@@ -69,10 +69,6 @@ class expWindow
 
 
 
-class winFtpTuner;
-class winFtpSensitivity;
-class winFtpSettings;
-
 #define MIDI_ACTIVITY_INLINE  1
 
 class expSystem
@@ -104,20 +100,13 @@ class expSystem
         void endModal(expWindow *win, uint32_t param);
         expWindow *getTopModalWindow();
 
-        winFtpTuner *getFtpTuner()              { return m_ftp_tuner; }
-        winFtpSensitivity *getFtpSensitivity()  { return m_ftp_sensitivity; }
-        winFtpSettings *getFtpSettings()        { return m_ftp_settings; }
-
         #if MIDI_ACTIVITY_INLINE
             inline void midiActivity(int port_num) { midi_activity[port_num]=millis(); }
         #else
             void midiActivity(int port_num);
         #endif
 
-
         int getTempo()      { return m_tempo; }
-
-
 
     private:
 
@@ -145,10 +134,6 @@ class expSystem
         bool draw_needed;
 
         const char *m_title;
-
-        winFtpTuner *m_ftp_tuner;
-        winFtpSensitivity *m_ftp_sensitivity;
-        winFtpSettings *m_ftp_settings;
 
         unsigned midi_activity[NUM_PORTS];
         bool last_midi_activity[NUM_PORTS];
