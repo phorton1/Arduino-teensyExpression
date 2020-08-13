@@ -19,7 +19,6 @@
 //     - "wrap up" using teensyEpression with the "old rig",
 //     - clean up the "public" fusion presentation
 //     - make an initial set of readme's for the source
-//     - remove unused myDebug libraries from public presentation
 //     - create thingeeverse page
 //     - do at least one decent recording on youtube, with emotion
 //     - do at least one youtube technical presentation video

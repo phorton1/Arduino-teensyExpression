@@ -11,17 +11,22 @@
 #include "ftp_defs.h"
 #include "myMidiHost.h"
 #include "midiQueue.h"
+#include "looper.h"
 
 #include "configSystem.h"
 #include "patchOldRig.h"
+#include "patchNewRig.h"
 
 #include "patchTest.h"
 #include "patchMidiHost.h"
 
 
-#define GET_TEMPO_FROM_CLOCK           	1
+#define GET_TEMPO_FROM_CLOCK           	0
 #define BATTERY_CHECK_TIME  			30000
 #define MIDI_ACTIVITY_TIMEOUT 			90
+
+// moved to ftp.cpp::initQueryFTP()
+// #define BATTERY_CHECK_TIME  			30000
 
 
 // Fishman TriplePlay MIDI HOST Spoof Notes
@@ -171,7 +176,10 @@ expSystem::expSystem()
 	m_num_modals = 0;
 
 	last_battery_level = 0;
-	battery_time = BATTERY_CHECK_TIME;
+
+	// moved
+	// battery_time = BATTERY_CHECK_TIME;
+
 	draw_needed	= 1;
 	m_title = 0;
 
@@ -191,6 +199,7 @@ void expSystem::begin()
 {
     addPatch(new configSystem());
     addPatch(new patchOldRig());
+    addPatch(new patchNewRig());
     addPatch(new patchTest());
     addPatch(new patchMidiHost());
 
@@ -205,6 +214,7 @@ void expSystem::begin()
 	setPrefMax(PREF_PATCH_NUM,m_num_patches-1);
 	setPrefStrings(PREF_PATCH_NUM,patch_names);
 
+	theLooper.init();
     theButtons.init();
 	thePedals.init();
 
@@ -386,21 +396,22 @@ void expSystem::endModal(expWindow *win, uint32_t param)
 //-----------------------------------------
 // events
 //-----------------------------------------
+// prh - 2020-08-13:  Getting rid of "pedal events"
+// Pedal behavior henceforth orchestrated from pedals.cpp
 
-
-void expSystem::pedalEvent(int num, int value)
-{
-    if (!getCurPatch()->onPedalEvent(num,value))
-	{
-		expressionPedal *pedal = thePedals.getPedal(num);
-		if (pedal->getCCChannel() && pedal->getCCNum())
-            mySendDeviceControlChange(
-				pedal->getCCNum(),
-				value,
-				pedal->getCCChannel());
-	}
-}
-
+// void expSystem::pedalEvent(int num, int value)
+// {
+//     if (!getCurPatch()->onPedalEvent(num,value))
+// 	{
+// 		expressionPedal *pedal = thePedals.getPedal(num);
+// 		if (pedal->getCCChannel() && pedal->getCCNum())
+//             mySendDeviceControlChange(
+// 				pedal->getCCNum(),
+// 				value,
+// 				pedal->getCCChannel());
+// 	}
+// }
+//
 
 
 
@@ -570,11 +581,15 @@ void expSystem::updateUI()
 		// return;
 	}
 
-	if (getPref8(PREF_FTP_PORT) && battery_time > BATTERY_CHECK_TIME)
-	{
-	    sendFTPCommandAndValue(FTP_CMD_BATTERY_LEVEL, 0);
-		battery_time = 0;
-	}
+	initQueryFTP();
+
+	// moved to ftp.cpp::initQueryFTP()
+	//
+	// if (getPref8(PREF_FTP_PORT) && battery_time > BATTERY_CHECK_TIME)
+	// {
+	//     sendFTPCommandAndValue(FTP_CMD_BATTERY_LEVEL, 0);
+	// 	battery_time = 0;
+	// }
 
 
 	bool full_draw = draw_needed;
@@ -599,36 +614,40 @@ void expSystem::updateUI()
 				INDICATOR_Y,
 				INDICATOR_RADIUS + 1);
 		}
+	}
 
+	//------------------------------
+	// battery indicator frame and value
+	//------------------------------
+
+	if (full_draw ||
+		last_battery_level != ftp_battery_level)
+	{
 		//  battery indicator frame
+
+		int battery_frame_color = ftp_battery_level == -1 ?
+			TFT_DARKGREY :
+			TFT_YELLOW;
 
 		mylcd.Fill_Rect(
 			BATTERY_X,
 			BATTERY_Y,
 			BATTERY_WIDTH,
 			BATTERY_HEIGHT,
-			TFT_DARKGREY);
+			battery_frame_color);
 		mylcd.Fill_Rect(
 			BATTERY_X + BATTERY_WIDTH -1,
 			BATTERY_Y + (BATTERY_HEIGHT/4),
 			4,
 			(BATTERY_HEIGHT/2),
-			TFT_DARKGREY);
+			battery_frame_color);
 		mylcd.Fill_Rect(
 			BATTERY_X + BATTERY_FRAME,
 			BATTERY_Y + BATTERY_FRAME,
 			BATTERY_WIDTH - 2*BATTERY_FRAME,
 			BATTERY_HEIGHT - 2*BATTERY_FRAME,
 			TFT_BLACK);
-	}
 
-	//------------------------------
-	// battery indicator value
-	//------------------------------
-
-	if (full_draw ||
-		last_battery_level != ftp_battery_level)
-	{
 		float pct = ftp_battery_level == -1 ? 1.0 : (((float)ftp_battery_level)-0x40) / 0x24;
 		int color = ftp_battery_level == -1 ? TFT_LIGHTGREY : (pct <= .15 ? TFT_RED : TFT_DARKGREEN);
 		if (pct > 1) pct = 1.0;

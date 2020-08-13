@@ -1,8 +1,10 @@
 #include <myDebug.h>
 #include "ftp.h"
 #include "ftp_defs.h"
+#include "prefs.h"
 #include "myMidiHost.h"
 #include "midiQueue.h"
+
 
 
 note_t *first_note = 0;
@@ -14,6 +16,10 @@ int ftp_battery_level = -1;
 int ftp_sensitivity[NUM_STRINGS] = {-1,-1,-1,-1,-1,-1};
 int ftp_poly_mode = 1;
 int ftp_bend_mode = 0;
+int	ftp_dynamic_range = -1;     // range 10..20, default 20
+int	ftp_dynamic_offset = -1;    // range 0..20, default 10
+int	ftp_touch_sensitivity = -1; // range 0..9, default 4
+
 
 
 uint8_t ftp_get_sensitivy_command_string_number = 0;
@@ -319,4 +325,70 @@ bool showFtpPatch(
     }
 
     return false;
+}
+
+
+
+
+//-------------------------------------------------
+// initQueryFTP()
+//-------------------------------------------------
+// method called frequently from expSystem.cpp::updateUI()
+// performs FTP initialization and initial readbacks
+
+#define INIT_BATTERY_CHECK_TIME         5000        // try every 5 seconds
+#define NUM_INITIAL_BATTERY_CHECKS      6           // for the first 30 seconds
+#define SLOW_INIT_BATTERY_CHECK_TIME    15000       // then try every 15 seconds, forever, until an FTP is found, or not
+#define NORMAL_BATTERY_CHECK_TIME       60000       // once found, update the battery level once per minute
+
+// we do NOT monitor if the FTP goes offline
+
+elapsedMillis s_battery_time = 0;
+int           s_num_battery_checks = 0;             // number of unitialized tries
+int           ftp_init_state = 0;
+
+
+// static, global
+
+void initQueryFTP()
+{
+    if (!getPref8(PREF_FTP_PORT))
+        return;
+
+    uint32_t use_check_time = ftp_battery_level == -1 ?
+        s_num_battery_checks < NUM_INITIAL_BATTERY_CHECKS ?
+            INIT_BATTERY_CHECK_TIME :
+            SLOW_INIT_BATTERY_CHECK_TIME :
+            NORMAL_BATTERY_CHECK_TIME;
+
+    if (s_battery_time >= use_check_time)
+    {
+        s_num_battery_checks++;
+	    sendFTPCommandAndValue(FTP_CMD_BATTERY_LEVEL, 0);
+		s_battery_time = 0;
+    }
+
+    // one time initialization if FTP is found
+
+    if (ftp_battery_level != -1 &&
+        ftp_init_state == 0)            // not initialized yet
+    {
+        ftp_init_state = 1;
+        display(0,"INITIALIZING FTP",0);
+
+        for (int i=0; i<NUM_STRINGS; i++)
+        {
+            sendFTPCommandAndValue(FTP_CMD_GET_SENSITIVITY, i);
+        }
+
+        #define DEFAULT_DYNAMIC_RANGE   20
+        #define DEFAULT_DYNAMIC_OFFSET  10
+        #define DEFAULT_TOUCH_SENSITIVITY  4
+
+        sendFTPCommandAndValue(FTP_CMD_SPLIT_NUMBER,0x01);
+        sendFTPCommandAndValue(FTP_CMD_DYNAMICS_SENSITIVITY,DEFAULT_DYNAMIC_RANGE);
+        sendFTPCommandAndValue(FTP_CMD_DYNAMICS_OFFSET,DEFAULT_DYNAMIC_OFFSET);
+        sendFTPCommandAndValue(FTP_CMD_TOUCH_SENSITIVITY,DEFAULT_TOUCH_SENSITIVITY);
+    }
+
 }

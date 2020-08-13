@@ -3,6 +3,11 @@
 #include "prefs.h"
 #include "expSystem.h"
 #include "oldRig_defs.h"
+// 2020-08-13 prh - pedals become ftp and looper aware
+#include "ftp.h"
+#include "looper.h"
+#include "midiQueue.h"  // for mySendDeviceControlChange()
+
 
 #define IS_AUTO_PEDAL   0
     // set to 5 or something for old behavior
@@ -77,6 +82,19 @@ void expressionPedal::init(
 }
 
 
+//-------------------------------------------
+// "automatic pedal(s)"
+//-------------------------------------------
+// "Automatic Pedals" are an experimental feature that
+// uses a hardware expression pedal I am building, which is
+// in developement, that contains a servo/motor to provide
+// haptic feedback, and which can "return" to a given position,
+// much like an automated slider on a modern mixer.
+//
+// These pedal use a specific purpose built one-wire protocol
+// to send the pedal value to this device, and can accept, at
+// this time, commands to calibrate themselves, and/or goto a
+// specific position.
 
 void expressionPedal::setAuto()
 {
@@ -127,8 +145,70 @@ void expressionPedal::setAutoRawValue(int value)
 }
 
 
+//-----------------------------------------
+// Automatic Pedal "One Wire" Protocol
+//-----------------------------------------
+
+#define TEENSY_DELAY            100
+#define TEENSY_START_IN_DELAY   (6 * TEENSY_DELAY / 5)
+#define TEENSY_END_OUT_DELAY    (4 * TEENSY_DELAY / 5)
 
 
+void expressionPedal::teensyReceiveByte()
+    // quick and dirty, timings derived empirically to
+    // match the arduino code's arbitrary constants.
+{
+    delayMicroseconds(TEENSY_START_IN_DELAY);
+    int value = 0;
+    for (int i=0; i<8; i++)
+    {
+        value = (value << 1) | digitalRead(m_pin);
+        delayMicroseconds(TEENSY_DELAY);
+    }
+    int stop_bit = digitalRead(m_pin);
+    digitalWrite(m_pin,0);
+        // this appeared to be needed to drive the signal low
+        // or else a 2nd interrupt was always triggered
+    display(0,"TEENSY RECEIVED pedal=%d byte=0x%02x  dec(%d)  stop=%d",m_num,value,value,stop_bit);
+    m_auto_value = value;
+    m_in_auto_calibrate = 0;
+}
+
+
+void expressionPedal::teensySendByte(int byte)
+{
+    if (!m_auto)
+    {
+        my_error("Attempt to call teensySendByte(0x%02x) when pedal(%d) is not m_auto",byte,m_num);
+        return;
+    }
+    display(0,"teensySendByte(%d, 0x%02x) dec(%d)",m_num,byte,byte);
+    pinMode(m_pin,OUTPUT);
+    digitalWrite(m_pin,0);                  // start bit
+    delayMicroseconds(TEENSY_DELAY);
+    digitalWrite(m_pin,1);                  // start bit
+    delayMicroseconds(TEENSY_DELAY);
+
+    for (int i=0; i<8; i++)
+    {
+        digitalWrite(m_pin,(byte >> (7-i)) & 0x01);      // MSb first
+        delayMicroseconds(TEENSY_DELAY);
+    }
+    digitalWrite(m_pin,1);        // stop bit
+    delayMicroseconds(TEENSY_END_OUT_DELAY);
+    digitalWrite(m_pin,0);        // finished
+
+    pinMode(m_pin,INPUT);
+    attachInterrupt(digitalPinToInterrupt(m_pin), pedal_isrs[m_num], RISING );
+}
+
+
+
+
+
+//----------------------------------------------------
+// poll one expression pedal
+//----------------------------------------------------
 
 void expressionPedal::poll()
 {
@@ -270,7 +350,8 @@ void expressionPedal::poll()
             #if DEBUG_PEDALS
                 display(0,"pedal(%d) raw(%d) changed to %d",m_num,m_raw_value,m_value);
             #endif
-            theSystem.pedalEvent(m_num,m_value);
+            // theSystem.pedalEvent(m_num,m_value);
+            thePedals.pedalEvent(m_num,m_value);
         }
     }
 
@@ -279,55 +360,57 @@ void expressionPedal::poll()
 
 
 
-#define TEENSY_DELAY            100
-#define TEENSY_START_IN_DELAY   (6 * TEENSY_DELAY / 5)
-#define TEENSY_END_OUT_DELAY    (4 * TEENSY_DELAY / 5)
+//----------------------------------------------------
+// pedalEvent
+//----------------------------------------------------
 
-
-void expressionPedal::teensyReceiveByte()
-    // quick and dirty, timings derived empirically to
-    // match the arduino code's arbitrary constants.
+void pedalManager::pedalEvent(int num, int value)
 {
-    delayMicroseconds(TEENSY_START_IN_DELAY);
-    int value = 0;
-    for (int i=0; i<8; i++)
+	expressionPedal *pedal = getPedal(num);
+
+    // if it is then SYNTH pedal in ftp MONO mode, we send the
+    // control messages out to channels 1-6
+
+    if (num == PEDAL_SYNTH && !ftp_poly_mode)
     {
-        value = (value << 1) | digitalRead(m_pin);
-        delayMicroseconds(TEENSY_DELAY);
+        for (int i=0; i<6; i++)
+        {
+            mySendDeviceControlChange(
+                pedal->getCCNum(),
+                value,
+                i+1);
+        }
     }
-    int stop_bit = digitalRead(m_pin);
-    digitalWrite(m_pin,0);
-        // this appeared to be needed to drive the signal low
-        // or else a 2nd interrupt was always triggered
-    display(0,"TEENSY RECEIVED pedal=%d byte=0x%02x  dec(%d)  stop=%d",m_num,value,value,stop_bit);
-    m_auto_value = value;
-    m_in_auto_calibrate = 0;
+
+    // if the Looper is in "relative volume mode" orchestrate
+    // the four messages to be sent here.
+    // the CCs are currently SEQUENTIAL constants in oldRig_defs.h
+
+    else if (num == PEDAL_LOOP && theLooper.getRelativeVolumeMode())
+    {
+        for (int i=0; i<NUM_LOOP_TRACKS; i++)
+        {
+            float vol = value;
+            float rel_vol = theLooper.getRelativeVolume(i);
+            float new_value = (vol/127.0) * rel_vol;
+            int cc = NEW_LOOP_VOLUME_TRACK1 + i;
+
+            mySendDeviceControlChange(
+                cc,
+                new_value,
+                pedal->getCCChannel());
+        }
+    }
+
+    // default behavior, use constants from array
+
+    else
+    {
+        mySendDeviceControlChange(
+            pedal->getCCNum(),
+            value,
+            pedal->getCCChannel());
+	}
 }
 
 
-void expressionPedal::teensySendByte(int byte)
-{
-    if (!m_auto)
-    {
-        my_error("Attempt to call teensySendByte(0x%02x) when pedal(%d) is not m_auto",byte,m_num);
-        return;
-    }
-    display(0,"teensySendByte(%d, 0x%02x) dec(%d)",m_num,byte,byte);
-    pinMode(m_pin,OUTPUT);
-    digitalWrite(m_pin,0);                  // start bit
-    delayMicroseconds(TEENSY_DELAY);
-    digitalWrite(m_pin,1);                  // start bit
-    delayMicroseconds(TEENSY_DELAY);
-
-    for (int i=0; i<8; i++)
-    {
-        digitalWrite(m_pin,(byte >> (7-i)) & 0x01);      // MSb first
-        delayMicroseconds(TEENSY_DELAY);
-    }
-    digitalWrite(m_pin,1);        // stop bit
-    delayMicroseconds(TEENSY_END_OUT_DELAY);
-    digitalWrite(m_pin,0);        // finished
-
-    pinMode(m_pin,INPUT);
-    attachInterrupt(digitalPinToInterrupt(m_pin), pedal_isrs[m_num], RISING );
-}

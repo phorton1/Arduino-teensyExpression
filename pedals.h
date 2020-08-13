@@ -130,7 +130,11 @@ class pedalManager
 
     private:
 
+        friend class expressionPedal;
+
         expressionPedal m_pedals[NUM_PEDALS];
+
+        void pedalEvent(int num, int value);
 
 };
 

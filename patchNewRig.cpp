@@ -1,4 +1,4 @@
-#include "patchOldRig.h"
+#include "patchNewRig.h"
 #include <myDebug.h>
 #include "defines.h"
 #include "myLeds.h"
@@ -7,7 +7,6 @@
 #include "buttons.h"
 #include "midiQueue.h"
 #include "looper.h"
-
 
 // global shared between old an new rig to determine if ipad rig change message needs to be sent
 
@@ -30,7 +29,7 @@
 // SampleTank
 //--------------------
 
-synthPatch_t patchOldRig::synth_patch[NUM_BUTTON_COLS * 3] = {
+synthPatch_t patchNewRig::synth_patch[NUM_BUTTON_COLS * 3] = {
     {SYNTH_PATCH_BASS_MINUS,     "BASS_MINUS",  "P Bass Finger"},  // should be MM Bass Finger
     {SYNTH_PATCH_BRASS1,         "BRASS1",      "Drama Brass"},
     {SYNTH_PATCH_VOICES1,        "VOICES1",     "Vocal Oh"},
@@ -56,7 +55,7 @@ synthPatch_t patchOldRig::synth_patch[NUM_BUTTON_COLS * 3] = {
 // toneStack
 //----------------
 
-int patchOldRig::guitar_effect_ccs[NUM_BUTTON_COLS] = {
+int patchNewRig::guitar_effect_ccs[NUM_BUTTON_COLS] = {
     GUITAR_DISTORTION_EFFECT_CC,
     GUITAR_WAH_EFFECT_CC,
     GUITAR_FLANGER_EFFECT_CC,
@@ -69,7 +68,7 @@ int patchOldRig::guitar_effect_ccs[NUM_BUTTON_COLS] = {
 // Quantiloop
 //----------------
 
-int patchOldRig::loop_ccs[NUM_BUTTON_COLS] =
+int patchNewRig::loop_ccs[NUM_BUTTON_COLS] =
 {
     LOOP_CONTROL_TRACK1,
     LOOP_CONTROL_TRACK2,
@@ -85,10 +84,10 @@ int patchOldRig::loop_ccs[NUM_BUTTON_COLS] =
 
 
 //====================================================================
-// patchOldRig
+// patchNewRig
 //====================================================================
 
-patchOldRig::patchOldRig()
+patchNewRig::patchNewRig()
 {
     m_cur_patch_num = -1;    // 0..14
 	for (int i=0; i<NUM_BUTTON_ROWS * NUM_BUTTON_COLS; i++)
@@ -100,7 +99,7 @@ patchOldRig::patchOldRig()
 
 
 // virtual
-void patchOldRig::end()
+void patchNewRig::end()
 {
 	// save off the button states
 	for (int i=0; i<NUM_BUTTON_ROWS * NUM_BUTTON_COLS; i++)
@@ -112,10 +111,10 @@ void patchOldRig::end()
 
 
 // virtual
-void patchOldRig::begin(bool warm)
+void patchNewRig::begin(bool warm)
 {
     expWindow::begin(warm);
-	theLooper.setRelativeVolumeMode(false);
+	theLooper.setRelativeVolumeMode(true);
 
 	m_last_patch_num = -1;
     m_full_redraw = 1;
@@ -146,7 +145,7 @@ void patchOldRig::begin(bool warm)
 
 
 // virtual
-void patchOldRig::onButtonEvent(int row, int col, int event)
+void patchNewRig::onButtonEvent(int row, int col, int event)
 {
 	// save the button state at any given time
 
@@ -227,7 +226,7 @@ void patchOldRig::onButtonEvent(int row, int col, int event)
 
 
 // virtual
-void patchOldRig::updateUI()
+void patchNewRig::updateUI()
 {
     bool draw_full = false;
     if (m_full_redraw)

@@ -48,7 +48,7 @@ class expWindow
             // but may want to unregister midi event handlers, etc
 
         virtual bool onRotaryEvent(int num, int val)  { return false; }
-        virtual bool onPedalEvent(int num, int val)   { return false; }
+        // virtual bool onPedalEvent(int num, int val)   { return false; }
             // derived classes return true if they handled the event
             // otherwise default base class behavior takes place
         virtual void onButtonEvent(int row, int col, int event) {}
@@ -89,7 +89,7 @@ class expSystem
         expWindow *getCurPatch()    { return m_patches[m_cur_patch_num]; }
         expWindow *getPatch(int i)  { return m_patches[i]; }
 
-        void pedalEvent(int num, int val);
+        // void pedalEvent(int num, int val);
         void rotaryEvent(int num, int val);
         void buttonEvent(int row, int col, int event);
 
@@ -130,7 +130,8 @@ class expSystem
         static void critical_timer_handler();
 
         int last_battery_level;
-        elapsedMillis battery_time;
+        // moved to ftp.cpp::initQueryFTP()
+        // elapsedMillis battery_time;
         bool draw_needed;
 
         const char *m_title;

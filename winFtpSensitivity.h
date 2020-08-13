@@ -35,9 +35,10 @@ class winFtpSensitivity : public expWindow
         void vel2ToInts(int *vel2, int *velocity);
         void drawBox(int string, int box32, int vel16);
 
-        int ftp_dynamic_range;
-        int ftp_dynamic_offset;
-        int ftp_touch_sensitivity;
+        // readback values moved to globals in ftp.h/cpp
+        // int ftp_dynamic_range;
+        // int ftp_dynamic_offset;
+        // int ftp_touch_sensitivity;
 };
 
 

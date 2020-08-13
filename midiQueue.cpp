@@ -967,6 +967,56 @@ void _processMessage(uint32_t i)
                         sprintf(buf2,"%s %s string[%d]=%d",cmd_or_reply,command_name,string,level);
                     }
                 }
+
+                // prh - added 2020-08-06
+
+                else if (command == FTP_CMD_DYNAMICS_SENSITIVITY)
+                {
+                    int value = p2;
+                    if (is_ftp_controller)
+                    {
+                        if (show_it)
+                            sprintf(buf2,"%s %s setting dynamic_sensitivity=%d",cmd_or_reply,command_name,value);
+                        ftp_dynamic_range = value;
+                    }
+                    else if (show_it)
+                    {
+                        sprintf(buf2,"%s %s dynamic_sensitivity=%d",cmd_or_reply,command_name,value);
+                    }
+                }
+                else if (command == FTP_CMD_DYNAMICS_OFFSET)
+                {
+                    int value = p2;
+                    if (is_ftp_controller)
+                    {
+                        if (show_it)
+                            sprintf(buf2,"%s %s setting dynamic_offset=%d",cmd_or_reply,command_name,value);
+                        ftp_dynamic_offset = value;
+                    }
+                    else if (show_it)
+                    {
+                        sprintf(buf2,"%s %s dynamic_offset=%d",cmd_or_reply,command_name,value);
+                    }
+                }
+                else if (command == FTP_CMD_TOUCH_SENSITIVITY)
+                {
+                    int value = p2;
+                    if (is_ftp_controller)
+                    {
+                        if (show_it)
+                            sprintf(buf2,"%s %s setting touch_sensitivity=%d",cmd_or_reply,command_name,value);
+                        ftp_touch_sensitivity = value;
+                    }
+                    else if (show_it)
+                    {
+                        sprintf(buf2,"%s %s touch_sensitivity=%d",cmd_or_reply,command_name,value);
+                    }
+                }
+
+
+
+
+
                 else
                 {
                     show_it = show_it && getPref8(PREF_MONITOR_KNOWN_FTP_COMMANDS);

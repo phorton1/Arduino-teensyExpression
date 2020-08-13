@@ -28,9 +28,10 @@
 winFtpSensitivity::winFtpSensitivity()
 {
 	init();
-	ftp_dynamic_range = 20;
-	ftp_dynamic_offset = 10;
-	ftp_touch_sensitivity = 4;
+	// moved to ftp.cpp
+	// ftp_dynamic_range = 20;
+	// ftp_dynamic_offset = 10;
+	// ftp_touch_sensitivity = 4;
 }
 
 
@@ -56,16 +57,17 @@ void winFtpSensitivity::init()
 void winFtpSensitivity::begin(bool warm)
 {
 	// update the string sensitivity values
+	// moved to ftp.cpp::initQueryFTP.cpp
 
-    for (int i=0; i<NUM_STRINGS; i++)
-    {
-	    sendFTPCommandAndValue(FTP_CMD_GET_SENSITIVITY, i);
-    }
-
-	sendFTPCommandAndValue(FTP_CMD_SPLIT_NUMBER,0x01);
-	sendFTPCommandAndValue(FTP_CMD_DYNAMICS_SENSITIVITY,ftp_dynamic_range);
-	sendFTPCommandAndValue(FTP_CMD_DYNAMICS_OFFSET,ftp_dynamic_offset);
-	sendFTPCommandAndValue(FTP_CMD_TOUCH_SENSITIVITY,ftp_touch_sensitivity);
+    //  for (int i=0; i<NUM_STRINGS; i++)
+    //  {
+	//      sendFTPCommandAndValue(FTP_CMD_GET_SENSITIVITY, i);
+    //  }
+    //
+	//  sendFTPCommandAndValue(FTP_CMD_SPLIT_NUMBER,0x01);
+	//  sendFTPCommandAndValue(FTP_CMD_DYNAMICS_SENSITIVITY,ftp_dynamic_range);
+	//  sendFTPCommandAndValue(FTP_CMD_DYNAMICS_OFFSET,ftp_dynamic_offset);
+	//  sendFTPCommandAndValue(FTP_CMD_TOUCH_SENSITIVITY,ftp_touch_sensitivity);
 
 	// normal initialization
 
@@ -110,26 +112,29 @@ void winFtpSensitivity::onButtonEvent(int row, int col, int event)
 	{
 		if (selected_item == ITEM_DYNAMIC_RANGE)
 		{
-			ftp_dynamic_range += (num == KEYPAD_RIGHT) ? 1 : -1;
-			if (ftp_dynamic_range < 10) ftp_dynamic_range = 10;
-			if (ftp_dynamic_range > 20) ftp_dynamic_range = 20;
+			int value = ftp_dynamic_range;
+			value += (num == KEYPAD_RIGHT) ? 1 : -1;
+			if (value < 10) value = 10;
+			if (value > 20) value = 20;
 			sendFTPCommandAndValue(FTP_CMD_SPLIT_NUMBER,0x01);
-			sendFTPCommandAndValue(FTP_CMD_DYNAMICS_SENSITIVITY,ftp_dynamic_range);
+			sendFTPCommandAndValue(FTP_CMD_DYNAMICS_SENSITIVITY,value);
 		}
 		else if (selected_item == ITEM_DYNAMIC_OFFSET)
 		{
-			ftp_dynamic_offset += (num == KEYPAD_RIGHT) ? 1 : -1;
-			if (ftp_dynamic_offset < 0)  ftp_dynamic_offset = 0;
-			if (ftp_dynamic_offset > 20) ftp_dynamic_offset = 20;
+			int value = ftp_dynamic_offset;
+			value += (num == KEYPAD_RIGHT) ? 1 : -1;
+			if (value < 0)  value = 0;
+			if (value > 20) value = 20;
 			sendFTPCommandAndValue(FTP_CMD_SPLIT_NUMBER,0x01);
-			sendFTPCommandAndValue(FTP_CMD_DYNAMICS_OFFSET,ftp_dynamic_offset);
+			sendFTPCommandAndValue(FTP_CMD_DYNAMICS_OFFSET,value);
 		}
 		else if (selected_item == ITEM_TOUCH_SENSITIVITY)
 		{
-			ftp_touch_sensitivity += (num == KEYPAD_RIGHT) ? 1 : -1;
-			if (ftp_touch_sensitivity < 0) ftp_touch_sensitivity = 0;
-			if (ftp_touch_sensitivity > 9) ftp_touch_sensitivity = 9;
-			sendFTPCommandAndValue(FTP_CMD_TOUCH_SENSITIVITY,ftp_touch_sensitivity);
+			int value = ftp_touch_sensitivity;
+			value += (num == KEYPAD_RIGHT) ? 1 : -1;
+			if (value < 0) value = 0;
+			if (value > 9) value = 9;
+			sendFTPCommandAndValue(FTP_CMD_TOUCH_SENSITIVITY,value);
 		}
 		else
 		{
@@ -150,25 +155,15 @@ void winFtpSensitivity::onButtonEvent(int row, int col, int event)
 	}
 
 
-	// else if (num == 20)
+	// now done automatically as part of ftp.cpp::initQueryFTP()
+    //
+	// else if (num == 24)
 	// {
-	// 	arrayedButton *pb = theButtons.getButton(row,col);
-	// 	ftp_poly_mode = !pb->isSelected();
-	// 	sendFTPCommandAndValue(FTP_CMD_POLY_MODE,ftp_poly_mode);
+	// 	for (int i=0; i<NUM_STRINGS; i++)
+	// 	{
+	// 		sendFTPCommandAndValue(FTP_CMD_GET_SENSITIVITY, i);
+	// 	}
 	// }
-	else if (num == 24)
-	{
-		#if 1
-			for (int i=0; i<NUM_STRINGS; i++)
-			{
-				sendFTPCommandAndValue(FTP_CMD_GET_SENSITIVITY, i);
-			}
-		#else
-			sendFTPCommandAndValue(FTP_CMD_SPLIT_NUMBER,0x01);
-			sendFTPCommandAndValue(FTP_CMD_DYNAMICS_SENSITIVITY,ftp_dynamic_range);
-			sendFTPCommandAndValue(FTP_CMD_DYNAMICS_OFFSET,ftp_dynamic_offset);
-		#endif
-	}
 }
 
 
