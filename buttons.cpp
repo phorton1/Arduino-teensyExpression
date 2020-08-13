@@ -119,7 +119,7 @@ void buttonArray::setEventState(int num, int state)
     // retains the state of the pressed bit,
     // but clears the m_press_time (handled)
 {
-    // display(0,"setEventState num=%d state=%04x",num,state);
+    display(dbg_btn+1,"setEventState num=%d state=%04x",num,state);
 
     arrayedButton *button = &m_buttons[num / NUM_BUTTON_COLS][num % NUM_BUTTON_COLS];
     state &= ~BUTTON_STATE_PRESSED;
@@ -135,7 +135,7 @@ void buttonArray::setEventState(int num, int state)
             button->m_touch_color :
             button->m_default_color;
 
-    // display(0,"color(num)=%d",color);
+    display(dbg_btn+1,"button_color(%d)=%08x",num,color);
     setLED(num,color);
 }
 
@@ -179,6 +179,7 @@ void buttonArray::select(int num, int value)
             else if (mask & BUTTON_MASK_RADIO)
             {
                 int group = BUTTON_GROUP_OF(button->m_event_mask);
+                display(dbg_btn+1,"RADIO BUTTON GROUP=%d",group);
 
                 // clear any other selected button in the group
 
@@ -276,6 +277,7 @@ void buttonArray::task()
                     }
                     else
                     {
+                        display(dbg_btn+1,"----------------> set button(%d,%d) WHITE",row,col);
                         setLED(row,col,LED_WHITE);
                         showLEDs();
                     }

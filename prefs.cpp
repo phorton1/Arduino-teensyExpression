@@ -76,7 +76,7 @@ void setDefaultPrefs()
 
     for (int i=0; i<NUM_PEDALS; i++)
     {
-        bool is_auto = i==PEDAL_SYNTH ? 1 : 0;
+        bool is_auto = 0;   // i==PEDAL_SYNTH ? 1 : 0;
         _setDefaultPref8 (PREF_PEDAL(i) + PREF_PEDAL_AUTO_OFFSET,         0,1,      is_auto,off_on);    // 0=linear, 1=asymptotic, 2=scurve - default(0) == num_points
         _setDefaultPref8 (PREF_PEDAL(i) + PREF_PEDAL_CURVE_TYPE_OFFSET,   0,2,      0,curve_types);     // 0=linear, 1=asymptotic, 2=scurve - default(0) == num_points
         _setDefaultPref16(PREF_PEDAL(i) + PREF_PEDAL_CALIB_MIN_OFFSET,    0,1023,   0);                 // default 0
@@ -94,7 +94,11 @@ void setDefaultPrefs()
             _setDefaultPref8(out_byte++, 0, 0,   0);     // W
 
             int x = 127/(j+1);
-            int use_max = i==1 && j==0 ? 92 : 127;               // set loop max volume to 92 on linear
+
+            // prh - 2020-08-13 - to use old rig you must manually set the loop pedal to 92 max
+            //  int use_max = i==PEDAL_LOOP && j==0 ? 92 : 127;               // set loop max volume to 92 on linear
+
+            int use_max = 127;
             int y = use_max/(j+1);
 
             _setDefaultPref8(out_byte++, 0, 127, x);     // X    second point is max, mid, or left with slope 1

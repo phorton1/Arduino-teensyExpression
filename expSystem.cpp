@@ -198,8 +198,8 @@ void expSystem::setTitle(const char *title)
 void expSystem::begin()
 {
     addPatch(new configSystem());
-    addPatch(new patchOldRig());
     addPatch(new patchNewRig());
+    addPatch(new patchOldRig());
     addPatch(new patchTest());
     addPatch(new patchMidiHost());
 
@@ -430,17 +430,18 @@ void expSystem::buttonEvent(int row, int col, int event)
 {
     // handle changes to configSystem
 
+	int num = row * NUM_BUTTON_COLS + col;
+
 	if (m_num_modals)
 		getTopModalWindow()->onButtonEvent(row,col,event);
 
 	// handle the system button from within patches
 
-	else if (row == 0 &&
-		 	 col == THE_SYSTEM_BUTTON &&
+	else if (num == THE_SYSTEM_BUTTON &&
  			 m_cur_patch_num &&
 			 event == BUTTON_EVENT_LONG_CLICK)
 	{
-		setLED(0,4,LED_PURPLE);
+		setLED(THE_SYSTEM_BUTTON,LED_PURPLE);
 		activatePatch(0);
 	}
 

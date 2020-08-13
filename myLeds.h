@@ -2,7 +2,10 @@
 #ifndef __myleds_h__
 #define __myleds_h__
 
+#define LED_NONE   0
+
 #if 1
+
     #define LED_RED    0xFF0000
     #define LED_GREEN  0x00FF00
     #define LED_BLUE   0x0000FF
@@ -36,6 +39,5 @@ extern void showLEDs(bool force=false);
 extern void LEDFancyStart();
 
 
-    
-#endif  // !__myleds_h__
 
+#endif  // !__myleds_h__

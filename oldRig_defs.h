@@ -106,6 +106,7 @@ extern int g_ipad_is_new_rig;
 #define NEW_AUDIOBUS_NOTE_SHOW_SAMPLETANK   3
 #define NEW_AUDIOBUS_NOTE_SHOW_QUANTILOOP   4
 
+
 #define NEW_AUDIOBUS_CC_TEMPO  49
 
 
@@ -156,8 +157,9 @@ typedef struct
     // structure common to New and Old rig patches
 {
     int prog_num;
-    const char *short_name;
-    const char *long_name;
+    const char *short_name;         // SHOULD BE 6 CHARS OR LESS
+    const char *long_name;          // NOT USED IN NEW RIG
+    bool mono_mode;                 // NOT USED IN OLD RIG
 }   synthPatch_t;
 
 

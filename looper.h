@@ -25,7 +25,8 @@ class Looper
             { return m_relative_volume[track_num]; }
 
         void setRelativeVolume(int track_num, int vol, bool write_pref=false);
-        void writePrefs();  // write all four to prefs
+
+        int getPrefRelativeVol(int track_num);
 
     private:
 

@@ -67,8 +67,6 @@ extern int ftp_dynamic_range;                       // value 10..20, default 20
 extern int ftp_dynamic_offset;                      // value 0..20, default 10
 extern int ftp_touch_sensitivity;                   // value 0..9, default 4
 
-
-
 // methods used by midiQueue to understand and keep track of tuning state
 // and for display purposes
 

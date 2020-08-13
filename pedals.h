@@ -127,6 +127,7 @@ class pedalManager
 
         expressionPedal *getPedal(int i)  { return &m_pedals[i]; }
 
+        void pedalEvent(int num, int value);
 
     private:
 
@@ -134,7 +135,6 @@ class pedalManager
 
         expressionPedal m_pedals[NUM_PEDALS];
 
-        void pedalEvent(int num, int value);
 
 };
 

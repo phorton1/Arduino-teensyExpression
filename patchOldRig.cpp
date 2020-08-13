@@ -7,9 +7,9 @@
 #include "buttons.h"
 #include "midiQueue.h"
 #include "looper.h"
+#include "ftp.h"
+#include "ftp_defs.h"
 
-
-// global shared between old an new rig to determine if ipad rig change message needs to be sent
 
 #define GROUP_LOOPER 	7
 #define GROUP_SYNTH		1
@@ -31,23 +31,23 @@
 //--------------------
 
 synthPatch_t patchOldRig::synth_patch[NUM_BUTTON_COLS * 3] = {
-    {SYNTH_PATCH_BASS_MINUS,     "BASS_MINUS",  "P Bass Finger"},  // should be MM Bass Finger
-    {SYNTH_PATCH_BRASS1,         "BRASS1",      "Drama Brass"},
-    {SYNTH_PATCH_VOICES1,        "VOICES1",     "Vocal Oh"},
-    {SYNTH_PATCH_SPACE1,         "SPACE1",      "Mega Motion 3"},   // was BRASS2
-    {SYNTH_PATCH_SPACE3,         "SPACE3",      "Whispering Pad"},  // was STRINGS2
+    {SYNTH_PATCH_BASS_MINUS,     "BASS_MINUS",  "P Bass Finger",	0},  // should be MM Bass Finger
+    {SYNTH_PATCH_BRASS1,         "BRASS1",      "Drama Brass",		0},
+    {SYNTH_PATCH_VOICES1,        "VOICES1",     "Vocal Oh",			0},
+    {SYNTH_PATCH_SPACE1,         "SPACE1",      "Mega Motion 3",	0},   // was BRASS2
+    {SYNTH_PATCH_SPACE3,         "SPACE3",      "Whispering Pad",	0},  // was STRINGS2
 
-    {SYNTH_PATCH_BASS2,          "BASS2",       "Chorus Fretless"},
-    {SYNTH_PATCH_ORGAN2,         "ORGAN2",      "Drawbars Bow"},
-    {SYNTH_PATCH_EPIANO,         "EPIANO",      "Smooth FM Piano"},
-    {SYNTH_PATCH_FLUTE2,         "FLUTE2",      "Psych Flute"},
-    {SYNTH_PATCH_FX1,            "SPACE2",      "Mega Motion 4"},
+    {SYNTH_PATCH_BASS2,          "BASS2",       "Chorus Fretless",	0},
+    {SYNTH_PATCH_ORGAN2,         "ORGAN2",      "Drawbars Bow",		0},
+    {SYNTH_PATCH_EPIANO,         "EPIANO",      "Smooth FM Piano",	0},
+    {SYNTH_PATCH_FLUTE2,         "FLUTE2",      "Psych Flute",		0},
+    {SYNTH_PATCH_FX1,            "SPACE2",      "Mega Motion 4",	0},
 
-    {SYNTH_PATCH_BASS1,          "BASS1",       "MM Bass Finger"},  //  + Jazz Kit
-    {SYNTH_PATCH_ORGAN1,         "ORGAN1",      "Ballad B Pad"},
-    {SYNTH_PATCH_PIANO1,         "PIANO1",      "Mellow Grand 2"},
-    {SYNTH_PATCH_FLUTE1,         "FLUTE1",      "Orch Flute"},
-    {SYNTH_PATCH_FX2,            "FX2",         "SFX Collection"},
+    {SYNTH_PATCH_BASS1,          "BASS1",       "MM Bass Finger",	0},  //  + Jazz Kit
+    {SYNTH_PATCH_ORGAN1,         "ORGAN1",      "Ballad B Pad",		0},
+    {SYNTH_PATCH_PIANO1,         "PIANO1",      "Mellow Grand 2",	0},
+    {SYNTH_PATCH_FLUTE1,         "FLUTE1",      "Orch Flute",		0},
+    {SYNTH_PATCH_FX2,            "FX2",         "SFX Collection",	0},
 };
 
 
@@ -116,6 +116,8 @@ void patchOldRig::begin(bool warm)
 {
     expWindow::begin(warm);
 	theLooper.setRelativeVolumeMode(false);
+	// always set FTP into poly mode
+	sendFTPCommandAndValue(FTP_CMD_POLY_MODE,true);
 
 	m_last_patch_num = -1;
     m_full_redraw = 1;
