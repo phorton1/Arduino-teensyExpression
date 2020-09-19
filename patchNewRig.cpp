@@ -10,6 +10,11 @@
 #include "ftp.h"
 #include "ftp_defs.h"
 
+// Dont know if old rig is better of I should be using new rig
+// this define, to become a pref or whatever, switches the behavior
+// of the loop buttons to send out midi messages over the serial port.
+
+#define SEND_LOOPER_BUTTONS_VIA_SERIAL3   1
 
 // It would be better to divorce the button states from the patch state
 // for the implementation of quick mode
@@ -198,7 +203,10 @@ void patchNewRig::begin(bool warm)
 {
     expWindow::begin(warm);
 
-	theLooper.setRelativeVolumeMode(true);
+	// theLooper.setRelativeVolumeMode(true);
+		// 2020-09-20 - for time being OLD RIG is dead
+		// and I am not gonna use Quantiloop relative volumes
+		// or the whole looper object
 
 	m_last_bank_num = -1;
 	m_last_patch_num = -1;
@@ -446,45 +454,57 @@ void patchNewRig::onButtonEvent(int row, int col, int event)
 
     else if (row == 4)
     {
-        if (event == BUTTON_EVENT_LONG_CLICK)
-        {
-            theButtons.clearRadioGroup(GROUP_LOOPER);
-            mySendDeviceControlChange(
-                LOOP_CONTROL_CLEAR_ALL,
-                0x7f,
-                LOOP_CONTROL_CHANNEL);
+		#if SEND_LOOPER_BUTTONS_VIA_SERIAL3
 
-            mySendDeviceControlChange(
-                LOOP_CONTROL_CLEAR_ALL,
-                0x00,
-                LOOP_CONTROL_CHANNEL);
+			if (event == BUTTON_EVENT_PRESS ||
+				event == BUTTON_EVENT_CLICK)
+			{
+				sendSerialControlChange(loop_ccs[col],0x7f,"patchNewRig Loop Button");
+					// sends out cc_nums 21, 22, 23, 31, and 25 for the 5 buttons left to right
+			}
 
-			// on a clear of the looper we reset
-			// the relative volumes
+		#else
 
-			theLooper.init();
+			if (event == BUTTON_EVENT_LONG_CLICK)
+			{
+				theButtons.clearRadioGroup(GROUP_LOOPER);
+				mySendDeviceControlChange(
+					LOOP_CONTROL_CLEAR_ALL,
+					0x7f,
+					LOOP_CONTROL_CHANNEL);
 
-        }
-        else if (event == BUTTON_EVENT_PRESS)
-        {
-            mySendDeviceControlChange(
-                loop_ccs[col],
-                0x7f,
-                LOOP_CONTROL_CHANNEL);
-        }
-        else // RELEASE or CLICK
-        {
-            if (event == BUTTON_EVENT_CLICK)
-	            mySendDeviceControlChange(
-                    loop_ccs[col],
-                    0x7f,
-                    LOOP_CONTROL_CHANNEL);
+				mySendDeviceControlChange(
+					LOOP_CONTROL_CLEAR_ALL,
+					0x00,
+					LOOP_CONTROL_CHANNEL);
 
-            mySendDeviceControlChange(
-                loop_ccs[col],
-                0x00,
-                LOOP_CONTROL_CHANNEL);
-        }
+				// on a clear of the looper we reset
+				// the relative volumes
+
+				theLooper.init();
+
+			}
+			else if (event == BUTTON_EVENT_PRESS)
+			{
+				mySendDeviceControlChange(
+					loop_ccs[col],
+					0x7f,
+					LOOP_CONTROL_CHANNEL);
+			}
+			else // RELEASE or CLICK
+			{
+				if (event == BUTTON_EVENT_CLICK)
+					mySendDeviceControlChange(
+						loop_ccs[col],
+						0x7f,
+						LOOP_CONTROL_CHANNEL);
+
+				mySendDeviceControlChange(
+					loop_ccs[col],
+					0x00,
+					LOOP_CONTROL_CHANNEL);
+			}
+		#endif
     }
 }
 
@@ -684,4 +704,41 @@ void patchNewRig::updateUI()
             synth_patch[m_cur_patch_num].long_name);
     }
 
+}
+
+
+
+
+//-------------------------------------
+// rotary controllers
+//-------------------------------------
+
+// virtual
+bool patchNewRig::onRotaryEvent(int num, int val)
+{
+	display(0,"patchNewRig::onRotaryEvent(%d,%d)",num,val);
+
+	// send the value out on CC's 101 thru 105
+	// mapped from rotary controls
+	//   0==input volume      1==output volume
+	//   2==thru volume       3==mix volume
+	// to rPi control numbers + 101
+
+	#define RPI_CONTROL_INPUT_GAIN          0
+	#define RPI_CONTROL_THRU_VOLUME         1
+	#define RPI_CONTROL_LOOP_VOLUME         2
+	#define RPI_CONTROL_MIX_VOLUME          3
+	#define RPI_CONTROL_OUTPUT_GAIN         4
+
+	#define RPI_CONTROL_NUM_CC_OFFSET  0x65
+		// so the loop volume pedal will be at 0x65 + 2
+
+	int control_num =
+		num == 0 ? RPI_CONTROL_INPUT_GAIN :
+		num == 1 ? RPI_CONTROL_OUTPUT_GAIN :
+		num == 2 ? RPI_CONTROL_THRU_VOLUME :
+		RPI_CONTROL_MIX_VOLUME;
+
+	sendSerialControlChange(control_num + RPI_CONTROL_NUM_CC_OFFSET,val,"patchNewRig Rotary Control");
+	return true;
 }

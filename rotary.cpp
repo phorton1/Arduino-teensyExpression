@@ -3,8 +3,17 @@
 #include "defines.h"
 #include "expSystem.h"
 
-    
+
 #define DEBUG_ROTARY  0
+
+// these default values are to match the rotary controls to
+// the rPi looper input, output, thru, and mix volumes
+// the loop volume is controlled by a foot pedal
+
+#define DEFAULT_INPUT_VOL    94     // codec input
+#define DEFAULT_THRU_VOL     63     // thru
+#define DEFAULT_MIX_VOL      63     // loop
+#define DEFAULT_OUT_VOL      127    // output
 
 
 typedef struct
@@ -12,11 +21,11 @@ typedef struct
     int pollA;      // the last value polled for the A part of the switch
     int pinA;       // the pin for A polling
     int pinB;       // the pin for B polling
-    
+
     int min_range;  // the minimum value
     int max_range;  // the maximum value
     float inc_dec;    // the amount to inc or dec per signal
-    
+
     float value;      // the current value
 }   rotary_t;
 
@@ -24,10 +33,10 @@ typedef struct
 
 rotary_t rotary[NUM_ROTARY] =
 {
-    {0, ROTARY_1A, ROTARY_1B, 0, 127, DEFAULT_INC_DEC, 0.00},
-    {0, ROTARY_2A, ROTARY_2B, 0, 127, DEFAULT_INC_DEC, 0.00},
-    {0, ROTARY_3A, ROTARY_3B, 0, 127, DEFAULT_INC_DEC, 0.00},
-    {0, ROTARY_4A, ROTARY_4B, 0, 127, DEFAULT_INC_DEC, 0.00}
+    {0, ROTARY_1A, ROTARY_1B, 0, 127, DEFAULT_INC_DEC, DEFAULT_INPUT_VOL},
+    {0, ROTARY_2A, ROTARY_2B, 0, 127, DEFAULT_INC_DEC, DEFAULT_OUT_VOL },
+    {0, ROTARY_3A, ROTARY_3B, 0, 127, DEFAULT_INC_DEC, DEFAULT_THRU_VOL  },
+    {0, ROTARY_4A, ROTARY_4B, 0, 127, DEFAULT_INC_DEC, DEFAULT_MIX_VOL  }
 };
 
 
@@ -77,11 +86,11 @@ bool _pollRotary(int i)
     int aval = digitalRead(rotary[i].pinA);
     if (rotary[i].pollA == aval)
         return false;
-        
+
     // only do something if A has changed
-    
+
     rotary[i].pollA = aval;
-    
+
     int bval = digitalRead(rotary[i].pinB);
     if (aval == bval)
     {
@@ -97,11 +106,12 @@ bool _pollRotary(int i)
         else
             rotary[i].value -= rotary[i].inc_dec;
     }
-        
+
     #if DEBUG_ROTARY
-        display(0,"rotary(%d) aval=%d bval=%d   value=%d",i,aval,bval,rotary_vslue[i]);
+        int show_val = rotary[i].value;
+        display(0,"rotary(%d) aval=%d bval=%d   value=%d",i,aval,bval,show_val);
     #endif
-    
+
     return true;
 }
 
@@ -112,5 +122,3 @@ void pollRotary()
         if (_pollRotary(i))
             theSystem.rotaryEvent(i,rotary[i].value);
 }
-
-

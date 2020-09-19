@@ -28,8 +28,8 @@ class expressionPedal
         int getRawValue()               { return m_raw_value; }
         inline float getRawValuePct()
         {
-            float min = m_auto ? 0 : getPrefPedalCalibMin(m_num);
-            float max = m_auto ? 127 : getPrefPedalCalibMax(m_num);
+            float min = (m_mode & PEDAL_MODE_AUTO) ? 0 : getPrefPedalCalibMin(m_num);
+            float max = (m_mode & PEDAL_MODE_AUTO) ? 127 : getPrefPedalCalibMax(m_num);
             float val = m_raw_value - min;
             if (val < 0.00) val = 0.00;
             float ret_val = val / (max - min);
@@ -46,10 +46,10 @@ class expressionPedal
             m_valid = false;
         }
 
-        void setAuto();
+        void setPedalMode();
         void autoCalibrate();
         bool inAutoCalibrate()      { return m_in_auto_calibrate; }
-        bool isAuto()               { return m_auto; }
+        uint8_t getMode()           { return m_mode; }
         void setAutoRawValue(int i);
         int getAutoRawValue()       { return m_auto_value; }
 
@@ -105,7 +105,7 @@ class expressionPedal
         int      m_value;           // 0..127
         int      m_last_value;      // display helper
 
-        bool     m_auto;
+        uint8_t  m_mode;
         int      m_auto_value;
         bool     m_in_auto_calibrate;
 

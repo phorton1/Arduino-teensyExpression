@@ -1,7 +1,7 @@
 #ifndef __defines_h__
 #define __defines_h__
 
-#define VERSION   "1.2"
+#define VERSION   "1.3"
 
 #define NUM_PORTS           8       // ports defined in midiQueue.h
 #define NUM_PEDALS          4

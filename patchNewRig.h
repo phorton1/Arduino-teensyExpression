@@ -36,6 +36,7 @@ class patchNewRig : public expWindow
 
         patchNewRig();
 
+        virtual bool onRotaryEvent(int num, int val);
 
     private:
 

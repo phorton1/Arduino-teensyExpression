@@ -35,7 +35,19 @@
 #define MAX_CURVE_POINTS                4       // number of points per curve
 #define MAX_PEDAL_CURVE_POINTS          (MAX_PEDAL_CURVES * MAX_CURVE_POINTS)
 
-#define PREF_PEDAL_AUTO_OFFSET          0       // default 0, 1 for pedal #1 (loop)
+
+#define PEDAL_MODE_NORMAL               0x00
+#define PEDAL_MODE_SERIAL               0x01
+#define PEDAL_MODE_AUTO                 0x02
+    // a Pedal can send it's data via USB to the iPad, or over the Serial port to the rPi
+    // furthermore it can "get" its data 'normally' (analogRead the pedal) or over my
+    // experimental one-wire protocol for my "auto" active foot pedal with a motor
+    // and an arduino in it.
+
+#define PREF_PEDAL_MODE_OFFSET          0
+    // the pedal mode is "normal", "serial",
+    // "auto-normal" or "auto-serial"
+
 #define PREF_PEDAL_CURVE_TYPE_OFFSET    1       // 0=linear, 1=asymptotic, 2=scurve - default(0) == num_points
 #define PREF_PEDAL_CALIB_MIN_OFFSET     2       // default 0
 #define PREF_PEDAL_CALIB_MAX_OFFSET     4       // default 1023
@@ -58,19 +70,19 @@
 #define PREF_BYTES_PER_PEDAL   (PREF_PEDAL_POINTS_OFFSET + CURVE_BYTES_PER_PEDAL)
 #define PREF_PEDAL(i)          (PREF_PEDAL0 + (i)*PREF_BYTES_PER_PEDAL)
 
-#define PREF_PEDAL_AUTO(p)              (PREF_PEDAL(p) + PREF_PEDAL_AUTO_OFFSET)
+#define PREF_PEDAL_MODE(p)              (PREF_PEDAL(p) + PREF_PEDAL_MODE_OFFSET)
 #define PREF_PEDAL_CURVE_TYPE(p)        (PREF_PEDAL(p) + PREF_PEDAL_CURVE_TYPE_OFFSET)
 #define PREF_PEDAL_CURVE(p,c)           (PREF_PEDAL(p) + PREF_PEDAL_POINTS_OFFSET + (c)*PREF_BYTES_PER_CURVE)
 #define PREF_PEDAL_CURVE_POINT(p,c,i)   (PREF_PEDAL_CURVE(p,c) + (i)*PEDAL_POINT_PREF_SIZE)
 
-#define getPrefPedalAuto(p)             (getPref8(PREF_PEDAL_AUTO(p)))
+#define getPrefPedalMode(p)             (getPref8(PREF_PEDAL_MODE(p)))
 #define getPrefPedalCurve(p)            (getPref8(PREF_PEDAL_CURVE_TYPE(p)))
 #define getPrefPedalMin(p)              (getPref8(PREF_PEDAL_CURVE_POINT(p,getPrefPedalCurve(p),0) + PEDAL_POINTS_OFFSET_Y))
 #define getPrefPedalMax(p)              (getPref8(PREF_PEDAL_CURVE_POINT(p,getPrefPedalCurve(p),getPrefPedalCurve(p)+1) + PEDAL_POINTS_OFFSET_Y))
 #define getPrefPedalCalibMin(p)         (getPref16(PREF_PEDAL(p) + PREF_PEDAL_CALIB_MIN_OFFSET))
 #define getPrefPedalCalibMax(p)         (getPref16(PREF_PEDAL(p) + PREF_PEDAL_CALIB_MAX_OFFSET))
 
-#define setPrefPedalAuto(p,i)           setPref8(PREF_PEDAL_AUTO(p),(i))
+#define setPrefPedalMode(p,i)           setPref8(PREF_PEDAL_MODE(p),(i))
 #define setPrefPedalCurve(p,i)          setPref8(PREF_PEDAL_CURVE_TYPE(p),(i))
 #define setPrefPedalCalibMin(p,i)       setPref16(PREF_PEDAL(p) + PREF_PEDAL_CALIB_MIN_OFFSET, (i))
 #define setPrefPedalCalibMax(p,i)       setPref16(PREF_PEDAL(p) + PREF_PEDAL_CALIB_MAX_OFFSET, (i))

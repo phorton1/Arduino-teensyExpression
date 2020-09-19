@@ -3,26 +3,81 @@
 #include "prefs.h"
 #include "expSystem.h"
 #include "oldRig_defs.h"
-// 2020-08-13 prh - pedals become ftp and looper aware
 #include "ftp.h"
 #include "looper.h"
 #include "midiQueue.h"  // for mySendDeviceControlChange()
 
+// 2020-09-20 prh I am not thrilled with the encapsulation of pedals at this time.
+//
+// The situation is fairly complex.  It is made more complex firstly by
+// my notion of "patches" which can have theoretically different pedal
+// configurations, i.e. different CC's between the "old rig" and the
+// "new rig" patches. This is coupled with the fact that you want the
+// pedals to keep working when you change to the "configuration patch".
+//
+// So, there is a global state for the pedals maintained in this object,
+// which can be "poked" by changing "patches".
+//
+// Another level of complexity is the experimental "AUTO_PEDAL" implementation,
+// for my motorized foot pedals with haptic feedback.  In this case, the teensy
+// port stops measuring the voltage (of a standard expression pedal) and starts
+// to use a one wire bidirectional serial protocol, receiving NUMBERS from the pedal,
+// which can also REACT to numbers sent to it, to go to a particular position, or
+// activate some haptic feedback feature or mode.
+//
+// Finally, now I am introducing "midi over serial" to the rPi looper
+// (on Serial3 from this teensy3.6) .. which has yet a different CC
+// number, but more importantly does not send anything out over the
+// main usb midi to the iPad ... but sends serial data, instead to the
+// teensy 3.2 inside the Looper which then relays it to the rPi.
+//
+// I *could* use the same CCs in the (current simpleminded) rPi implementation
+// (which bypasses my whole "midi sub system" thing that works over the rPi USB)
+// but I only want the loop pedal (pedal #2) to send CC 103 (0x67 = 0x65 + 2, where
+// 2 is CONTROL_LOOP_VOLUME on the rPi loopMachine object)
+//
+// Finally, each pedal, even with all that, has a set of three distinct
+// programmable "curves", and all of the configuration *should* be
+// stored in EEPROM though NONE of the CC's are stored there at this
+// time (they are all in defines or spread throughout various code)
 
-#define IS_AUTO_PEDAL   0
-    // set to 5 or something for old behavior
+
+#define DEBUG_PEDALS  0
+
+pedalManager thePedals;
+
+//------------------------------------------------------
+// "normal" expression pedals are handled by polling,
+// where we analogRead each input pedal port (0..1023)
+// with a heuristic to track movments starting when the pedal
+// moves some amount (given by the HYSTERISIS value here),
+// until it stops for SETTLE_TIME milleseconds.
+//-----------
+// At the end of each Poll if anything changes the
+// appropriate behavior takes place
+//-----------
+// The only difference between a "serial" pedal and a
+// "normal" pedal is that the serial data is sent out
+// to the rPi over Serial3, wheras normally it is sent
+// to the iPad over USB midi.
 
 
 #define HYSTERISIS   30
     // in raw 0..1023 units
 #define SETTLE_TIME  50
     // time to settle into a direction
-#define DEBUG_PEDALS  1
 
-pedalManager thePedals;
+
+//--------------------------------------------------------
+// My "automatic" pedals communicate through the same teensy
+// ports using a simple one wire serial protocol.  In that
+// case, the pin is hooked up to an isr that receives a byte
+// to/from the arduino inside the pedal.
+//
+// Here we define the isr routines for each pedal, should they
+// be used.
 
 typedef void (*isr_fxn)();
-
 void pedal_isr0()       { thePedals.getPedal(0)->teensyReceiveByte(); }
 void pedal_isr1()       { thePedals.getPedal(1)->teensyReceiveByte(); }
 void pedal_isr2()       { thePedals.getPedal(2)->teensyReceiveByte(); }
@@ -37,7 +92,8 @@ isr_fxn pedal_isrs[NUM_PEDALS] = {pedal_isr0, pedal_isr1, pedal_isr2, pedal_isr3
 void pedalManager::init()
 {
     m_pedals[PEDAL_SYNTH ].init(PEDAL_SYNTH,  PIN_EXPR1, "Synth",  SYNTH_VOLUME_CHANNEL,   SYNTH_VOLUME_CC);
-    m_pedals[PEDAL_LOOP  ].init(PEDAL_LOOP,   PIN_EXPR2, "Loop",   LOOP_CONTROL_CHANNEL,   LOOP_VOLUME_CC);
+    m_pedals[PEDAL_LOOP  ].init(PEDAL_LOOP,   PIN_EXPR2, "Loop",   LOOP_CONTROL_CHANNEL,   0x67);   // 2020-09-20 - the CC for the rPi looper loop volume control
+        /// instead of LOOP_VOLUME_CC);
     m_pedals[PEDAL_WAH   ].init(PEDAL_WAH,    PIN_EXPR3, "Wah",    GUITAR_EFFECTS_CHANNEL, GUITAR_WAH_CONTROL_CC);
     m_pedals[PEDAL_GUITAR].init(PEDAL_GUITAR, PIN_EXPR4, "Guitar", GUITAR_VOLUME_CHANNEL,  GUITAR_VOLUME_CC);
 }
@@ -78,7 +134,7 @@ void expressionPedal::init(
     m_valid = false;
     m_last_value = -1;
 
-    setAuto();
+    setPedalMode();
 }
 
 
@@ -96,13 +152,13 @@ void expressionPedal::init(
 // this time, commands to calibrate themselves, and/or goto a
 // specific position.
 
-void expressionPedal::setAuto()
+void expressionPedal::setPedalMode()
 {
     m_auto_value = 0;
-    m_auto = getPrefPedalAuto(m_num);
+    m_mode = getPrefPedalMode(m_num);
     m_in_auto_calibrate = 0;
 
-    if (m_auto)
+    if (m_mode & PEDAL_MODE_AUTO)
     {
         display(0,"AUTO_PEDAL(%d) pin=%d",m_num,m_pin);
         pinMode(m_pin,INPUT);
@@ -117,7 +173,7 @@ void expressionPedal::setAuto()
 
 void expressionPedal::autoCalibrate()
 {
-    if (m_auto)
+    if (m_mode & PEDAL_MODE_AUTO)
     {
         m_raw_value = -1;
         m_in_auto_calibrate = 1;
@@ -131,7 +187,7 @@ void expressionPedal::autoCalibrate()
 
 void expressionPedal::setAutoRawValue(int value)
 {
-    if (m_auto)
+    if (m_mode & PEDAL_MODE_AUTO)
     {
         if (value > 127) value = 127;
         if (value < 0) value = 0;
@@ -177,7 +233,7 @@ void expressionPedal::teensyReceiveByte()
 
 void expressionPedal::teensySendByte(int byte)
 {
-    if (!m_auto)
+    if (!(m_mode & PEDAL_MODE_AUTO))
     {
         my_error("Attempt to call teensySendByte(0x%02x) when pedal(%d) is not m_auto",byte,m_num);
         return;
@@ -216,9 +272,11 @@ void expressionPedal::poll()
         return;
 
     bool raw_changed = false;
-    int raw_value = m_auto ? m_auto_value : analogRead(m_pin);
+    bool is_auto = m_mode & PEDAL_MODE_AUTO;
+
+    int raw_value =  is_auto ? m_auto_value : analogRead(m_pin);
     unsigned time = millis();
-    int use_hysterisis = m_auto ? 0 : HYSTERISIS;
+    int use_hysterisis = is_auto ? 0 : HYSTERISIS;
 
     // display(0,"poll(%d) raw_value=%d",m_num,raw_value);
 
@@ -294,7 +352,7 @@ void expressionPedal::poll()
         else if (scaled_x >= max_x)
         {
             value = getPref8(PREF_PEDAL_CURVE_POINT(m_num,curve_type,curve_type+1) + PEDAL_POINTS_OFFSET_Y);
-            display(0,"GE THAN MAX_X value=%d",value);
+            // display(0,"GE THAN MAX_X value=%d",value);
         }
 
         // loop thru points left (not max) pointstill we are at or to the right of one
@@ -404,6 +462,13 @@ void pedalManager::pedalEvent(int num, int value)
 
     // default behavior, use constants from array
 
+    else if (pedal->m_mode & PEDAL_MODE_SERIAL)
+    {
+        sendSerialControlChange(
+            pedal->getCCNum(),
+            value,
+            "pedals.cpp");
+    }
     else
     {
         mySendDeviceControlChange(
@@ -412,5 +477,3 @@ void pedalManager::pedalEvent(int num, int value)
             pedal->getCCChannel());
 	}
 }
-
-

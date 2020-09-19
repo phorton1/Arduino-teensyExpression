@@ -217,6 +217,7 @@ void expSystem::begin()
 	theLooper.init();
     theButtons.init();
 	thePedals.init();
+	initRotary();
 
     // set the brightness from prefs
 
@@ -523,6 +524,10 @@ void expSystem::critical_timer_handler()
 	        enqueueProcess(msg);
 		}
     }
+
+	// needed here?
+    // pollRotary();
+
 }
 
 
@@ -535,7 +540,9 @@ void expSystem::timer_handler()
 
     theButtons.task();
 	thePedals.task();
-    pollRotary();
+
+	// or can I get away with it here?
+	pollRotary();
 
     // process incoming and outgoing midi events
 

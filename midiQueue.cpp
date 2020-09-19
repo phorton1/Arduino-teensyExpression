@@ -141,6 +141,23 @@ void mySendDeviceControlChange(uint8_t cc_num, uint8_t value, uint8_t channel)
 }
 
 
+
+void sendSerialControlChange(uint8_t cc_num, uint8_t value, const char *debug_msg)
+{
+    #if 0
+        display(0,"sendSerialControlChange(0x%02x, 0x%02x) from %s",cc_num,value,debug_msg);
+    #endif
+
+    unsigned char midi_buf[4];
+    midi_buf[0] = 0xB;				// controller message
+    midi_buf[1] = 0xB0;				// controller message on channel one
+    midi_buf[2] = cc_num;           // the cc_number
+    midi_buf[3] = value;			// the value
+    Serial3.write(midi_buf,4);
+}
+
+
+
 void mySendFtpSysex(int length, uint8_t *buf)
     // called by me: midi_host.sendSysEx(sizeof(ftpRequestPatch),ftpRequestPatch,true);
     // Pauls API: void sendSysEx(uint32_t length, const uint8_t *data, bool hasTerm=false, uint8_t cable=0)

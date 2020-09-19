@@ -244,10 +244,46 @@ void setup()
 
 void loop()
 {
+    #if 1
+        // Serial Port Test
+        // - "Serial" is the USB port which is built in via the Teensy USB configuration SERIAL-MIDI4,
+        //       and is only available for debugging while the teensyExpression is plugged into the
+        //       windows machine.  It's not available when the TE is plugged into the iPad (router).
+        //       Debugging output (display) can be turned on, or off to this, or the other, port.
+        // - Serial3 is the OUTPUT 1/8 Serial jack, it is always initialized, and *MAY* be used
+        //       for redirected "debugging" output (display).
+        //
+        // This most basic test merely echos characters from the USB port "input" to the remote
+        // port "output", and vice-versa
+
+        if (Serial.available())
+        {
+            char c = Serial.read();
+
+            // debugging here is extremely weird ...
+            // so don't do it ..
+            // // // display(0,"teensyExpression got SERIAL(%d) '%c' --> sending to SERIAL3",c,(c>32?c:32));
+            // this is not "live code".
+            // it is only here to test having the teensyExpression send something to the rPi
+
+            Serial3.write(c);
+        }
+
+        // This is real code.
+        // It should look for "midi packets" and respond accordingly (actually probably in expSystem.cpp)
+        // This will be used to notify the teensyExpression to change the color of the looper buttons
+        // to reflect what is happening in the rPi looper ... as yet unimplemented.
+
+        if (Serial3.available())
+        {
+            char c = Serial3.read();
+            display(0,"teensyExpression got SERIAL3(%d) '%c'",c,(c>32?c:32));
+        }
+    #endif  // SERIAL TEST
+
     theSystem.updateUI();
         // midiHostConfig is only person who calls myUSB.Task(),
         // midi1.read(), and usbMIDI.read() at this time.
-
 
     #if TOUCH_DRAW_TEST
 

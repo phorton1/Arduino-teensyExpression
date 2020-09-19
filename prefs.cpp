@@ -20,6 +20,7 @@ const char *default_off_usb_serial[]  = {"default","Off","USB","Serial"};
 const char *off_host_remote[]         = {"Off","Host","Remote"};
 const char *off_on_detail[]           = {"Off","On","Detail"};
 const char *curve_types[]             = {"linear","asympt","scurve"};
+const char *pedal_modes[]             = {"normal","serial","smart","smart-serial"};
 
 
 //------------------------------
@@ -76,8 +77,10 @@ void setDefaultPrefs()
 
     for (int i=0; i<NUM_PEDALS; i++)
     {
-        bool is_auto = 0;   // i==PEDAL_SYNTH ? 1 : 0;
-        _setDefaultPref8 (PREF_PEDAL(i) + PREF_PEDAL_AUTO_OFFSET,         0,1,      is_auto,off_on);    // 0=linear, 1=asymptotic, 2=scurve - default(0) == num_points
+        int use_mode = (i == 1) ? PEDAL_MODE_SERIAL : PEDAL_MODE_NORMAL;
+            // for now I am trying the loop pedal as serial
+
+        _setDefaultPref8 (PREF_PEDAL(i) + PREF_PEDAL_MODE_OFFSET,         0,2,      use_mode, pedal_modes);    // 0=normal, 1=serial, 2=smart-normal, 3=smart serial
         _setDefaultPref8 (PREF_PEDAL(i) + PREF_PEDAL_CURVE_TYPE_OFFSET,   0,2,      0,curve_types);     // 0=linear, 1=asymptotic, 2=scurve - default(0) == num_points
         _setDefaultPref16(PREF_PEDAL(i) + PREF_PEDAL_CALIB_MIN_OFFSET,    0,1023,   0);                 // default 0
         _setDefaultPref16(PREF_PEDAL(i) + PREF_PEDAL_CALIB_MAX_OFFSET,    0,1023,   PEDAL_CALIB_WITH_1K_OUTPUT_RESISTOR);    // default 890 (1023)

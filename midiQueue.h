@@ -138,7 +138,7 @@ extern void mySendMidiMessage(uint8_t msg_type, uint8_t channel, uint8_t p1, uin
 extern void mySendDeviceProgramChange(uint8_t prog_num, uint8_t channel);
 extern void mySendDeviceControlChange(uint8_t cc_num, uint8_t value, uint8_t channel);
 
-
+extern void sendSerialControlChange(uint8_t cc_num, uint8_t value, const char *debug_msg);
 
 //-----------------------------------------------------------------------------
 // COMMAND/REPLY   rough notes
