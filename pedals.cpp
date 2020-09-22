@@ -4,7 +4,6 @@
 #include "expSystem.h"
 #include "oldRig_defs.h"
 #include "ftp.h"
-#include "looper.h"
 #include "midiQueue.h"  // for mySendDeviceControlChange()
 
 // 2020-09-20 prh I am not thrilled with the encapsulation of pedals at this time.
@@ -91,6 +90,9 @@ isr_fxn pedal_isrs[NUM_PEDALS] = {pedal_isr0, pedal_isr1, pedal_isr2, pedal_isr3
 
 void pedalManager::init()
 {
+    for (int i=0; i<4; i++)     // kludgy default for quantiloop relative volumes
+        m_relative_loop_volume[i] = 100;
+
     m_pedals[PEDAL_SYNTH ].init(PEDAL_SYNTH,  PIN_EXPR1, "Synth",  SYNTH_VOLUME_CHANNEL,   SYNTH_VOLUME_CC);
     m_pedals[PEDAL_LOOP  ].init(PEDAL_LOOP,   PIN_EXPR2, "Loop",   LOOP_CONTROL_CHANNEL,   0x67);   // 2020-09-20 - the CC for the rPi looper loop volume control
         /// instead of LOOP_VOLUME_CC);
@@ -444,12 +446,12 @@ void pedalManager::pedalEvent(int num, int value)
     // the four messages to be sent here.
     // the CCs are currently SEQUENTIAL constants in oldRig_defs.h
 
-    else if (num == PEDAL_LOOP && theLooper.getRelativeVolumeMode())
+    else if (num == PEDAL_LOOP && m_relative_loop_volume_mode)
     {
-        for (int i=0; i<NUM_LOOP_TRACKS; i++)
+        for (int i=0; i<4; i++)
         {
             float vol = value;
-            float rel_vol = theLooper.getRelativeVolume(i);
+            float rel_vol = m_relative_loop_volume[i];
             float new_value = (vol/127.0) * rel_vol;
             int cc = NEW_LOOP_VOLUME_TRACK1 + i;
 

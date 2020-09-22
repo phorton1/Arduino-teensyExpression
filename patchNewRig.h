@@ -79,6 +79,9 @@ class patchNewRig : public expWindow
         static synthPatch_t synth_patch[NUM_SYNTH_BANKS * NUM_SYNTH_PATCHES];
         static int guitar_effect_ccs[NUM_BUTTON_COLS];
         static int loop_ccs[NUM_BUTTON_COLS];
+
+        static int patch_to_button(int patch_num);
+        static int bank_button_to_patch(int bank, int button_num);
 };
 
 

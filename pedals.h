@@ -129,11 +129,19 @@ class pedalManager
 
         void pedalEvent(int num, int value);
 
+        // vestigial kludge for oldRig + quantiloop
+        void setLoopPedalRelativeVolumeMode(bool b) {m_relative_loop_volume_mode = b; }
+        int getRelativeLoopVolume(int i)  { return m_relative_loop_volume[i]; }
+        void setRelativeLoopVolume(int i, int value) { m_relative_loop_volume[i] = value; }
+
     private:
 
         friend class expressionPedal;
 
         expressionPedal m_pedals[NUM_PEDALS];
+
+        bool m_relative_loop_volume_mode;
+        int m_relative_loop_volume[4];
 
 
 };

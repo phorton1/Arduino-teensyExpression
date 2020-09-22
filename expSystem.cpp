@@ -11,7 +11,6 @@
 #include "ftp_defs.h"
 #include "myMidiHost.h"
 #include "midiQueue.h"
-#include "looper.h"
 
 #include "configSystem.h"
 #include "patchOldRig.h"
@@ -214,7 +213,6 @@ void expSystem::begin()
 	setPrefMax(PREF_PATCH_NUM,m_num_patches-1);
 	setPrefStrings(PREF_PATCH_NUM,patch_names);
 
-	theLooper.init();
     theButtons.init();
 	thePedals.init();
 	initRotary();

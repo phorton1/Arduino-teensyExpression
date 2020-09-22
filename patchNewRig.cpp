@@ -6,7 +6,6 @@
 #include "pedals.h"
 #include "buttons.h"
 #include "midiQueue.h"
-#include "looper.h"
 #include "ftp.h"
 #include "ftp_defs.h"
 
@@ -59,7 +58,8 @@
 #define NUM_PATCHES_PER_BANK (NUM_PATCH_COLS * NUM_PATCH_ROWS)
 
 
-int patch_to_button(int patch_num)
+// static
+int patchNewRig::patch_to_button(int patch_num)
 {
 	patch_num %= NUM_PATCHES_PER_BANK;
 	int col = patch_num / NUM_PATCH_ROWS;
@@ -71,7 +71,8 @@ int patch_to_button(int patch_num)
 }
 
 
-int bank_button_to_patch(int bank, int button_num)
+// static
+int patchNewRig::bank_button_to_patch(int bank, int button_num)
 	// returns -1 if the button is not a patch button
 {
 	int patch = -1;
@@ -203,10 +204,8 @@ void patchNewRig::begin(bool warm)
 {
     expWindow::begin(warm);
 
-	// theLooper.setRelativeVolumeMode(true);
-		// 2020-09-20 - for time being OLD RIG is dead
-		// and I am not gonna use Quantiloop relative volumes
-		// or the whole looper object
+	thePedals.setLoopPedalRelativeVolumeMode(true);
+		// 2020-09-22 - vestigial
 
 	m_last_bank_num = -1;
 	m_last_patch_num = -1;
@@ -332,33 +331,7 @@ void patchNewRig::onButtonEvent(int row, int col, int event)
 	{
 		if (m_quick_mode)
 		{
-			if (row == 0)	// write the current value to EEPROM
-			{
-				if (event == BUTTON_EVENT_CLICK)
-					theLooper.setRelativeVolume(col,theLooper.getRelativeVolume(col),true);
-			}
-			else	// inc or dec the current value
-			{
-				int inc = row == 1 ? 1 : -1;
-				int vol = theLooper.getRelativeVolume(col) + inc;
-				if (vol < 0) vol = 0;
-				if (vol > 127) vol = 127;
-				theLooper.setRelativeVolume(col,vol);
-
-				// send the CC for the one pedal that has (possibly) changed
-
-				expressionPedal *pedal = thePedals.getPedal(col);
-				float pedal_vol = pedal->getValue();
-				float rel_vol = vol;
-				float new_value = (pedal_vol/127.0) * rel_vol;
-				int cc = NEW_LOOP_VOLUME_TRACK1 + col;
-
-				mySendDeviceControlChange(
-					cc,
-					new_value,
-					pedal->getCCChannel());
-
-			}
+			// currently un-programmed
 		}
 		else if (event == BUTTON_EVENT_CLICK)
 		{
@@ -613,7 +586,7 @@ void patchNewRig::updateUI()
 	{
 		for (int i=0; i<4; i++)
 		{
-			int cur_relative_volume = theLooper.getRelativeVolume(i);
+			int cur_relative_volume = 99;
 			if (m_last_relative_vol[i] != cur_relative_volume)
 			{
 				m_last_relative_vol[i] = cur_relative_volume;
