@@ -357,7 +357,7 @@ void patchNewRig::begin(bool warm)
 {
     expWindow::begin(warm);
 
-	thePedals.setLoopPedalRelativeVolumeMode(true);
+	thePedals.setLoopPedalRelativeVolumeMode(false);
 		// 2020-09-22 - vestigial
 
 	m_last_bank_num = -1;
