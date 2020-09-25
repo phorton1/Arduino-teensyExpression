@@ -9,9 +9,148 @@
 #include "ftp.h"
 #include "ftp_defs.h"
 
-// Dont know if old rig is better of I should be using new rig
-// this define, to become a pref or whatever, switches the behavior
-// of the loop buttons to send out midi messages over the serial port.
+// 2020-09-22 NEW newRig
+//
+// Designed to work with my looper box via serial data.
+// Same synth and guitar buttons as before, mostly.
+// - Got rid of separate guitar Chorus and Flanger buttons,
+//   combining into "n" state "other effects" button. This
+//   requires some changes to low level buttons (user drawn?)
+// - moved guitar reverb (and "clear all") button one to the left,
+//   to give one more button for the looper.
+//
+// The looper buttons are
+//
+//                                                      [ stop/clear all ]
+//
+//  [ track1 ]    [ track2 ]    [ track3 ]     [ track4 ]      [ dub]
+//
+// A track can have a bunch of states ...
+//
+//           EMPTY (off)
+//           RECORDING
+//           PLAYING
+//           RECORDED (stopped)
+//           PENDING_RECORD
+//           PENDING_PLAY
+//           PENDING_STOP
+//
+// This is an odd place for the looper state machine discussion, but anyways.
+//
+// Clicking on a track makes it the "selected" track.  If the track is empty,
+// the default command is "record", otherwise, it is "play".
+//
+// Recording the 0th clip in a track is special, as it's length has not been
+// determined.   Pressing the same track's button again will toggle it to
+// play (immeidately).  Pressing any other track's button will cause the recording
+// to be saved and the other track to start playing or recording (immediately).
+//
+// Otherwise, all transitions between tracks take place at an integral loop
+// of the base clip in the currently running (playing) track, and clicks have
+// the effect of setting "pending" commands that will take place at that next
+// loop point.
+//
+// One can "toggle" through the various "pending" commands in that window of
+// time while the loop is coming around.
+//
+// depending on (a) the state of the current track, and (b) whether or
+// not a different track button was pressed, you can effect most desired
+// behviors with the followingstate machine.
+//
+//
+//      LOOPER STOPPED (or empty)
+//
+//           clicked track has content?      PLAY
+//           clicked track has no content?   RECORD_BASE_CLIP
+//
+//      CURRENT TRACK BASE_CLIP recording?
+//
+//           save the recording, and then immediately:
+//           same track clicked - start PLAYING
+//           other track clicked - does it have content?
+//                yes - start PLAYING immediately
+//				  no - start RECORD_BASE_CLIP
+//
+//      LOOPER PLAYING A TRACK
+//
+//           same track clicked:  toggles through following pending commands:
+//                 STOP
+//                 none   (effectively "continue playing")
+//                 RECORD (if clip available)
+//           different track clicked
+//				   other track has content?
+//                     yes:  PLAY
+//                           RECORD (if clip available)
+//                           none   (effectively "continue playing")
+//            	   	   no:   the other track has no content, so the only option
+//                           is RECORD/none
+//
+//      LOOPER RECORDING A (NON-BASE) Clip
+//
+//           same track clicked:  toggles through following pending commands:
+//                 PLAY
+//                 STOP
+//                 none   (effectively "continue recording")
+//                 RECORD (if clip available)
+//           different track clicked
+//				   other track has content?
+//                     yes:  PLAY
+//                           RECORD (if clip available)
+//                           none   (effectively "continue playing")
+//            	   	   no:   the other track has no content, so the only option
+//                           is RECORD/none
+//
+// The one thing that is NOT possible with the above state machine is to add
+// new recorded clips (layers) "immediately" while recording a base clip, because
+// a click on the same track will start playing ... and likewise you cannot
+// just jump from recording a base-clip to recording a second clip on another
+// track, because (according to the above state machine) that click would
+// start it playig.
+//
+// Hence the "DUB" key.
+//
+// It is not a "DUB" mode.
+//
+// It is a one-shot "shift" key, that says, "on the next track I click, if
+// it can be recorded, start recording it, instead of playing it".
+//
+// The DUB key is cleared after any press of a track button.
+//
+// It changes the default order, if possible to RECORD first ...
+// And is especially important for immedate use.
+//
+// The teensyExpression does not "model" the state of the looper.
+// But it handles the "one time" aspect of the "DUB" key by sending
+// an extra bit with the track number button.
+//
+// That just leaves the "stop/clear_all" butotn.
+//
+// The "stop" button is programed in this TE to send the "stop".
+// command, period, which is handled by the looper to sets the
+// current track to "pending stop" (or stops it immediately if
+// it's recording a base clip).
+//
+// If there is already a "pending stop" (i.e. the button is pressed
+// twice) the Looper senses that and stops immediately.  If there
+// was a track recording, it is NOT saved.
+//
+// A long press of the "stop/clear_all" key issues the CLEAR_ALL command,
+// which resets the looper.
+//
+// The "quick mode" will present (at least) an array of 4x3 "track
+// mute buttons, which display, and change, the state of the mute
+// for individual clips.
+
+
+
+
+
+
+
+
+
+
+
 
 #define SEND_LOOPER_BUTTONS_VIA_SERIAL3   1
 
