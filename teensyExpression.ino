@@ -141,6 +141,14 @@ void setup()
     elapsedMillis serial_started = 0;
     while (serial_started<1000 && !Serial3) {}
 
+    #if 1
+        if (Serial3)
+        {
+            delay(1000);
+            Serial3.println("hello from teensyExpression Serial3 port");
+        }
+    #endif
+
     // Turn off display() and the like
     // The ports will still be opened even if nothing goes
     // to them.  This may add to startup time if nobody is
@@ -171,7 +179,7 @@ void setup()
     while (serial_started<1000 && !Serial) {}
 
     delay(400);
-    display(0,"teensyExpression version %s started",VERSION);
+    display(0,"teensyExpression version 1.5 started",0);
 
     // start the TFT display device
 
@@ -181,9 +189,7 @@ void setup()
     mylcd.Set_Text_colour(TFT_WHITE);
     mylcd.setFont(Arial_16);
     mylcd.Set_Text_Cursor(5,5);
-    mylcd.print("teensyExpression version ");
-    mylcd.print(VERSION);
-    mylcd.println(" started ...");
+    mylcd.print("teensyExpression started ... ");
 
     int do_delay = 0;
 
@@ -245,35 +251,6 @@ void setup()
 void loop()
 {
     #if 1
-        // Serial Port Test
-        // - "Serial" is the USB port which is built in via the Teensy USB configuration SERIAL-MIDI4,
-        //       and is only available for debugging while the teensyExpression is plugged into the
-        //       windows machine.  It's not available when the TE is plugged into the iPad (router).
-        //       Debugging output (display) can be turned on, or off to this, or the other, port.
-        // - Serial3 is the OUTPUT 1/8 Serial jack, it is always initialized, and *MAY* be used
-        //       for redirected "debugging" output (display).
-        //
-        // This most basic test merely echos characters from the USB port "input" to the remote
-        // port "output", and vice-versa
-
-        if (Serial.available())
-        {
-            char c = Serial.read();
-
-            // debugging here is extremely weird ...
-            // so don't do it ..
-            // // // display(0,"teensyExpression got SERIAL(%d) '%c' --> sending to SERIAL3",c,(c>32?c:32));
-            // this is not "live code".
-            // it is only here to test having the teensyExpression send something to the rPi
-
-            Serial3.write(c);
-        }
-
-        // This is real code.
-        // It should look for "midi packets" and respond accordingly (actually probably in expSystem.cpp)
-        // This will be used to notify the teensyExpression to change the color of the looper buttons
-        // to reflect what is happening in the rPi looper ... as yet unimplemented.
-
         if (Serial3.available())
         {
             char c = Serial3.read();

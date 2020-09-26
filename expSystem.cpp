@@ -522,10 +522,6 @@ void expSystem::critical_timer_handler()
 	        enqueueProcess(msg);
 		}
     }
-
-	// needed here?
-    // pollRotary();
-
 }
 
 
@@ -538,8 +534,6 @@ void expSystem::timer_handler()
 
     theButtons.task();
 	thePedals.task();
-
-	// or can I get away with it here?
 	pollRotary();
 
     // process incoming and outgoing midi events

@@ -109,19 +109,5 @@ void patchTest::updateUI()
             false,
             "teensyExpression");
 
-        mylcd.setFont(Arial_16);
-
-        mylcd.printf_justified(
-            0,
-            100,
-            480,
-            20,
-            LCD_JUST_CENTER,
-            TFT_YELLOW,
-            TFT_BLACK,
-            "version %s",
-            VERSION);
-
-
     }
 }
