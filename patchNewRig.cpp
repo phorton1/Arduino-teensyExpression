@@ -166,7 +166,10 @@
 // 		mute buttons, which display, and change, the state of the mute
 // 		for individual clips.
 
+
+//----------------------------
 // From rPi Looper.h:
+//----------------------------
 
 #define TRACK_STATE_EMPTY               0x0000
 #define TRACK_STATE_RECORDING           0x0001
@@ -177,7 +180,6 @@
 #define TRACK_STATE_PENDING_STOP        0x0020
 #define TRACK_STATE_PENDING			    (TRACK_STATE_PENDING_RECORD | TRACK_STATE_PENDING_PLAY | TRACK_STATE_PENDING_STOP)
 
-
 #define LOOP_COMMAND_NONE               0x00
 #define LOOP_COMMAND_CLEAR_ALL          0x01
 #define LOOP_COMMAND_STOP_IMMEDIATE     0x02      // stop the looper immediately
@@ -185,34 +187,17 @@
 #define LOOP_COMMAND_DUB_MODE           0x08      // the dub mode is handled by rPi and modeled here
 #define LOOP_COMMAND_TRACK_BASE         0x10      // the seven possible "track" buttons are 0x10..0x17
 
-
-#define LOOP_COMMAND_CC        0x24		// send: the value is the LOOP command
-
-
-// To rPi uiTrack.cpp
-
-#define TRACK_STATE_BASE_CC    0x14		// recv: value is track state
-
-// To rPi
-//
-// These allow you to hit the whole array of 12 clips
-// thus we allow 16 cc numbers for each of these ...
-// They are organized by track and clip within the track.
-
-#define CLIP_VOL_BASE_CC       0x30		// send: value is volume 0..127
-#define CLIP_MUTE_BASE_CC      0x40		// send: value is mute state
-
-// TE does not model the loop machine itself, but does "push" the clip
-// volumes and mute states.  It assumes that on a "clear-all" we can
-// safely set the volumes to 100 and the mutes to "false".
-//
-// Because of this, it MUST model the "selected" track, which is -1
-// to begin with and set to the last "track" button pressed in
-// this program.
+#define LOOP_STOP_CMD_STATE_CC 0x26		// TE recv: the value is 0, LOOP_COMMAND_STOP or STOP_IMMEDIATE
+#define LOOP_DUB_STATE_CC      0x25		// TE recv: the value is currently only the DUB state
+#define LOOP_COMMAND_CC        0x24		// TE send: the value is the LOOP command
+#define TRACK_STATE_BASE_CC    0x14		// TE recv: value is track state
+#define CLIP_VOL_BASE_CC       0x30		// TE send ONLY: value is volume 0..127 x 12 clips
+#define CLIP_MUTE_BASE_CC      0x40		// TE send and recv: value is mute state x 12 clips
 
 
-// It would be better to divorce the button states from the patch state
-// for the implementation of quick mode
+//----------------------------
+// local defines
+//----------------------------
 
 #define GROUP_SYNTH		1
 #define GROUP_GUITAR	2
@@ -375,6 +360,8 @@ void patchNewRig::clearLooper()
 	m_track_flash = 0;
 	m_track_flash_time = 0;
 	m_selected_track_num = -1;
+    m_stop_button_cmd = 0;
+    m_last_stop_button_cmd = -1;
 
 	for (int i=0; i<4; i++)
 	{
@@ -443,9 +430,8 @@ void patchNewRig::begin(bool warm)
 
     for (int i=0; i<4; i++)
         theButtons.setButtonType(LOOP_FIRST_TRACK_BUTTON+i,BUTTON_EVENT_PRESS | BUTTON_MASK_USER_DRAW, 0, 0, 0);
-    theButtons.setButtonType(LOOP_STOP_BUTTON,BUTTON_EVENT_CLICK | BUTTON_EVENT_LONG_CLICK, 0);
+    theButtons.setButtonType(LOOP_STOP_BUTTON,BUTTON_EVENT_CLICK | BUTTON_EVENT_LONG_CLICK  | BUTTON_MASK_USER_DRAW, 0);
     theButtons.setButtonType(LOOP_DUB_BUTTON,BUTTON_EVENT_CLICK | BUTTON_EVENT_LONG_CLICK | BUTTON_MASK_USER_DRAW, 0);
-
 
 	// set the (possibly saved) button states into the button array
 
@@ -644,11 +630,13 @@ void patchNewRig::onButtonEvent(int row, int col, int event)
 		else if (event == BUTTON_EVENT_CLICK)
 		{
 			if (num == LOOP_STOP_BUTTON)
-				sendSerialControlChange(LOOP_COMMAND_CC,LOOP_COMMAND_STOP,"LOOP STOP BUTTON click");
+			{
+				if (m_stop_button_cmd)
+					sendSerialControlChange(LOOP_COMMAND_CC,m_stop_button_cmd,"LOOP STOP BUTTON click");
+			}
 			if (num == LOOP_DUB_BUTTON)
 			{
 				sendSerialControlChange(LOOP_COMMAND_CC,LOOP_COMMAND_DUB_MODE,"LOOP DUB BUTTON click");
-				m_dub_mode = !m_dub_mode;
 			}
 		}
 
@@ -678,6 +666,14 @@ void patchNewRig::onSerialMidiEvent(int cc_num, int value)
 		display(0,"patchNewRig track_state[%d] = 0x%02x",track_num,value);
 		m_track_state[track_num] = value;
 	}
+	else if (cc_num == LOOP_DUB_STATE_CC)
+	{
+		m_dub_mode = value;
+	}
+	else if (cc_num == LOOP_STOP_CMD_STATE_CC)
+	{
+		m_stop_button_cmd = value;
+	}
 }
 
 
@@ -704,6 +700,16 @@ void patchNewRig::updateUI()
 	if (!m_quick_mode)
 	{
 		bool leds_changed = false;
+
+		if (m_last_stop_button_cmd != m_stop_button_cmd)
+		{
+			m_last_stop_button_cmd = m_stop_button_cmd;
+			int color =
+				m_stop_button_cmd == LOOP_COMMAND_STOP_IMMEDIATE ? LED_PURPLE :
+				m_stop_button_cmd == LOOP_COMMAND_STOP ? LED_CYAN : 0;
+			setLED(LOOP_STOP_BUTTON,color);
+			leds_changed = true;
+		}
 
 		if (m_last_dub_mode != m_dub_mode)
 		{

@@ -76,6 +76,8 @@ class patchNewRig : public expWindow
 
         bool m_dub_mode;
         bool m_last_dub_mode;
+        int  m_stop_button_cmd;
+        int  m_last_stop_button_cmd;
         int m_selected_track_num;
 
         int m_track_state[4];
