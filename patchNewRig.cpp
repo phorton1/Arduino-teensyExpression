@@ -205,7 +205,7 @@
 #define IPAD_PROG_CHANGE_BUTTON  9
 
 #define QUICK_MODE_BUTTON        14
-#define QUICK_MODE_TIMEOUT       3000
+#define QUICK_MODE_TIMEOUT       3500
 
 #define FIRST_EFFECT_BUTTON  	15
 #define LAST_EFFECT_BUTTON    	18
@@ -324,9 +324,9 @@ synthPatch_t patchNewRig::synth_patch[NUM_SYNTH_BANKS * NUM_SYNTH_PATCHES] = {
 int patchNewRig::guitar_effect_ccs[NUM_BUTTON_COLS] = {
     GUITAR_DISTORTION_EFFECT_CC,
     GUITAR_WAH_EFFECT_CC,
-    GUITAR_FLANGER_EFFECT_CC,
     GUITAR_CHORUS_EFFECT_CC,
     GUITAR_ECHO_EFFECT_CC,
+    GUITAR_FLANGER_EFFECT_CC,
 };
 
 
@@ -348,8 +348,6 @@ patchNewRig::patchNewRig()
 	{
 		m_event_state[i] = 0;
 	}
-	for (int i=0; i<4; i++)
-		m_last_relative_vol[i] = -1;
 }
 
 
@@ -367,6 +365,14 @@ void patchNewRig::clearLooper()
 	{
 		m_track_state[i] = 0;
 		m_last_track_state[i] = -1;
+	}
+
+	for (int i=0; i<12; i++)
+	{
+        m_clip_mute[i] = 0;
+        m_last_clip_mute[i] = -1;
+        m_clip_vol[i] = 100;	// magic init value
+        m_last_clip_vol[i] = -1;
 	}
 }
 
@@ -465,11 +471,12 @@ void patchNewRig::begin(bool warm)
 void patchNewRig::startQuickMode()
 {
 	end();	// save off the button state
-	for (int c=0; c<4; c++)
+
+	for (int c=0; c<3; c++)
 	{
-		theButtons.setButtonType(c,						BUTTON_TYPE_CLICK, LED_PURPLE);
 		theButtons.setButtonType(c + NUM_BUTTON_COLS,	BUTTON_EVENT_PRESS | BUTTON_MASK_REPEAT, LED_GREEN);
 		theButtons.setButtonType(c + NUM_BUTTON_COLS*2,	BUTTON_EVENT_PRESS | BUTTON_MASK_REPEAT, LED_RED);
+		theButtons.setButtonType(c + NUM_BUTTON_COLS*3,	BUTTON_EVENT_PRESS | BUTTON_MASK_USER_DRAW);
 	}
 
 	showLEDs();
@@ -484,8 +491,12 @@ void patchNewRig::endQuickMode()
 	// restore the system button after begin() ...
 	// normally done in expSystem::activatePatch)()
 	theButtons.getButton(0,THE_SYSTEM_BUTTON)->m_event_mask |= BUTTON_EVENT_LONG_CLICK;
-	for (int i=0; i<4; i++)
-		m_last_relative_vol[i] = -1;
+
+	for (int i=0; i<12; i++)
+	{
+        m_last_clip_mute[i] = -1;
+		m_last_clip_vol[i] = -1;
+	}
 	for (int i=0; i<4; i++)
 		m_last_track_state[i] = -1;
 }
@@ -514,16 +525,43 @@ void patchNewRig::onButtonEvent(int row, int col, int event)
 		m_quick_mode_time = 0;
 	}
 
+	if (m_quick_mode)
+	{
+		if (row>0 && row<4 && col < 4)
+		{
+			int clip_num = m_selected_track_num * 3 + col;
+
+			if (row == 3) 	// mute
+			{
+				int mute = m_clip_mute[clip_num];
+				mute = mute ? 0 : 1;
+				m_clip_mute[clip_num] = mute;
+				sendSerialControlChange(CLIP_MUTE_BASE_CC+clip_num,mute,"clip_mute");
+			}
+			else	// volume up or down
+			{
+				int inc = row == 2 ? -1 : 1;
+				int val = m_clip_vol[clip_num];
+				val += inc;
+				if (val < 0) val = 0;
+				if (val > 127) val = 127;
+				m_clip_vol[clip_num] = val;
+
+				// send it to the rPi ...
+				// we'll update the display later ...
+
+				sendSerialControlChange(CLIP_VOL_BASE_CC+clip_num,val,"clip_vol");
+			}
+
+		}
+	}
+
 	// PATCH select OR quick mode loop volumes
 
-    if (row < NUM_PATCH_ROWS &&
-		col < NUM_PATCH_COLS)
+    else if (row < NUM_PATCH_ROWS &&
+		     col < NUM_PATCH_COLS)
 	{
-		if (m_quick_mode)
-		{
-			// currently un-programmed
-		}
-		else if (event == BUTTON_EVENT_CLICK)
+		if (event == BUTTON_EVENT_CLICK)
 		{
 			m_cur_patch_num = bank_button_to_patch(m_cur_bank_num,num);	// my patch number
 			int prog_num = MULTI_OFFSET + m_cur_patch_num;
@@ -673,6 +711,12 @@ void patchNewRig::onSerialMidiEvent(int cc_num, int value)
 	else if (cc_num == LOOP_STOP_CMD_STATE_CC)
 	{
 		m_stop_button_cmd = value;
+	}
+	else if (cc_num >= CLIP_MUTE_BASE_CC &&
+			 cc_num < CLIP_MUTE_BASE_CC + 12)
+	{
+		int num = cc_num - CLIP_MUTE_BASE_CC;
+		m_clip_mute[num] = value;
 	}
 }
 
@@ -841,13 +885,21 @@ void patchNewRig::updateUI()
 
 	if (m_quick_mode)
 	{
-		for (int i=0; i<4; i++)
+		for (int i=0; i<3; i++)
 		{
-			int cur_relative_volume = 99;
-			if (m_last_relative_vol[i] != cur_relative_volume)
+			bool leds_changed = false;
+			if (m_last_clip_mute[i] != m_clip_mute[i])
 			{
-				m_last_relative_vol[i] = cur_relative_volume;
+				m_last_clip_mute[i] = m_clip_mute[i];
+				setLED(3,i,m_clip_mute[i] ? LED_PURPLE : LED_CYAN);
+				leds_changed = true;
+			}
+			if (leds_changed)
+				showLEDs();
 
+			if (m_last_clip_vol[i] != m_clip_vol[i])
+			{
+				m_last_clip_vol[i] = m_clip_vol[i];
 
 				// each region is 80 wide with 20 on the outside and 40 between
 				// the region starts at y==40 to allow 4 pixels from bar
@@ -874,10 +926,10 @@ void patchNewRig::updateUI()
 					TFT_BLACK,
 					true,
 					"%d",
-					cur_relative_volume);
+					m_clip_vol[i]);
 
 
-				float bar_pct = ((float)cur_relative_volume)/127.00;
+				float bar_pct = ((float)m_clip_vol[i])/127.00;
 				float bar_height = bar_pct * REL_VOL_BAR_HEIGHT;
 				int bar_h = bar_height;
 				int black_h = REL_VOL_BAR_HEIGHT - bar_h;

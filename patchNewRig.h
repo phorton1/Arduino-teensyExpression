@@ -53,7 +53,6 @@ class patchNewRig : public expWindow
 
         bool m_quick_mode;                  // are we in "quick mode"
         bool m_last_quick_mode;             // for redrawing
-        int  m_last_relative_vol[4];
 
         int m_last_set_poly_mode;
         int m_last_displayed_poly_mode;
@@ -84,6 +83,10 @@ class patchNewRig : public expWindow
         int m_last_track_state[4];
         bool m_track_flash;
 
+        int m_clip_mute[12];
+        int m_last_clip_mute[12];
+        int m_clip_vol[12];
+        int m_last_clip_vol[12];
 
         elapsedMillis m_track_flash_time;
 
