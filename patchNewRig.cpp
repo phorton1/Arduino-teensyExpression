@@ -166,26 +166,72 @@
 // 		mute buttons, which display, and change, the state of the mute
 // 		for individual clips.
 
-#define SEND_LOOPER_BUTTONS_VIA_SERIAL3   1
+// From rPi Looper.h:
+
+#define TRACK_STATE_EMPTY               0x0000
+#define TRACK_STATE_RECORDING           0x0001
+#define TRACK_STATE_PLAYING             0x0002
+#define TRACK_STATE_STOPPED             0x0004
+#define TRACK_STATE_PENDING_RECORD      0x0008
+#define TRACK_STATE_PENDING_PLAY        0x0010
+#define TRACK_STATE_PENDING_STOP        0x0020
+#define TRACK_STATE_PENDING			    (TRACK_STATE_PENDING_RECORD | TRACK_STATE_PENDING_PLAY | TRACK_STATE_PENDING_STOP)
+
+
+#define LOOP_COMMAND_NONE               0x00
+#define LOOP_COMMAND_CLEAR_ALL          0x01
+#define LOOP_COMMAND_STOP_IMMEDIATE     0x02      // stop the looper immediately
+#define LOOP_COMMAND_STOP               0x03      // stop at next cycle point
+#define LOOP_COMMAND_DUB_MODE           0x08      // the dub mode is handled by rPi and modeled here
+#define LOOP_COMMAND_TRACK_BASE         0x10      // the seven possible "track" buttons are 0x10..0x17
+
+
+#define LOOP_COMMAND_CC        0x24		// send: the value is the LOOP command
+
+
+// To rPi uiTrack.cpp
+
+#define TRACK_STATE_BASE_CC    0x14		// recv: value is track state
+
+// To rPi
+//
+// These allow you to hit the whole array of 12 clips
+// thus we allow 16 cc numbers for each of these ...
+// They are organized by track and clip within the track.
+
+#define CLIP_VOL_BASE_CC       0x30		// send: value is volume 0..127
+#define CLIP_MUTE_BASE_CC      0x40		// send: value is mute state
+
+// TE does not model the loop machine itself, but does "push" the clip
+// volumes and mute states.  It assumes that on a "clear-all" we can
+// safely set the volumes to 100 and the mutes to "false".
+//
+// Because of this, it MUST model the "selected" track, which is -1
+// to begin with and set to the last "track" button pressed in
+// this program.
+
 
 // It would be better to divorce the button states from the patch state
 // for the implementation of quick mode
 
-#define GROUP_LOOPER 	7
 #define GROUP_SYNTH		1
 #define GROUP_GUITAR	2
 
 #define IPAD_PROG_CHANGE_BUTTON  9
+
 #define QUICK_MODE_BUTTON        14
 #define QUICK_MODE_TIMEOUT       3000
 
 #define FIRST_EFFECT_BUTTON  	15
-#define LAST_EFFECT_BUTTON    	19
-#define FIRST_LOOP_BUTTON   	20
-#define LAST_LOOP_BUTTON    	24
+#define LAST_EFFECT_BUTTON    	18
 
-#define BUTTON_TYPE_LOOPER      (BUTTON_EVENT_PRESS | BUTTON_EVENT_RELEASE | BUTTON_MASK_TOUCH | BUTTON_MASK_RADIO | BUTTON_GROUP(GROUP_LOOPER) )
-#define BUTTON_TYPE_LOOP_CLEAR  (BUTTON_EVENT_CLICK | BUTTON_EVENT_LONG_CLICK | BUTTON_MASK_TOUCH | BUTTON_MASK_RADIO | BUTTON_GROUP(GROUP_LOOPER) )
+#define FIRST_LOOP_BUTTON   	19
+#define LAST_LOOP_BUTTON    	24
+#define LOOP_STOP_BUTTON		FIRST_LOOP_BUTTON
+#define LOOP_FIRST_TRACK_BUTTON (FIRST_LOOP_BUTTON+1)
+#define LOOP_DUB_BUTTON		    LAST_LOOP_BUTTON
+
+#define TRACK_FLASH_MILLIS  150
 
 
 //--------------------
@@ -299,24 +345,6 @@ int patchNewRig::guitar_effect_ccs[NUM_BUTTON_COLS] = {
 };
 
 
-//----------------
-// Quantiloop
-//----------------
-
-int patchNewRig::loop_ccs[NUM_BUTTON_COLS] =
-{
-    LOOP_CONTROL_TRACK1,
-    LOOP_CONTROL_TRACK2,
-    LOOP_CONTROL_TRACK3,
-    LOOP_CONTROL_TRACK4,
-    LOOP_STOP_START_IMMEDIATE,
-};
-
-
-
-
-
-
 
 //====================================================================
 // patchNewRig
@@ -329,6 +357,7 @@ patchNewRig::patchNewRig()
 	m_cur_patch_num = -1;    // 0..14
 	m_last_set_poly_mode = -1;
 	m_last_displayed_poly_mode = -1;
+	clearLooper();
 
 	for (int i=0; i<NUM_BUTTON_ROWS * NUM_BUTTON_COLS; i++)
 	{
@@ -338,6 +367,21 @@ patchNewRig::patchNewRig()
 		m_last_relative_vol[i] = -1;
 }
 
+
+void patchNewRig::clearLooper()
+{
+	m_dub_mode = false;
+	m_last_dub_mode = true;
+	m_track_flash = 0;
+	m_track_flash_time = 0;
+	m_selected_track_num = -1;
+
+	for (int i=0; i<4; i++)
+	{
+		m_track_state[i] = 0;
+		m_last_track_state[i] = -1;
+	}
+}
 
 
 // virtual
@@ -389,14 +433,19 @@ void patchNewRig::begin(bool warm)
 		}
 	}
 
+	// guitar effect buttons
 
     for (int i=FIRST_EFFECT_BUTTON; i<=LAST_EFFECT_BUTTON; i++)
         theButtons.setButtonType(i,	BUTTON_TYPE_TOGGLE | BUTTON_GROUP(GROUP_GUITAR), 0, LED_GREEN);
     theButtons.setButtonType(LAST_EFFECT_BUTTON, BUTTON_TYPE_TOGGLE | BUTTON_GROUP(GROUP_GUITAR) | BUTTON_EVENT_LONG_CLICK, 0, LED_GREEN);
 
-    for (int i=FIRST_LOOP_BUTTON; i<=LAST_LOOP_BUTTON; i++)
-        theButtons.setButtonType(i,BUTTON_TYPE_LOOPER, 0, LED_RED, LED_YELLOW);
-    theButtons.setButtonType(LAST_LOOP_BUTTON,BUTTON_TYPE_LOOP_CLEAR, 0, LED_RED, LED_YELLOW);
+	// loop control buttons
+
+    for (int i=0; i<4; i++)
+        theButtons.setButtonType(LOOP_FIRST_TRACK_BUTTON+i,BUTTON_EVENT_PRESS | BUTTON_MASK_USER_DRAW, 0, 0, 0);
+    theButtons.setButtonType(LOOP_STOP_BUTTON,BUTTON_EVENT_CLICK | BUTTON_EVENT_LONG_CLICK, 0);
+    theButtons.setButtonType(LOOP_DUB_BUTTON,BUTTON_EVENT_CLICK | BUTTON_EVENT_LONG_CLICK | BUTTON_MASK_USER_DRAW, 0);
+
 
 	// set the (possibly saved) button states into the button array
 
@@ -451,6 +500,8 @@ void patchNewRig::endQuickMode()
 	theButtons.getButton(0,THE_SYSTEM_BUTTON)->m_event_mask |= BUTTON_EVENT_LONG_CLICK;
 	for (int i=0; i<4; i++)
 		m_last_relative_vol[i] = -1;
+	for (int i=0; i<4; i++)
+		m_last_track_state[i] = -1;
 }
 
 
@@ -536,23 +587,25 @@ void patchNewRig::onButtonEvent(int row, int col, int event)
 
 	// IPAD PROGRAM SELECT
 
-	else if (num == IPAD_PROG_CHANGE_BUTTON &&
-		event == BUTTON_EVENT_CLICK)
+	else if (num == IPAD_PROG_CHANGE_BUTTON)
 	{
-		static int prog_num = 2;		// zero based  0..3 = audiobus, tonestack, sampletank, quantiloop
-			// the note we send out is prog_num + 1
-			// setup so first button press takes us to Quantiloop
-		prog_num = (prog_num + 1) % 4;
-		mySendMidiMessage(0x09, NEW_SELECT_RIG_CHANNEL, prog_num + 1, 0x7f);
-		mySendMidiMessage(0x08, NEW_SELECT_RIG_CHANNEL, prog_num + 1, 0);
-			// send a NOTE_ON message (with 7f velocity) to channel 9 with the
-			// note 1==Audiobus, 2=Tonestack, 3=SampleTank, 4=Quantiloop, followed
-			// by a NOTE_OFF
+		// if (event == BUTTON_EVENT_CLICK)
+		{
+			static int prog_num = 2;		// zero based  0..3 = audiobus, tonestack, sampletank, quantiloop
+				// the note we send out is prog_num + 1
+				// setup so first button press takes us to Quantiloop
+			prog_num = (prog_num + 1) % 4;
+			mySendMidiMessage(0x09, NEW_SELECT_RIG_CHANNEL, prog_num + 1, 0x7f);
+			mySendMidiMessage(0x08, NEW_SELECT_RIG_CHANNEL, prog_num + 1, 0);
+				// send a NOTE_ON message (with 7f velocity) to channel 9 with the
+				// note 1==Audiobus, 2=Tonestack, 3=SampleTank, 4=Quantiloop, followed
+				// by a NOTE_OFF
+		}
 	}
 
 	//	Guitar effects
 
-    else if (row == 3)
+    else if (num >= FIRST_EFFECT_BUTTON && num <= LAST_EFFECT_BUTTON)
     {
         if (event == BUTTON_EVENT_LONG_CLICK)           // turn off all effects on long click
         {
@@ -578,62 +631,54 @@ void patchNewRig::onButtonEvent(int row, int col, int event)
 
 	// LOOPER
 
-    else if (row == 4)
+    else if (num >= FIRST_LOOP_BUTTON && num <= LAST_LOOP_BUTTON)
     {
-		#if SEND_LOOPER_BUTTONS_VIA_SERIAL3
+		// Both the DUB and the STOP button allow for long click to
+		// send LOOP_COMMAND_CLEAR_ALL and clear our model
 
-			if (event == BUTTON_EVENT_PRESS ||
-				event == BUTTON_EVENT_CLICK)
+		if (event == BUTTON_EVENT_LONG_CLICK)	// only button with long press
+		{
+			clearLooper();
+			sendSerialControlChange(LOOP_COMMAND_CC,LOOP_COMMAND_CLEAR_ALL,"LOOP BUTTON long click");
+		}
+		else if (event == BUTTON_EVENT_CLICK)
+		{
+			if (num == LOOP_STOP_BUTTON)
+				sendSerialControlChange(LOOP_COMMAND_CC,LOOP_COMMAND_STOP,"LOOP STOP BUTTON click");
+			if (num == LOOP_DUB_BUTTON)
 			{
-				sendSerialControlChange(loop_ccs[col],0x7f,"patchNewRig Loop Button");
-					// sends out cc_nums 21, 22, 23, 31, and 25 for the 5 buttons left to right
+				sendSerialControlChange(LOOP_COMMAND_CC,LOOP_COMMAND_DUB_MODE,"LOOP DUB BUTTON click");
+				m_dub_mode = !m_dub_mode;
 			}
+		}
 
-		#else
+		// otherwise, it is presumed that those button presses are track buttons
 
-			if (event == BUTTON_EVENT_LONG_CLICK)
-			{
-				theButtons.clearRadioGroup(GROUP_LOOPER);
-				mySendDeviceControlChange(
-					LOOP_CONTROL_CLEAR_ALL,
-					0x7f,
-					LOOP_CONTROL_CHANNEL);
-
-				mySendDeviceControlChange(
-					LOOP_CONTROL_CLEAR_ALL,
-					0x00,
-					LOOP_CONTROL_CHANNEL);
-
-				// on a clear of the looper we reset
-				// the relative volumes
-
-				theLooper.init();
-
-			}
-			else if (event == BUTTON_EVENT_PRESS)
-			{
-				mySendDeviceControlChange(
-					loop_ccs[col],
-					0x7f,
-					LOOP_CONTROL_CHANNEL);
-			}
-			else // RELEASE or CLICK
-			{
-				if (event == BUTTON_EVENT_CLICK)
-					mySendDeviceControlChange(
-						loop_ccs[col],
-						0x7f,
-						LOOP_CONTROL_CHANNEL);
-
-				mySendDeviceControlChange(
-					loop_ccs[col],
-					0x00,
-					LOOP_CONTROL_CHANNEL);
-			}
-		#endif
-    }
+		else
+		{
+			m_selected_track_num = num - LOOP_FIRST_TRACK_BUTTON;
+			int value = m_selected_track_num + LOOP_COMMAND_TRACK_BASE;
+			sendSerialControlChange(LOOP_COMMAND_CC,value,"LOOP TRACK BUTTON");
+		}
+	}
 }
 
+
+
+
+// loopMachine commands
+
+// virtual
+void patchNewRig::onSerialMidiEvent(int cc_num, int value)
+{
+	// track state messages
+	if (cc_num >= TRACK_STATE_BASE_CC && cc_num < TRACK_STATE_BASE_CC+4)
+	{
+		int track_num = cc_num - TRACK_STATE_BASE_CC;
+		display(0,"patchNewRig track_state[%d] = 0x%02x",track_num,value);
+		m_track_state[track_num] = value;
+	}
+}
 
 
 
@@ -645,6 +690,59 @@ void patchNewRig::updateUI()
 	{
 		endQuickMode();
 	}
+
+	// handle looper button LED track state changes ..
+
+	// toggle a flasher bit always
+    bool last_track_flash = m_track_flash;
+    if (m_track_flash_time > TRACK_FLASH_MILLIS)
+	{
+		m_track_flash_time = 0;
+		m_track_flash = !m_track_flash;
+	}
+
+	if (!m_quick_mode)
+	{
+		bool leds_changed = false;
+
+		if (m_last_dub_mode != m_dub_mode)
+		{
+			m_last_dub_mode = m_dub_mode;
+			setLED(LOOP_DUB_BUTTON,m_dub_mode ? LED_ORANGE : 0);
+			leds_changed = true;
+		}
+
+		for (int i=0; i<4; i++)
+		{
+			int state = m_track_state[i] ;
+			if ((state != m_last_track_state[i]) ||
+				((last_track_flash != m_track_flash) && (state & TRACK_STATE_PENDING)))
+			{
+				m_last_track_state[i] = state;
+
+				int color = 0;			// EMPTY
+				if (state & (TRACK_STATE_RECORDING | TRACK_STATE_PENDING_RECORD))
+					color = LED_RED;
+				else if (state & (TRACK_STATE_PLAYING | TRACK_STATE_PENDING_PLAY))
+					color = LED_YELLOW;
+				else if (state & TRACK_STATE_PENDING_STOP)
+					color = LED_CYAN;
+				else if (state & TRACK_STATE_STOPPED)
+					color = LED_GREEN;
+
+				if ((state & TRACK_STATE_PENDING) && !m_track_flash)
+					color = 0;
+
+				setLED(LOOP_FIRST_TRACK_BUTTON+i,color);
+				leds_changed = true;
+			}
+		}
+		if (leds_changed)
+			showLEDs();
+	}
+
+	// regular redraw screen stuff
+
     bool draw_full = false;
     if (m_full_redraw)
     {

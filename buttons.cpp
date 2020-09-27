@@ -136,6 +136,8 @@ void buttonArray::setEventState(int num, int state)
             button->m_default_color;
 
     display(dbg_btn+1,"button_color(%d)=%08x",num,color);
+
+   	if (!(button->m_event_mask & BUTTON_MASK_USER_DRAW))
     setLED(num,color);
 }
 
@@ -219,7 +221,8 @@ void buttonArray::select(int num, int value)
     if (value != -1)
         button->m_press_time = 0;
 
-    setLED(num,color);
+   	if (!(mask & BUTTON_MASK_USER_DRAW))
+        setLED(num,color);
 }
 
 
@@ -366,7 +369,8 @@ void  buttonArray::setButtonType(int num, int mask, int default_color, int selec
     pb->m_default_color = default_color == -1 ? LED_BLUE : default_color;
     pb->m_selected_color = selected_color == -1 ? LED_CYAN : selected_color;
     pb->m_touch_color = touch_color == -1 ? LED_YELLOW : touch_color;
-   	setLED(num,pb->m_default_color);
+   	if (!(mask & BUTTON_MASK_USER_DRAW))
+        setLED(num,pb->m_default_color);
 }
 
 

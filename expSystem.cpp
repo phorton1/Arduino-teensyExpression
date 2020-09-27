@@ -526,6 +526,7 @@ void expSystem::critical_timer_handler()
 
 
 
+volatile int fu = 0;
 
 // static
 void expSystem::timer_handler()
@@ -535,6 +536,27 @@ void expSystem::timer_handler()
     theButtons.task();
 	thePedals.task();
 	pollRotary();
+
+	// aerial midi events
+	// TE ONLY expects 0x0B 4 byte packets
+
+	if (Serial3.available())
+	{
+		int c = Serial3.read();
+		if (c == 0x0B)	// could be others in future
+		{
+			unsigned char midi_buf[4];
+			midi_buf[0] = c;
+			for (int i=0; i<3; i++)
+			{
+				while (!Serial3.available()) {fu++;}
+				midi_buf[i+1] = Serial3.read();
+			}
+			display_bytes(0,"recv serial midi: ",midi_buf,4);
+		    theSystem.getCurPatch()->onSerialMidiEvent(midi_buf[2],midi_buf[3]);
+		}
+	}
+
 
     // process incoming and outgoing midi events
 

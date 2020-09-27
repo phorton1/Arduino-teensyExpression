@@ -74,6 +74,21 @@ class patchNewRig : public expWindow
             // it is a bad idea to store state in the buttons
             // even if it means denormalizing and duplicating the values
 
+        bool m_dub_mode;
+        bool m_last_dub_mode;
+        int m_selected_track_num;
+
+        int m_track_state[4];
+        int m_last_track_state[4];
+        bool m_track_flash;
+
+
+        elapsedMillis m_track_flash_time;
+
+
+        void clearLooper();
+        virtual void onSerialMidiEvent(int cc_num, int value);
+
         // static definitions, though currently same between old and new rigs
 
         static synthPatch_t synth_patch[NUM_SYNTH_BANKS * NUM_SYNTH_PATCHES];

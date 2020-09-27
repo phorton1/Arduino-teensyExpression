@@ -37,6 +37,8 @@
 #define BUTTON_MASK_RADIO           0x0200
 #define BUTTON_MASK_REPEAT          0x0400
 #define BUTTON_MASK_TOUCH           0x0800
+#define BUTTON_MASK_USER_DRAW       0x1000
+
 
 #define BUTTON_GROUP_MASK           0xF000
 

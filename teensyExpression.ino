@@ -179,7 +179,7 @@ void setup()
     while (serial_started<1000 && !Serial) {}
 
     delay(400);
-    display(0,"teensyExpression version 1.5 started",0);
+    display(0,"teensyExpression version 1.6 started",0);
 
     // start the TFT display device
 
@@ -250,7 +250,7 @@ void setup()
 
 void loop()
 {
-    #if 1
+    #if 0
         if (Serial3.available())
         {
             char c = Serial3.read();

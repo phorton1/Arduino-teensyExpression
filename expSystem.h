@@ -49,9 +49,9 @@ class expWindow
 
         virtual bool onRotaryEvent(int num, int val)  { return false; }
         // virtual bool onPedalEvent(int num, int val)   { return false; }
-            // derived classes return true if they handled the event
-            // otherwise default base class behavior takes place
         virtual void onButtonEvent(int row, int col, int event) {}
+        virtual void onSerialMidiEvent(int cc_num, int value) {}
+
 
         virtual void updateUI() {}
         virtual void timer_handler()  {}
