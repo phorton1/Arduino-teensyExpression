@@ -138,7 +138,7 @@ void buttonArray::setEventState(int num, int state)
     display(dbg_btn+1,"button_color(%d)=%08x",num,color);
 
    	if (!(button->m_event_mask & BUTTON_MASK_USER_DRAW))
-    setLED(num,color);
+        setLED(num,color);
 }
 
 
