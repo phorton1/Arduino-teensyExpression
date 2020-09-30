@@ -169,6 +169,7 @@ void patchNewRig::resetDisplay()
 	for (int i=0; i<LOOPER_NUM_TRACKS; i++)
 	{
 		m_last_track_state[i] = -1;
+		m_last_erase_state[i] = -1;
 	}
 
 	m_last_quick_mode = -1;
@@ -205,6 +206,7 @@ void patchNewRig::clearLooper()
 	{
 		m_track_state[i] = 0;
 		m_last_track_state[i] = -1;
+		m_last_erase_state[i] = -1;
 	}
 
 	for (int i=0; i<TRACKS_TIMES_CLIPS; i++)
@@ -307,7 +309,7 @@ void patchNewRig::startQuickMode()
 	for (int c=0; c<LOOPER_NUM_TRACKS; c++)
 	{
 		int num = QUICK_ROW_ERASE_TRACK * NUM_BUTTON_COLS + c;
-		theButtons.setButtonType(num, BUTTON_EVENT_CLICK, LED_RED);
+		theButtons.setButtonType(num, BUTTON_EVENT_CLICK | BUTTON_MASK_USER_DRAW, 0);
 	}
 }
 
@@ -658,6 +660,20 @@ void patchNewRig::updateUI()
 
 	if (m_quick_mode)
 	{
+		// "enable" the erase track buttons if there's a track state
+
+		for (int i=0; i<LOOPER_NUM_TRACKS; i++)
+		{
+			if (m_last_erase_state[i] != m_track_state[i])
+			{
+				m_last_erase_state[i] = m_track_state[i];
+				int color = m_track_state[i] ? LED_PURPLE : 0;
+				setLED(QUICK_ROW_ERASE_TRACK*NUM_BUTTON_COLS+i,color);
+				leds_changed = true;
+			}
+		}
+
+
 		for (int i=0; i<LOOPER_NUM_LAYERS; i++)
 		{
 			if (m_last_clip_mute[i] != m_clip_mute[i])

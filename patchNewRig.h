@@ -76,7 +76,7 @@ class patchNewRig : public expWindow
         int m_last_quick_mode;
         int m_last_clip_mute[TRACKS_TIMES_CLIPS];
         int m_last_clip_vol[TRACKS_TIMES_CLIPS];
-
+        int m_last_erase_state[LOOPER_NUM_TRACKS];
 
         void resetDisplay();
         void clearLooper();
