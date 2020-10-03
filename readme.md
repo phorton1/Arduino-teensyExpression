@@ -170,8 +170,6 @@ their code.
 
 That's it!
 
-Time for an initial rude, crude, commit.
-
 Thanks for checking this out!
 
-July 2020 - Patrick
+Updated October 2020 - Patrick
