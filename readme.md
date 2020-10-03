@@ -100,15 +100,15 @@ and the above subfolders:
 This project relies on the teensyDuino installation.
 
 It also depends on a number of Arduino libraries that must be manually placed in your
-Arduino/libraries folder.  There is one small library that I wrote, that I generally use in my
-Arduino programs, and is common to more than one of my published projects.
+Arduino/libraries folder.  There is one small library that I wrote (myDebug.h and myDebug.cpp),
+that I generally use in my Arduino programs, and is common to more than one of my published projects.
 
-In addition there are several libraries that are publicly available, but unchanged by me,
-which I have forked into my github account for ease in finding them, and to provide
-me with a stable known "snapshot" of those libraries.
+In addition there are several libraries that are publicly available, but unchanged by me
+(ILI9341_t3 and ILI9341_fonts), which I have forked into my github account for ease in finding them,
+and to provide me with a stable known "snapshot" of those libraries.
 
 And finally there are some libraries that are publicly available, but to which I have made modifications
-to, small or large, in order to get them to work in this project.
+to, small or large, in order to get them to work in this project (my_LCDWIKI_*).
 
 
 Each of these libraries is available as a github project here in my account, with a
