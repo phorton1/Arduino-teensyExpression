@@ -107,15 +107,16 @@ In addition there are several libraries that are publicly available, but unchang
 (ILI9341_t3 and ILI9341_fonts), which I have forked into my github account for ease in finding them,
 and to provide me with a stable known "snapshot" of those libraries.
 
-And finally there are some libraries that are publicly available, but to which I have made modifications
-to, small or large, in order to get them to work in this project (my_LCDWIKI_*).
+And finally there are some libraries that are publicly available, but to which I
+have made modifications to, small or large, in order to get them to work in this project
+(Paul's USBHost_t36 and my_LCDWIKI_*).
 
 
 Each of these libraries is available as a github project here in my account, with a
-name that is formatted like "Arduino-libraries-NameOfLibrary".   These libraries
-should be "cloned" or otherwise copied into your Arduino/libraries folder.  Once
+name that is formatted like "Arduino-libraries-NameOfLibrary".   **These libraries
+should be "cloned" or otherwise copied into your Arduino/libraries folder**.  Once
 you have done that, you may rename them to remove the "Arduino-libraries" portion,
-just leaving the NameOfLibrary portion in the directory structure.
+just leaving the NameOfLibrary portion in the directory structure if you wish.
 
 * [myDebug](https://github.com/phorton1/Arduino-libraries-myDebug) -
    A debugging output library common to my Arduino projects, it contains
@@ -129,6 +130,12 @@ just leaving the NameOfLibrary portion in the directory structure.
   more current versions that he makes available at https://github.com/PaulStoffregen/ILI9341_t3
   and https://github.com/PaulStoffregen/ILI9341_fonts, but these forks are
   known to compile and work properly with my code.
+
+* [USBHost_t36](https://github.com/phorton1/Arduino-libraries-USBHost_t36) -
+  A slightly MODIFIED version of Paul's USBHost_t36 library, forked
+  from https://github.com/PaulStoffregen/USBHost_t36 on 2020-10-03.
+  The API was changed to make a few functions virtual and to expose
+  a few private variables as "protected".
 
 * [my_LCDWIKI_GUI](https://github.com/phorton1/Arduino-libraries-my_LCDWIKI_GUI),
   [my_LCDWIKI_KBV](https://github.com/phorton1/Arduino-libraries-my_LCDWIKI_KBV), and
