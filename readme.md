@@ -89,7 +89,7 @@ In addition, in this iteration of the github project, I have moved the fusion 36
 to a separate github project.   The fusion files are large, and are not needed to build
 the INO file:
 
-* [fusion/](fusion/) - contains the STL, fusion 360 files, and notes on how to print and assemble the box
+* [fusion/](https://github.com/phorton1/Arduino-teensyExpression-fusion) - contains the STL, fusion 360 files, and notes on how to print and assemble the box
 
 
 ### Notes on Building and GitHub **DEPENDENCIES**
