@@ -73,6 +73,13 @@ engineering efforts with regards to the Fishman FTP Triple Play midi pickup:
 * [hardware/](hardware/) - contains the basic schematic, circuit diagrams, and information about the electronics hardware design
 * [ftp/](ftp/) - contains separate discussions and documents regarding my reverse engineering efforts on the FTP Triple play dongle and controller
 
+In addition, in this iteration of the github project, I have moved the fusion 360 files
+to a separate github project.   The fusion files are large, and are not needed to build
+the INO file:
+
+* [fusion/](https://github.com/phorton1/Arduino-teensyExpression-fusion) - contains the STL, fusion 360 files, and notes on how to print and assemble the box
+
+
 There are a number of other sub-folders which are considered "private" for my own
 personal use, and/or which exist only to support the readme.md files in the this
 and the above subfolders:
@@ -85,11 +92,6 @@ and the above subfolders:
     or useful.  I keep these for posterities sake as they may have snippets of code I will
     need in the future.
 
-In addition, in this iteration of the github project, I have moved the fusion 360 files
-to a separate github project.   The fusion files are large, and are not needed to build
-the INO file:
-
-* [fusion/](https://github.com/phorton1/Arduino-teensyExpression-fusion) - contains the STL, fusion 360 files, and notes on how to print and assemble the box
 
 
 ### Notes on Building and GitHub **DEPENDENCIES**
