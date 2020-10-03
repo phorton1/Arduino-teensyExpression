@@ -54,66 +54,97 @@ readers and potential users.
 
 [![early preferences page](images/teensyExpression06_resized.jpg)](images/teensyExpression06.jpg)
 
-
-
-That's what it is at this point.
+That's what it is.
 
 There is still, in my opinion, considerable value in making this public, and so,
-here, in the middle of my ongoing development, I am creating a public github
-repository so that I can present it in some way, shape, or form.
+here, in spite of ongoing development, I am creating a public github
+repository so that I can present it to you.
 
 
-### Notes on GitHub Snapshot
+## THIS Repository Organization
 
-This repository is a completely separate (denormalized manual branch) of my
-ongoing personal developemt environment.  It represents a static moment in
-time when everything compiled, was 3D printed, and worked, in a certain way.
+This repository contains contains the main INO file (teensyExpression.ino) and C++ and H files
+directly included in it.
 
-The project includes several personal libraries that I have written, along
-with a few public libraries that are either necessary to build the thing,
-or which I have additionally tweaked to get things working "my way".  That
-is not always because it was the best, or most sound engineering approach to
-take, but has often been the case because of my lack of a given part, or
-sufficient understanding, at a given time, and having to work around those
-limitations by sometimes modifying Arduino, Teensy, or other publically
-available libraries.
+It contains two subfolders which are considered "public" containing ancilary information
+and readme files about how to build the circuit board and some information on my reverse
+engineering efforts with regards to the Fishman FTP Triple Play midi pickup:
 
-I try to document those kinds of changes, and why I made them, as I go along.
+* [hardware/](hardware/) - contains the basic schematic, circuit diagrams, and information about the electronics hardware design
+* [ftp/](ftp/) - contains separate discussions and documents regarding my reverse engineering efforts on the FTP Triple play dongle and controller
 
-If you are reading this, try not to get too hung up in the specifics.
+There are a number of other sub-folders which are considered "private" for my own
+personal use, and/or which exist only to support the readme.md files in the this
+and the above subfolders:
 
-For example, when I was prototyping the box, I started off using a different, much
+* **images** - contains images used on this and various readme pages
+* **design** - contains a variety of weird files, images, doc files, that, for me, pertain
+      to the design of the project, but which are not meant to be necessrily useful
+      for a reader or anyone besides myself.
+* **test** - contains a number of test programs that are not necessarily currently up-to-date
+    or useful.  I keep these for posterities sake as they may have snippets of code I will
+    need in the future.
+
+In addition, in this iteration of the github project, I have moved the fusion 360 files
+to a separate github project.   The fusion files are large, and are not needed to build
+the INO file:
+
+* [fusion/](fusion/) - contains the STL, fusion 360 files, and notes on how to print and assemble the box
+
+
+### Notes on Building and GitHub **DEPENDENCIES**
+
+
+This project relies on the teensyDuino installation.
+
+It also depends on a number of Arduino libraries that must be manually placed in your
+Arduino/libraries folder.  There is one small library that I wrote, that I generally use in my
+Arduino programs, and is common to more than one of my published projects.
+
+In addition there are several libraries that are publicly available, but unchanged by me,
+which I have forked into my github account for ease in finding them, and to provide
+me with a stable known "snapshot" of those libraries.
+
+And finally there are some libraries that are publicly available, but to which I have made modifications
+to, small or large, in order to get them to work in this project.
+
+
+Each of these libraries is available as a github project here in my account, with a
+name that is formatted like "Arduino-libraries-NameOfLibrary".   These libraries
+should be "cloned" or otherwise copied into your Arduino/libraries folder.  Once
+you have done that, you may rename them to remove the "Arduino-libraries" portion,
+just leaving the NameOfLibrary portion in the directory structure.
+
+* [myDebug](https://github.com/phorton1/Arduino-libraries-myDebug) -
+   A debugging output library common to my Arduino projects, it contains
+   global methods with names like "display" and "display_bytes" which are called
+   throughout my code, and which can be turned on or off via defines.
+
+* [ILI9341_t3](https://github.com/phorton1/Arduino-libraries-ILI9341_t3) and
+  [ILI9341_fonts](https://github.com/phorton1/Arduino-libraries-ILI9341_fonts) -
+  These are UNMODIFIED versions of Paul's ILI9341 libraries, forked from
+  his repository on 2020-10-03.   My program *may* compile and work with
+  more current versions that he makes available at https://github.com/PaulStoffregen/ILI9341_t3
+  and https://github.com/PaulStoffregen/ILI9341_fonts, but these forks are
+  known to compile and work properly with my code.
+
+* [my_LCDWIKI_GUI](https://github.com/phorton1/Arduino-libraries-my_LCDWIKI_GUI),
+  [my_LCDWIKI_KBV](https://github.com/phorton1/Arduino-libraries-my_LCDWIKI_KBV), and
+  [my_LCDWIKI_TouchScreen](https://github.com/phorton1/Arduino-libraries-my_LCDWIKI_TouchScreen) -
+  These repositories contain the rude and crude port of the LCDWIKI Arduino libraries
+  to the Teensy for the cheap touch screen I ended up using.  The touch screen
+  is an 8 bit parellel port screen that looks like this:
+
+  [![touchscreen holder](images/teensyExpression15_resized.jpg)](images/teensyExpression15.jpg)
+
+
+When I started working on this project, I started off using a different, much
 faster and more teensy compatible 2.8" SPI touch screen.  One night I burned it, and
 because I did not want to wait 6 weeks for a replacement (I live on a remote
 island in the tropics) I was forced to go to a slower speed 8 bit parallel
 Arduino touch screen ... which in turn required me to port the LCDWIKI library
 for it to the teensy 3.6, which I did.
 
-It was not always pretty. Nor necessarily were "best practices" followed :-)
-
-Yet, in the end, I decided it was better to post what I have, warts, wrinkles, and
-all, than to wait for some perfect future that might never come around.
-
-An interested reader *may* find a gem they were looking for in this repository.
-Or it may just provide general inspiration for creating a similar project.
-
-I dunno. Don't really care :-)
-
-"Let there be songs .... to fill the air"
-
-
-# Repository Organization
-
-So, apart from this brief introduction, you can find other materials and information in the following
-subfolders of this repository
-
-* root directory - contains this readme.md file
-* [arduino/](arduino/) - contains the source code and libraries to build the program
-    * [arduino/libraries](arduino/libraries/) - mine, and a couple other libraries used in the build
-    * [arduino/teensyExpression](arduino/teensyExpression/) - the main INO program and additional classes that are specific to the project
-* [fusion/](fusion/) - contains the STL, fusion 360 files, and notes on how to print and assemble the box
-* [hardware/](hardware/) - contains the basic schematic, circuit diagrams, and information about the electronics hardware design
-* [ftp/](ftp/) - contains separate discussions and documents regarding my reverse engineering efforts on the FTP Triple play dongle and controller
 
 
 # Credits
