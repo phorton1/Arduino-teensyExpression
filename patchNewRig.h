@@ -3,9 +3,9 @@
 
 #include "expSystem.h"
 #include "oldRig_defs.h"
-#include "/src/Circle/_prh/examples/11-aLooper/commonDefines.h"
+#include "commonDefines.h"
     // LOOPER_NUM_TRACKS and LAYERS, TRACK_STATES, LOOP_COMMANDS, and common CC's
-
+    // denormalized H file common to circle-Looper and Arduino-teensyExpression projects
 
 #define NUM_SYNTH_BANKS   2
 #define NUM_SYNTH_PATCHES 12
