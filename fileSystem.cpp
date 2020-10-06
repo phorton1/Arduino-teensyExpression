@@ -873,6 +873,56 @@ void handleFileCommand(const char *command, const char *param)
 
     }   // delete command
 
+    // RENAME file or directory
+
+	else if (!strcmp(command,"rename"))
+    {
+        char *old_path = (char *) param;
+        char *new_path = old_path;
+        while (*new_path && *new_path != ',') new_path++;
+        if (*new_path == ',') *new_path++ = 0;
+        display(dbg_tfs,"rename(%s) to '%s'",old_path,new_path);
+
+        File the_file = SD.open(old_path);
+        if (the_file)
+        {
+            uint32_t size = the_file.size();
+            bool is_dir = the_file.isDirectory();
+            const char *ts = getDateTimeStamp(&the_file,old_path);
+            the_file.close();
+
+            display(dbg_tfs,"rename is_dir=%d size=%d ts=%s",is_dir,size,ts);
+
+            if (SD.rename(old_path,new_path))
+            {
+                s_Serial->print("file_reply:OK RENAME ");
+                s_Serial->print(is_dir);
+                s_Serial->print(",");
+                s_Serial->print(size);
+                s_Serial->print(",");
+                s_Serial->print(ts);
+                s_Serial->print("\r\n");
+            }
+            else
+            {
+                s_Serial->print("file_reply:ERROR - rename '");
+                s_Serial->print(old_path);
+                s_Serial->print("' to '");
+                s_Serial->print(new_path);
+                s_Serial->print("' FAILED");
+                s_Serial->print("\r\n");
+            }
+        }
+        else
+        {
+            s_Serial->print("file_reply:ERROR - could not open '");
+            s_Serial->print(old_path);
+            s_Serial->print("' for renaming");
+            s_Serial->print("\r\n");
+        }
+    }
+
+
     s_Serial->print("file_reply_end");
     s_Serial->print("\r\n");
 

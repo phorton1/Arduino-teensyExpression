@@ -82,7 +82,7 @@ void setup()
     while (serial_started<1000 && !Serial) {}
 
     delay(400);
-    display(0,"teensyExpression v2.0 started",0);
+    display(0,"teensyExpression v2.01 started",0);
 
     // start the TFT display device
 
