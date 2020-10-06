@@ -15,10 +15,18 @@
 #include "configSystem.h"
 #include "patchOldRig.h"
 #include "patchNewRig.h"
-
 #include "patchTest.h"
 #include "patchMidiHost.h"
 
+#define WITH_FILE_SYSTEM    1
+
+#if WITH_FILE_SYSTEM
+    #include "fileSystem.h"
+#endif
+
+#define dbg_exp   1
+	// 1 still shows midi messages
+	// 0 shows Serial3 issues
 
 #define GET_TEMPO_FROM_CLOCK           	0
 #define BATTERY_CHECK_TIME  			30000
@@ -241,6 +249,7 @@ void expSystem::begin()
     activatePatch(patch_num);
         // show the first windw
 
+	fileSystem::init();
 }
 
 
@@ -303,7 +312,7 @@ void expSystem::activatePatch(int i)
 
 void expSystem::startModal(expWindow *win)
 {
-	display(0,"startModal(%s)",win->name());
+	display(dbg_exp,"startModal(%s)",win->name());
 
 	if (m_num_modals >= MAX_MODAL_STACK)
 	{
@@ -537,14 +546,31 @@ void expSystem::timer_handler()
 	thePedals.task();
 	pollRotary();
 
-	// aerial midi events
+	// serial midi events come in over Serial3
+	// that port *may* also be used by the fileSytem,
+	// or the fileSystem may come in over the main usb Serial port.
+
+	// Therefore, the fileSystem does a peek() and if the character
+	// is printable (or CR/LF), it eats it, but if not, it is still
+	// available for the midi event handling below.  The file system
+	// *may* shut down normal operations of pedals, rotaries, etc.
+
+	#if WITH_FILE_SYSTEM
+		fileSystem::task();
+	#endif
+
 	// TE ONLY expects 0x0B 4 byte packets
+	// If it sees a 0x0b, it eats 4 bytes
 
 	if (Serial3.available())
 	{
-		int c = Serial3.read();
-		if (c == 0x0B)	// could be others in future
+		int p = Serial3.peek();
+
+		if (p == 0x0B)	// could be others in future
 		{
+			int c = Serial3.read();
+			display(dbg_exp+1,"expSystem got Serial3: chr=0x%02x '%c'",c,c>32?c:' ');
+
 			unsigned char midi_buf[4];
 			midi_buf[0] = c;
 			for (int i=0; i<3; i++)
@@ -552,11 +578,10 @@ void expSystem::timer_handler()
 				while (!Serial3.available()) {fu++;}
 				midi_buf[i+1] = Serial3.read();
 			}
-			display_bytes(0,"recv serial midi: ",midi_buf,4);
+			display_bytes(dbg_exp-1,"expSystem recv serial midi: ",midi_buf,4);
 		    theSystem.getCurPatch()->onSerialMidiEvent(midi_buf[2],midi_buf[3]);
 		}
 	}
-
 
     // process incoming and outgoing midi events
 
@@ -770,6 +795,6 @@ void expSystem::updateUI()
 	void expSystem::midiActivity(int port_num)
 	{
 		midi_activity[port_num] = millis();
-		display(0,"midiActivity(%d)",port_num);
+		display(dbg_exp,"midiActivity(%d)",port_num);
 	}
 #endif
