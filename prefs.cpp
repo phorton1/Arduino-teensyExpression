@@ -21,6 +21,7 @@ const char *off_host_remote[]         = {"Off","Host","Remote"};
 const char *off_on_detail[]           = {"Off","On","Detail"};
 const char *curve_types[]             = {"linear","asympt","scurve"};
 const char *pedal_modes[]             = {"normal","serial","smart","smart-serial"};
+const char *file_system_ports[]       = {"Main USB", "Alt Serial"};
 
 
 //------------------------------
@@ -60,6 +61,8 @@ void setDefaultPrefs()
     _setDefaultPref8(PREF_PATCH_NUM,         0,pref_max[PREF_PATCH_NUM], 1, pref_strings[PREF_PATCH_NUM]);
         // 0..0 - default(1) .. better be some patches!
     _setDefaultPref8(PREF_DEBUG_PORT,        0,2,   1,  off_usb_serial);            // off, USB, Serial - default(USB)
+    _setDefaultPref8(PREF_FILE_SYSTEM_PORT,  0,1,   0,  file_system_ports);         // MainUSB or AlternateSerial port
+
     _setDefaultPref8(PREF_SPOOF_FTP,         0,1,   0,  off_on);                    // off, on - default(off)
     _setDefaultPref8(PREF_FTP_PORT,          0,2,   2,  off_host_remote);           // off, Host, Remote, default(Remote)
 

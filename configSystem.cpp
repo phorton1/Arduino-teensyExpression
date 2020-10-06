@@ -152,6 +152,7 @@ void createOptions()
 
 		configOption *system = new configOption(rootOption,"System");
 		new configOption(system,"Debug Port",	OPTION_TYPE_NEEDS_REBOOT,	PREF_DEBUG_PORT);
+		new configOption(system,"File Sys Port",	OPTION_TYPE_NEEDS_REBOOT,	PREF_FILE_SYSTEM_PORT);
 		new configOption(system,"Calibrate Touch");
 
 		new configOption(rootOption,"Factory Reset",OPTION_TYPE_FACTORY_RESET);

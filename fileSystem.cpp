@@ -8,6 +8,7 @@
 
 
 #include "fileSystem.h"
+#include "prefs.h"
 #include <myDebug.h>
 #include <SdFat.h>
 #include <Base64.h>
@@ -15,10 +16,6 @@
 #define dbg_tfs    1
     // This debugging *may* affect timing.
     // It "works" when this is on (0), but "not" when 1 (debugging turned off)
-
-
-#define FILE_SYSTEM_OVER_SERIAL3  0
-    // as opposed to main Serial port
 
 
 #define MAX_FILE_SYSTEM_COMMAND 512
@@ -142,13 +139,16 @@ bool fileSystem::init()
 	// tells TE which Serial port to use for the
 	// fileSystem.
 
-    #if FILE_SYSTEM_OVER_SERIAL3
+    if (getPref8(PREF_FILE_SYSTEM_PORT))
+    {
         display(0,"FILE SYSTEM RUNNING ON Serial3 (alternate port)",0);
         s_Serial = &Serial3;
-    #else
+    }
+    else
+    {
         display(0,"FILE SYSTEM RUNNING ON USB Serial (main port)",0);
         s_Serial = &Serial;
-    #endif
+    }
 
     if (!SD.begin())
     {
