@@ -92,6 +92,24 @@ and the above subfolders:
     or useful.  I keep these for posterities sake as they may have snippets of code I will
     need in the future.
 
+### Please See
+
+This teensyExpression pedal is intimately involved with my long term ongoing
+**[rPi bare metal vGuitar rig](https://hackaday.io/project/165696-rpi-bare-metal-vguitar-rig)**
+project at hackaday.
+
+In that process I have developed a number of other repositories which might be of interest
+to audio system development hackers, including:
+
+* **[circle](https://github.com/phorton1/circle)** - my fork of a a C++ bare metal rPi
+development framework
+* **[circle-prh](https://github.com/phorton1/circle-prh)** - my extensions to Circle, including
+a port of the **Teensy Audio Library** to rPi bare metal, and an Arduino like development
+approach.
+* **[Loooper](https://github.com/phorton1/circle-prh-apps-Looper)** - a bare metal rPi based **Audio Looper**
+including a 3D printed case with a 7" touchscreen, which hooks up to, and is controlled by,
+this teensyExpression pedal.
+
 
 
 ### Notes on Building and GitHub **DEPENDENCIES**
