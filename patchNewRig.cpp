@@ -8,7 +8,10 @@
 #include "midiQueue.h"
 #include "ftp.h"
 #include "ftp_defs.h"
+#include "songMachine.h"
 
+
+#define SONG_MACHINE_BUTTON     9
 
 #define FIRST_EFFECT_BUTTON  	15
 #define LAST_EFFECT_BUTTON    	18
@@ -32,8 +35,18 @@
 #define QUICK_COL_VOL_UP         2
 #define QUICK_CLIP_FIRST_ROW     4
 
-
 #define QUICK_ROW_ERASE_TRACK    0
+
+int_rect synth_rect;
+int_rect guitar_rect;
+int_rect song_rect;
+
+#define LEFT_MARGIN    80
+	// room for the "rectangle labels
+#define SYNTH_RECT_HEIGHT 70
+#define GUITAR_RECT_HEIGHT 40
+	// the client rect is 229 high
+	// everything else goes to the "song rect"
 
 
 
@@ -95,7 +108,7 @@ synthPatch_t patchNewRig::synth_patch[NUM_SYNTH_BANKS * NUM_SYNTH_PATCHES] = {
 
 	{9,			"FLUTE1",		"Orch Flute",					0},			// 9
 	{10,		"SFLUTE",		"Psych Flute",					0},			// 10
-	{11,		"SFLUTE+BASS",	"Psych Flute + 2 String Bass",	1},			// 11
+	{11,		"FL-BASS",	    "Psych Flute + Bass",			1},			// 11
 
 	// bank 1, alternative sounds
 
@@ -117,6 +130,16 @@ synthPatch_t patchNewRig::synth_patch[NUM_SYNTH_BANKS * NUM_SYNTH_PATCHES] = {
 
 };
 
+// static
+int patchNewRig::findPatchByName(const char *patch_name)
+{
+	for (int i=0; i<NUM_SYNTH_BANKS * NUM_SYNTH_PATCHES; i++)
+	{
+		if (!strcmp(patch_name,synth_patch[i].short_name))
+			return i;
+	}
+	return -1;
+}
 
 
 //----------------
@@ -130,25 +153,56 @@ int patchNewRig::guitar_effect_ccs[NUM_GUITAR_EFFECTS] = {
     GUITAR_ECHO_EFFECT_CC,
 };
 
+const char *guitar_effect_name[NUM_GUITAR_EFFECTS] = {
+	"DIST",
+	"WAH ",
+	"CHOR",
+	"ECHO"
+};
+
+
 
 
 //====================================================================
 // patchNewRig
 //====================================================================
 
+patchNewRig *theNewRig = 0;
 
 
-patchNewRig::patchNewRig()
+patchNewRig::patchNewRig() :
+	expWindow(WIN_FLAG_SHOW_PEDALS)
 {
+	theNewRig = this;
+
 	m_cur_bank_num = 0;
 	m_cur_patch_num = -1;    // 0..15
 	m_last_set_poly_mode = -1;
 
 	resetDisplay();
-	clearGuitarEffects();
-	clearLooper();
+	clearGuitarEffects(true);
+	clearLooper(true);
 
     m_quick_mode = false;
+
+	synth_rect.assign(
+		client_rect.xs + LEFT_MARGIN,
+		client_rect.ys,
+		client_rect.xe,
+		client_rect.ys + SYNTH_RECT_HEIGHT-1);
+	guitar_rect.assign(
+		client_rect.xs + LEFT_MARGIN,
+		synth_rect.ye + 1,
+		client_rect.xe,
+		synth_rect.ye + GUITAR_RECT_HEIGHT);
+	song_rect.assign(
+		client_rect.xs + LEFT_MARGIN,
+		guitar_rect.ye + 1,
+		client_rect.xe,
+		client_rect.ye);
+
+	song_machine_running = 0;
+
 }
 
 
@@ -182,18 +236,80 @@ void patchNewRig::resetDisplay()
 }
 
 
+//-----------------------------------
+// setters to support songMachine
+//-----------------------------------
 
-void patchNewRig::clearGuitarEffects()
+void patchNewRig::setPatchNumber(int patch_number)
+{
+	if (m_cur_patch_num != -1)
+	{
+		int button_num = patch_to_button(m_cur_patch_num);
+		setLED(button_num,0);
+	}
+
+	if (patch_number == -1)
+	{
+		m_cur_bank_num = 0;
+		m_cur_patch_num = -1;    // 0..15
+	}
+	else
+	{
+		m_cur_bank_num = patch_number / NUM_SYNTH_PATCHES;
+		m_cur_patch_num = patch_number % NUM_SYNTH_PATCHES;
+	}
+
+	if (m_cur_patch_num != -1)
+	{
+		int prog_num = MULTI_OFFSET + synth_patch[m_cur_patch_num].prog_num;
+		mySendDeviceProgramChange(prog_num, SYNTH_PROGRAM_CHANNEL);
+
+		// send the mono/poly ftp mode command if needed
+
+		bool use_poly_mode = !synth_patch[m_cur_patch_num].mono_mode;
+		if (((bool)m_last_set_poly_mode) != use_poly_mode)
+		{
+			m_last_set_poly_mode = use_poly_mode;
+			sendFTPCommandAndValue(FTP_CMD_POLY_MODE,m_last_set_poly_mode);
+		}
+	}
+}
+
+
+
+void patchNewRig::setGuitarEffect(int effect_num, bool on)
+{
+
+	m_guitar_state[effect_num] = on;
+	m_last_guitar_state[effect_num] = -1;
+
+	int value = on ? 0x7f : 0;
+	mySendDeviceControlChange(
+		guitar_effect_ccs[effect_num],
+		value,
+		GUITAR_EFFECTS_CHANNEL);
+}
+
+
+
+void patchNewRig::clearGuitarEffects(bool display_only /* = false */)
 {
 	for (int i=0; i<NUM_GUITAR_EFFECTS; i++)
 	{
 		m_guitar_state[i] = 0;
 		m_last_guitar_state[i] = -1;
+		if (!display_only)
+		{
+            mySendDeviceControlChange(
+                guitar_effect_ccs[i],
+                0x00,
+                GUITAR_EFFECTS_CHANNEL);
+		}
 	}
 }
 
 
-void patchNewRig::clearLooper()
+void patchNewRig::clearLooper(bool display_only)
 {
 	m_dub_mode = 0;
 	m_track_flash = 0;
@@ -216,6 +332,9 @@ void patchNewRig::clearLooper()
         m_clip_vol[i] = 100;	// magic init value
         m_last_clip_vol[i] = -1;
 	}
+
+	if (!display_only)
+		sendSerialControlChange(LOOP_COMMAND_CC,LOOP_COMMAND_CLEAR_ALL,"LOOP BUTTON long click");
 }
 
 
@@ -268,7 +387,9 @@ void patchNewRig::begin(bool warm)
 		theButtons.setButtonType(LOOP_STOP_BUTTON,BUTTON_EVENT_CLICK | BUTTON_EVENT_LONG_CLICK  | BUTTON_MASK_USER_DRAW, 0);
 		theButtons.setButtonType(LOOP_DUB_BUTTON,BUTTON_EVENT_CLICK | BUTTON_EVENT_LONG_CLICK | BUTTON_MASK_USER_DRAW, 0);
 
-	    // showLEDs();
+		// songMachine button
+
+		theButtons.setButtonType(SONG_MACHINE_BUTTON,BUTTON_EVENT_CLICK | BUTTON_EVENT_LONG_CLICK | BUTTON_MASK_USER_DRAW, 0);
 
 	}	// normal (not quick mode) buttons and leds
 
@@ -360,6 +481,7 @@ bool patchNewRig::onRotaryEvent(int num, int val)
 	sendSerialControlChange(control_num + RPI_CONTROL_NUM_CC_OFFSET,val,"patchNewRig Rotary Control");
 	return true;
 }
+
 
 
 
@@ -458,32 +580,8 @@ void patchNewRig::onButtonEvent(int row, int col, int event)
 	{
 		if (event == BUTTON_EVENT_CLICK)
 		{
-			// turn off the old patch button if any
-
-			if (m_cur_patch_num != -1)
-			{
-				int button_num = patch_to_button(m_cur_patch_num);
-				setLED(button_num,0);
-			}
-
-			m_cur_patch_num = bank_button_to_patch(m_cur_bank_num,num);	// my patch number
-			m_last_patch_num = -1;
-
-			// int bank_led_color = m_cur_bank_num == 0 ? LED_CYAN : LED_BLUE;
-			// setLED(num,bank_led_color);
-
-
-			int prog_num = MULTI_OFFSET + synth_patch[m_cur_patch_num].prog_num;
-			mySendDeviceProgramChange(prog_num, SYNTH_PROGRAM_CHANNEL);
-
-			// send the mono/poly ftp mode command if needed
-
-			bool use_poly_mode = !synth_patch[m_cur_patch_num].mono_mode;
-			if (((bool)m_last_set_poly_mode) != use_poly_mode)
-			{
-				m_last_set_poly_mode = use_poly_mode;
-				sendFTPCommandAndValue(FTP_CMD_POLY_MODE,m_last_set_poly_mode);
-			}
+			int patch_num = bank_button_to_patch(m_cur_bank_num,num);	// my patch number
+			setPatchNumber(patch_num);
 		}
 	}
 
@@ -501,27 +599,12 @@ void patchNewRig::onButtonEvent(int row, int col, int event)
     {
         if (event == BUTTON_EVENT_LONG_CLICK)           // turn off all effects on long click
         {
-            clearGuitarEffects();
-            for (int c=0; c<NUM_GUITAR_EFFECTS; c++)
-            {
-                mySendDeviceControlChange(
-                    guitar_effect_ccs[c],
-                    0x00,
-                    GUITAR_EFFECTS_CHANNEL);
-            }
+            clearGuitarEffects(false);
         }
         else
         {
-			m_guitar_state[col] = m_guitar_state[col] ? 0 : 1;
-			m_last_guitar_state[col] = -1;
-
-			arrayedButton *pb = theButtons.getButton(row,col);
-			int value = pb->isSelected() ? 0x7f : 0;
-
-            mySendDeviceControlChange(
-                guitar_effect_ccs[col],
-                value,
-                GUITAR_EFFECTS_CHANNEL);
+			bool set_state = m_guitar_state[col] ? 0 : 1;
+			setGuitarEffect(col,set_state);
         }
     }
 
@@ -534,8 +617,7 @@ void patchNewRig::onButtonEvent(int row, int col, int event)
 
 		if (event == BUTTON_EVENT_LONG_CLICK)	// only button with long press
 		{
-			clearLooper();
-			sendSerialControlChange(LOOP_COMMAND_CC,LOOP_COMMAND_CLEAR_ALL,"LOOP BUTTON long click");
+			clearLooper(false);
 		}
 		else if (event == BUTTON_EVENT_CLICK)
 		{
@@ -559,6 +641,36 @@ void patchNewRig::onButtonEvent(int row, int col, int event)
 			sendSerialControlChange(LOOP_COMMAND_CC,value,"LOOP TRACK BUTTON");
 		}
 	}
+
+	// SONG MACHINE
+
+
+	else if (num == SONG_MACHINE_BUTTON)
+	{
+		if (event == BUTTON_EVENT_LONG_CLICK)
+		{
+			display(0,"patchNewRig::SONG_MACHINE_BUTTON LONG_CLICK running(%d)",song_machine_running);
+			if (song_machine_running)
+			{
+				song_machine_running = 0;
+				songMachine::clear();
+			}
+			else
+			{
+				song_machine_running = songMachine::load();
+			}
+			setLED(SONG_MACHINE_BUTTON,song_machine_running?LED_YELLOW:0);
+			showLEDs();
+		}
+		else	// EVENT_CLICK
+		{
+			display(0,"patchNewRig::SONG_MACHINE_BUTTON click",0);
+			if (song_machine_running)
+			{
+				songMachine::notifyPress();
+			}
+		}
+	}
 }
 
 
@@ -572,6 +684,12 @@ void patchNewRig::onButtonEvent(int row, int col, int event)
 // virtual
 void patchNewRig::updateUI()
 {
+	// SONG MACHINE
+
+	songMachine::task();
+
+	// other stuff
+
 	bool leds_changed = false;
 	bool redraw_all = m_full_redraw;
 	m_full_redraw = false;
@@ -586,64 +704,6 @@ void patchNewRig::updateUI()
 	}
 
 
-	//----------------------------------
-	// PEDALS
-	//----------------------------------
-	// draw the pedal frame
-
-    if (redraw_all)
-    {
-        mylcd.Fill_Rect(0,230,480,30,TFT_YELLOW);
-        mylcd.setFont(Arial_18_Bold);   // Arial_16);
-        mylcd.Set_Text_colour(0);
-        mylcd.Set_Draw_color(TFT_YELLOW);
-        for (int i=0; i<NUM_PEDALS; i++)
-        {
-            mylcd.printf_justified(
-                i*120,
-                235,
-                120,
-                30,
-                LCD_JUST_CENTER,
-                TFT_BLACK,
-                TFT_YELLOW,
-				false,
-                "%s",
-                thePedals.getPedal(i)->getName());
-
-            if (i && i<NUM_PEDALS)
-                mylcd.Draw_Line(i*120,260,i*120,mylcd.Get_Display_Height()-1);
-        }
-    }
-
-	// and draw the pedal numbers if they've changed
-
-    for (int i=0; i<NUM_PEDALS; i++)
-    {
-        expressionPedal *pedal = thePedals.getPedal(i);
-        if (redraw_all || pedal->displayValueChanged())
-        {
-            pedal->clearDisplayValueChanged();
-            int v = pedal->getValue();
-
-			mylcd.setFont(Arial_40_Bold);   // Arial_40);
-			mylcd.Set_Text_colour(TFT_WHITE);
-
-            mylcd.printf_justified(
-                12+i*120,
-                260+14,
-                100,
-                45,
-                LCD_JUST_CENTER,
-                TFT_WHITE,
-                TFT_BLACK,
-				true,
-                "%d",
-                v);
-        }
-    }
-
-
 	//-----------------------------
 	// QUICK MODE
 	//-----------------------------
@@ -651,10 +711,11 @@ void patchNewRig::updateUI()
 	// if quick mode changed, clear the whole display area
 	// title line is at 36, pedal names start at 230
 
-	if (m_quick_mode != m_last_quick_mode)
+	if (redraw_all || m_quick_mode != m_last_quick_mode)
 	{
 		m_last_quick_mode = m_quick_mode;
-        mylcd.Fill_Rect(0,37,480,194,TFT_BLACK);
+		fillRect(client_rect,TFT_BLACK);
+        // mylcd.Fill_Rect(0,37,480,194,TFT_BLACK);
 	}
 
 
@@ -747,6 +808,19 @@ void patchNewRig::updateUI()
 
 	else		// !m_quick_mode
 	{
+		// rectangle labels
+
+		mylcd.Set_Text_Back_colour(TFT_BLACK);
+		if (redraw_all)
+		{
+	        mylcd.setFont(Arial_16);
+			mylcd.Set_Text_colour(TFT_YELLOW);
+
+			mylcd.Print_String("Synth:",5,synth_rect.ys+5);
+			mylcd.Print_String("Guitar:",5,guitar_rect.ys+5);
+			mylcd.Print_String("Song:",5,song_rect.ys+5);
+		}
+
 		// LOOPER BUTTONS
 
 		if (m_last_stop_button_cmd != m_stop_button_cmd)
@@ -794,10 +868,12 @@ void patchNewRig::updateUI()
 
 		// GUITAR BUTTONS
 
+		bool guitar_changed = false;
 		for (int i=0; i<NUM_GUITAR_EFFECTS; i++)
 		{
-			if (m_last_guitar_state[i] != m_guitar_state[i])
+			if (redraw_all || m_last_guitar_state[i] != m_guitar_state[i])
 			{
+				guitar_changed = true;
 				m_last_guitar_state[i] = m_guitar_state[i];
 				int color = m_guitar_state[i] ? LED_GREEN : 0;
 				setLED(FIRST_EFFECT_BUTTON+i,color);
@@ -805,24 +881,27 @@ void patchNewRig::updateUI()
 			}
 		}
 
-		// 'normal'	SCREEN STUFF
-
-		if (m_last_displayed_poly_mode != ftp_poly_mode)
+		if (redraw_all || guitar_changed)
 		{
-			m_last_displayed_poly_mode = ftp_poly_mode;
-			mylcd.setFont(Arial_12_Bold);
-			mylcd.printf_justified(
-				10,
-				40,
-				50,
-				20,
-				LCD_JUST_CENTER,
-				TFT_YELLOW,
-				TFT_BLACK,
-				true,
-				"%s",
-				ftp_poly_mode ? "" : "MONO");
+			if (!redraw_all)
+				fillRect(guitar_rect,TFT_BLACK);
+	        mylcd.setFont(Arial_18_Bold);
+			mylcd.Set_Text_colour(TFT_WHITE);
+
+			char guitar_buf[32];
+			guitar_buf[0] = 0;
+			for (int i=0; i<NUM_GUITAR_EFFECTS; i++)
+			{
+				if (m_guitar_state[i])
+				{
+					if (guitar_buf[0])
+						strcat(guitar_buf,",");
+					strcat(guitar_buf,guitar_effect_name[i]);
+				}
+			}
+			mylcd.Print_String(guitar_buf,guitar_rect.xs+5,guitar_rect.ys+4);
 		}
+
 
 		// BANK LED
 
@@ -837,6 +916,7 @@ void patchNewRig::updateUI()
 
 		// PATCH display SCREEN AND LED
 
+		bool redraw_patch = 0;
 		if (m_cur_patch_num >= 0 &&
 			(redraw_all || m_last_patch_num != m_cur_patch_num))
 		{
@@ -851,27 +931,53 @@ void patchNewRig::updateUI()
 
 			// text
 
-			mylcd.setFont(Arial_40_Bold);   // Arial_40);
-			int y = 90;
-			mylcd.printf_justified(
-				0,y,mylcd.Get_Display_Width(),mylcd.getFontHeight(),
-				LCD_JUST_CENTER,
-				TFT_CYAN,
-				TFT_BLACK,
-				true,
-				"%s",
-				synth_patch[m_cur_patch_num].short_name);
+			redraw_patch = 1;
+			if (!redraw_all)
+				fillRect(synth_rect,TFT_BLACK);
 
-			y += mylcd.getFontHeight();
-			mylcd.setFont(Arial_24);   // Arial_40);
+			char buf[24];
+	        mylcd.setFont(Arial_16);
+			mylcd.Set_Text_colour(TFT_WHITE);
+			sprintf(buf,"bank(%d)",
+				m_cur_patch_num/NUM_SYNTH_PATCHES + 1);
+			mylcd.Print_String(buf,synth_rect.xs+5,synth_rect.ys+5);
+			sprintf(buf,"patch(%d)",
+				m_cur_patch_num%NUM_SYNTH_PATCHES + 1);
+			mylcd.Print_String(buf,synth_rect.xs+5,synth_rect.ys+25);
+
+			mylcd.setFont(Arial_32_Bold);
+			mylcd.Set_Text_colour(TFT_CYAN);
+			mylcd.Print_String(
+				synth_patch[m_cur_patch_num].short_name,
+				synth_rect.xs+110,
+				synth_rect.ys+5);
+
+			mylcd.setFont(Arial_18_Bold);
+			mylcd.Set_Text_colour(TFT_MAGENTA);
+			mylcd.Print_String(
+				synth_patch[m_cur_patch_num].long_name,
+				synth_rect.xs+110,
+				synth_rect.ys+40);
+		}
+
+		// POLY MODE INDICATOR
+
+		if (redraw_patch ||
+			m_last_displayed_poly_mode != ftp_poly_mode)
+		{
+			m_last_displayed_poly_mode = ftp_poly_mode;
+			mylcd.setFont(Arial_18_Bold);
 			mylcd.printf_justified(
-				0,y,mylcd.Get_Display_Width(),mylcd.getFontHeight(),
-				LCD_JUST_CENTER,
-				TFT_MAGENTA,
+				synth_rect.xe - 60,
+				synth_rect.ys + 10,
+				50,
+				20,
+				LCD_JUST_LEFT,
+				TFT_WHITE,
 				TFT_BLACK,
 				true,
 				"%s",
-				synth_patch[m_cur_patch_num].long_name);
+				ftp_poly_mode ? "poly" : "MONO");
 		}
 
 	}	// Normal redraw (!m_quick_mode)

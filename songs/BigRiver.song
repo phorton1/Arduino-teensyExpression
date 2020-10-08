@@ -5,11 +5,11 @@
 # don't know if a "start" label is necessary
 # could just start at beginning of file ...
 
-    DISPLAY 2,"set synth 0, guitar 70"
+    DISPLAY "set synth 0, guitar 70"
 
 button1:
 
-    DISPLAY 2,"OK, press to start song"
+    DISPLAY "OK, press to start song"
 
 button1:
 
@@ -19,7 +19,7 @@ button1:
     SYNTH_PATCH  bass1
     GUITAR_EFFECT_NONE
     CLEAR_LOOPER
-    DISPLAY 2,"press to start record guitar"
+    DISPLAY "press to start record guitar"
 
 #--------------------------
 # INTRO CHORUS
@@ -28,7 +28,7 @@ button1:
 button1:                        # record guitar behind intro-chorus
     LOOPER_TRACK 1              # start recording track0, clip0
     DUB_MODE                    # set dub mode for next press of TRACK1 button
-    DISPLAY 2,"press to start record bass"
+    DISPLAY "press to start record bass"
 
 #--------------------------
 # 1st VERSE and CHORUS
@@ -38,7 +38,7 @@ button1:                        # record bass behind 1st verse
     SYNTH_VOLUME 70             # turn up the synth
     LOOPER_TRACK 1              # finish recording guitar, start recording bass
     GUITAR_VOLUME 0             # turn down the guitar!
-    DISPLAY 2,"recording bass"
+    DISPLAY "recording bass"
 
     # will record base for 2 times thru
     # the next press is to prepare the guitar
@@ -46,7 +46,7 @@ button1:                        # record bass behind 1st verse
 
 loop:                          # AT/AFTER 1st loop
     LOOPER_TRACK1              # will start looping guitar*1 and bass*2 at acoustic lead
-    DISPLAY 2,"ready acoustic lead"
+    DISPLAY "ready acoustic lead"
 
 #----------------------------------
 # 1st (short) ACOUSTIC GUITAR LEAD
@@ -60,7 +60,7 @@ loop:
     GUITAR_VOLUME 70            # turn up the guitar
     GUITAR_EFFECT_ECHO on       # turn on the echo effect
     SYNTH_PATCH organ1          # select the organ for use later
-    DISPLAY 2,"play acoustic lead, ready verse2"
+    DISPLAY "play acoustic lead, ready verse2"
 
 # note that we are "backwards with the bass*2 track from here on out ...
 
@@ -70,7 +70,7 @@ loop:
 #--------------------------
 
 loop:
-    DISPLAY 2,"sing verse2, ready organ"
+    DISPLAY "sing verse2, ready organ"
     DUB_MODE
     LOOPER_TRACK 1              # start recording next time through
     GUITAR_VOLUME 0             # turn down the guitar
@@ -79,7 +79,7 @@ loop:
     LOOP_VOLUME 80
     LOOPER_CLIP 3,mute          # but it will not start playing next time through
     LOOPER_TRACK 1              # start playing next time through
-    DISPLAY 2,"sing chorus, record organ"
+    DISPLAY "sing chorus, record organ"
     GUITAR_EFFECT_WAH on        # ready guitar effects
     GUITAR_EFFECT_DISTORT on
 
@@ -92,10 +92,10 @@ loop:
     LOOP_VOLUME 70
     SYNTH_VOLUME 0              # turn down the synth
     GUITAR_VOLUME 70            # turn up the guitar
-    DISPLAY 2,"1st half guitar lead"
+    DISPLAY "1st half guitar lead"
 
 loop:
-    DISPLAY 2,"2nd half guitar lead"
+    DISPLAY "2nd half guitar lead"
 
 #----------------------------------
 # 3nd VERSE and FINAL CHORUS
@@ -109,11 +109,11 @@ loop:
     LOOPER_CLIP   3,unmute      # enable start playing the organ
     SYNTH_VOLUME 0              # turn down the organ
     SYNTH_PATCH  bass1          # select the base
-    DISPLAY 2,"final verse, strum guitar"
+    DISPLAY "final verse, strum guitar"
 
 
 loop:    # at final chorus
-    DISPLAY 2,"final chours - press to repeat"
+    DISPLAY "final chours - press to repeat"
 
 
 #----------------------------
@@ -123,16 +123,16 @@ loop:    # at final chorus
 button1:    # press this at repeat point
     LOOP_VOLUME 85
     LOOPER_SET_START_MARK       # set a goto point in the looper
-    DISPLAY 2,"waiting repeat"
+    DISPLAY "waiting repeat"
 
 loop:
     LOOP_VOLUME 90
     LOOPER_CLIP   1,unmute      # bring back the canned guitar
-    DISPLAY 2,"2nd time through"
+    DISPLAY "2nd time through"
 
 loop:
     LOOP_VOLUME 95
-    DISPLAY 2,"3rd time through, ready end riff!"
+    DISPLAY "3rd time through, ready end riff!"
     LOOPER_STOP     # looper will stop at end of third repeat
 
 loop:   # we get one last loop point message

@@ -14,6 +14,14 @@ class expSystem;
     // window will be deleted after call to endModal
 #define WIN_FLAG_OWNER_TITLE        0x00001000
     // window calls theSystem.setTitle() itself
+#define WIN_FLAG_SHOW_PEDALS        0x00002000
+    // window calls theSystem.setTitle() itself
+
+extern int_rect tft_rect;
+extern int_rect title_rect;
+extern int_rect full_client_rect;
+extern int_rect pedal_rect;
+extern int_rect client_rect;
 
 
 class expWindow
@@ -132,9 +140,12 @@ class expSystem
         int last_battery_level;
         // moved to ftp.cpp::initQueryFTP()
         // elapsedMillis battery_time;
-        bool draw_needed;
 
         const char *m_title;
+        bool draw_pedals;
+        bool draw_title;
+            // state for redraw
+
 
         unsigned midi_activity[NUM_PORTS];
         bool last_midi_activity[NUM_PORTS];

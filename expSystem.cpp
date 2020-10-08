@@ -187,7 +187,8 @@ expSystem::expSystem()
 	// moved
 	// battery_time = BATTERY_CHECK_TIME;
 
-	draw_needed	= 1;
+	draw_pedals = 1;
+	draw_title = 1;
 	m_title = 0;
 
     for (int i=0; i<MAX_EXP_PATCHES; i++)
@@ -198,7 +199,7 @@ expSystem::expSystem()
 void expSystem::setTitle(const char *title)
 {
 	m_title = title;
-	draw_needed = 1;
+	draw_title = 1;
 }
 
 
@@ -292,9 +293,13 @@ void expSystem::activatePatch(int i)
     if (m_cur_patch_num)
     {
         mylcd.Fill_Screen(0);
+		if (cur_patch->m_flags & WIN_FLAG_SHOW_PEDALS)
+			draw_pedals = 1;
 		if (!(cur_patch->m_flags & WIN_FLAG_OWNER_TITLE))
 			setTitle(cur_patch->name());
-    }
+    	else
+			draw_title = 1;
+	}
 
     // start the patch (window) running
 
@@ -335,6 +340,11 @@ void expSystem::startModal(expWindow *win)
 	mylcd.Fill_Screen(0);
 	if (!(win->m_flags & WIN_FLAG_OWNER_TITLE))
 		setTitle(win->name());
+	else
+		draw_title = 1;
+	if (win->m_flags & WIN_FLAG_SHOW_PEDALS)
+		draw_pedals = 1;
+
 	win->begin(false);
 }
 
@@ -386,6 +396,8 @@ void expSystem::endModal(expWindow *win, uint32_t param)
 	mylcd.Fill_Screen(0);
 	if (!(new_win->m_flags & WIN_FLAG_OWNER_TITLE))
 		setTitle(new_win->name());
+	else
+		draw_title = 1;
 	new_win->begin(true);
 
 	if (!m_num_modals && m_cur_patch_num)
@@ -567,206 +579,6 @@ void expSystem::timer_handler()
 
 
 
-
-//------------------------------
-// updateUI
-//-------------------------------
-// battery indicator
-
-#define BATTERY_X       435
-#define BATTERY_Y       12
-#define BATTERY_FRAME   2
-#define BATTERY_WIDTH   36
-#define BATTERY_HEIGHT  16
-
-#define INDICATOR_Y      	 	20
-#define INDICATOR_RADIUS  	  	5
-#define INDICATOR_X 			280
-#define INDICATOR_PAIR_SPACING  40
-#define INDICATOR_SPACING    	15
-
-
-void expSystem::updateUI()
-{
-	// for time being, modal windows absorb everything
-	if (m_num_modals)
-	{
-		getTopModalWindow()->updateUI();
-		// return;
-	}
-
-	initQueryFTP();
-
-	// moved to ftp.cpp::initQueryFTP()
-	//
-	// if (getPref8(PREF_FTP_PORT) && battery_time > BATTERY_CHECK_TIME)
-	// {
-	//     sendFTPCommandAndValue(FTP_CMD_BATTERY_LEVEL, 0);
-	// 	battery_time = 0;
-	// }
-
-
-	bool full_draw = draw_needed;
-	draw_needed = 0;
-
-	if (full_draw)	// title
-	{
-        mylcd.setFont(Arial_16_Bold);
-        mylcd.Set_Text_Cursor(10,10);
-        mylcd.Set_Text_colour(TFT_YELLOW);
-        mylcd.print(m_title);
-        mylcd.Set_Draw_color(TFT_YELLOW);
-	    mylcd.Draw_Line(0,36,mylcd.Get_Display_Width()-1,36);
-
-		// midi indicator frames
-
-        mylcd.Set_Draw_color(TFT_WHITE);
-		for (int i=0; i<NUM_PORTS; i++)
-		{
-			mylcd.Fill_Circle(
-				INDICATOR_X + (i/2)*INDICATOR_PAIR_SPACING + (i&1)*INDICATOR_SPACING,
-				INDICATOR_Y,
-				INDICATOR_RADIUS + 1);
-		}
-	}
-
-	//------------------------------
-	// battery indicator frame and value
-	//------------------------------
-
-	if (full_draw ||
-		last_battery_level != ftp_battery_level)
-	{
-		//  battery indicator frame
-
-		int battery_frame_color = ftp_battery_level == -1 ?
-			TFT_DARKGREY :
-			TFT_YELLOW;
-
-		mylcd.Fill_Rect(
-			BATTERY_X,
-			BATTERY_Y,
-			BATTERY_WIDTH,
-			BATTERY_HEIGHT,
-			battery_frame_color);
-		mylcd.Fill_Rect(
-			BATTERY_X + BATTERY_WIDTH -1,
-			BATTERY_Y + (BATTERY_HEIGHT/4),
-			4,
-			(BATTERY_HEIGHT/2),
-			battery_frame_color);
-		mylcd.Fill_Rect(
-			BATTERY_X + BATTERY_FRAME,
-			BATTERY_Y + BATTERY_FRAME,
-			BATTERY_WIDTH - 2*BATTERY_FRAME,
-			BATTERY_HEIGHT - 2*BATTERY_FRAME,
-			TFT_BLACK);
-
-		float pct = ftp_battery_level == -1 ? 1.0 : (((float)ftp_battery_level)-0x40) / 0x24;
-		int color = ftp_battery_level == -1 ? TFT_LIGHTGREY : (pct <= .15 ? TFT_RED : TFT_DARKGREEN);
-		if (pct > 1) pct = 1.0;
-
-		// display(0,"battery_level=%d   pct=%0.2f",ftp_battery_level,pct);
-
-		float left_width = pct * ((float) BATTERY_WIDTH - 2*BATTERY_FRAME);
-		float right_width = (1-pct) * ((float) BATTERY_WIDTH - 2*BATTERY_FRAME);
-		int left_int = left_width;
-		int right_int = right_width;
-
-		mylcd.Fill_Rect(
-			BATTERY_X + BATTERY_FRAME,
-			BATTERY_Y + BATTERY_FRAME,
-			left_int,
-			BATTERY_HEIGHT - 2*BATTERY_FRAME,
-			color);
-
-		if (right_int > 0)
-			mylcd.Fill_Rect(
-				BATTERY_X + BATTERY_FRAME + left_int,
-				BATTERY_Y + BATTERY_FRAME,
-				right_int,
-				BATTERY_HEIGHT - 2*BATTERY_FRAME,
-				TFT_BLACK);
-
-		last_battery_level = ftp_battery_level;
-	}
-
-
-	// MIDI INDICATORS
-	// remap from by output-cable  Di0,Di1,Do0,Do1,Hi0,Hi1,Ho0,Ho1
-	// to by cable-output:         Di0,Do0, Di1,Do1,  Hi0,Ho0, Hi1,Ho1
-
-	unsigned now = millis();
-	for (int cable_pair=0; cable_pair<NUM_PORTS/2; cable_pair++)
-	{
-		for (int out=0; out<2; out++)
-		{
-			#define INDEX_MASK_HOST     0x04
-			#define INDEX_MASK_OUTPUT   0x02
-			#define INDEX_MASK_CABLE    0x01
-
-			int i = ((cable_pair<<1)&INDEX_MASK_HOST) + (out*INDEX_MASK_OUTPUT) + (cable_pair&1);
-
-			bool midi_on =
-				now > midi_activity[i] &&
-				now < midi_activity[i] + MIDI_ACTIVITY_TIMEOUT;
-
-			if (full_draw ||  midi_on != last_midi_activity[i])
-			{
-				last_midi_activity[i] = midi_on;
-				int color = midi_on ?
-					out ? TFT_RED : TFT_GREEN :
-					0;
-
-				mylcd.Set_Draw_color(color);
-				mylcd.Fill_Circle(
-					INDICATOR_X + cable_pair*INDICATOR_PAIR_SPACING + out*INDICATOR_SPACING,
-					INDICATOR_Y,
-					INDICATOR_RADIUS);
-			}
-		}
-	}
-
-	// tempo
-
-	#if GET_TEMPO_FROM_CLOCK
-		static int last_tempo = 0;
-		if (m_tempo != last_tempo)
-		{
-			last_tempo = m_tempo;
-			mylcd.setFont(Arial_14_Bold);
-			mylcd.Set_Text_colour(TFT_WHITE);
-			mylcd.printf_justified(
-				10,
-				200,
-				50,
-				30,
-				LCD_JUST_CENTER,
-				TFT_WHITE,
-				TFT_BLACK,
-				true,
-				"%d",
-				m_tempo);
-			display(0,"m_tempo=%d",m_tempo);
-		}
-	#endif
-
-
-	// current "process" function called from timer_handler()
-	// dequeueProcess();
-
-    getCurPatch()->updateUI();
-}
-
-#if !MIDI_ACTIVITY_INLINE
-	void expSystem::midiActivity(int port_num)
-	{
-		midi_activity[port_num] = millis();
-		display(dbg_exp,"midiActivity(%d)",port_num);
-	}
-#endif
-
-
 //--------------------------------------------------------
 // Serial Port Handler
 //--------------------------------------------------------
@@ -898,3 +710,297 @@ void expSystem::handleSerialData()
 		}
 	}
 }
+
+
+
+
+//------------------------------
+// updateUI
+//-------------------------------
+// battery indicator
+
+#define BATTERY_X       435
+#define BATTERY_Y       12
+#define BATTERY_FRAME   2
+#define BATTERY_WIDTH   36
+#define BATTERY_HEIGHT  16
+
+#define INDICATOR_Y      	 	20
+#define INDICATOR_RADIUS  	  	5
+#define INDICATOR_X 			280
+#define INDICATOR_PAIR_SPACING  40
+#define INDICATOR_SPACING    	15
+
+#define PEDAL_TEXT_AREA_HEIGHT  30
+
+
+int_rect tft_rect(0,0,479,319);				// full screen
+int_rect title_rect(0,0,479,35);			// not including line
+int_rect full_client_rect(0,37,479,319);	// under line to bottom of screen
+int_rect pedal_rect(0,230,479,319);			// 89 high, starting at 230
+int_rect client_rect(0,37,479,229);			// under line to above pedals
+
+
+
+void expSystem::updateUI()
+{
+	initQueryFTP();
+		// query the FTP battery level on a timer
+
+	expWindow *win = m_num_modals ?
+		getTopModalWindow() :
+		getCurPatch();
+
+	//----------------------------------
+	// PEDALS
+	//----------------------------------
+	// draw the pedal frame if needed
+
+	if (win->m_flags & WIN_FLAG_SHOW_PEDALS)
+	{
+		bool draw_pedal_values = false;
+		int pedal_width = pedal_rect.width() / NUM_PEDALS;
+
+		if (draw_pedals)
+		{
+			draw_pedals = false;
+			draw_pedal_values = true;
+
+			mylcd.Fill_Rect(
+				pedal_rect.xs,
+				pedal_rect.ys,
+				pedal_rect.width(),
+				PEDAL_TEXT_AREA_HEIGHT,
+				TFT_YELLOW);
+
+			mylcd.setFont(Arial_18_Bold);   // Arial_16);
+			mylcd.Set_Text_colour(0);
+			mylcd.Set_Draw_color(TFT_YELLOW);
+
+			for (int i=0; i<NUM_PEDALS; i++)
+			{
+				mylcd.printf_justified(
+					i*pedal_width,
+					pedal_rect.ys + 5,
+					pedal_width,
+					PEDAL_TEXT_AREA_HEIGHT,
+					LCD_JUST_CENTER,
+					TFT_BLACK,
+					TFT_YELLOW,
+					false,
+					"%s",
+					thePedals.getPedal(i)->getName());
+
+				if (i && i<NUM_PEDALS)
+					mylcd.Draw_Line(
+						i*pedal_width,
+						pedal_rect.ys + PEDAL_TEXT_AREA_HEIGHT,
+						i*pedal_width,
+						pedal_rect.ye);
+			}
+		}
+
+		// and draw the pedal numbers if they've changed
+		// 2020-10-08 - the exp system just draws the display values
+		// and the songMachine is free to changes them, and call
+		// pedal[i].setDisplayValue() AND
+		// thePedals.pedalEvent(int num, int value) separately
+		// to change the display and send out the CCs
+
+		for (int i=0; i<NUM_PEDALS; i++)
+		{
+			expressionPedal *pedal = thePedals.getPedal(i);
+			if (draw_pedal_values || pedal->displayValueChanged())
+			{
+				pedal->clearDisplayValueChanged();
+				int v = pedal->getDisplayValue();
+
+				mylcd.setFont(Arial_40_Bold);   // Arial_40);
+				mylcd.Set_Text_colour(TFT_WHITE);
+
+				mylcd.printf_justified(
+					12+i*pedal_width,
+					pedal_rect.ys + PEDAL_TEXT_AREA_HEIGHT + 14,
+					100,
+					pedal_rect.height() - PEDAL_TEXT_AREA_HEIGHT - 14,
+					LCD_JUST_CENTER,
+					TFT_WHITE,
+					TFT_BLACK,
+					true,
+					"%d",
+					v);
+			}
+		}
+	}
+
+	//---------------------------
+	// Title and "frame"
+	//---------------------------
+
+	bool draw_title_frame = draw_title;
+
+	if (draw_title)
+	{
+		draw_title = false;
+
+		// title text
+
+		draw_title = false;
+        mylcd.setFont(Arial_16_Bold);
+        mylcd.Set_Text_Cursor(5,10);
+        mylcd.Set_Text_colour(TFT_YELLOW);
+        mylcd.print(m_title);
+
+		// horizontal line
+
+        mylcd.Set_Draw_color(TFT_YELLOW);
+	    mylcd.Draw_Line(0,36,mylcd.Get_Display_Width()-1,36);
+
+		// midi indicator frames
+
+        mylcd.Set_Draw_color(TFT_WHITE);
+		for (int i=0; i<NUM_PORTS; i++)
+		{
+			mylcd.Fill_Circle(
+				INDICATOR_X + (i/2)*INDICATOR_PAIR_SPACING + (i&1)*INDICATOR_SPACING,
+				INDICATOR_Y,
+				INDICATOR_RADIUS + 1);
+		}
+	}
+
+	//------------------------------
+	// battery indicator frame and value
+	//------------------------------
+
+	if (draw_title_frame ||
+		last_battery_level != ftp_battery_level)
+	{
+		//  battery indicator frame
+
+		int battery_frame_color = ftp_battery_level == -1 ?
+			TFT_DARKGREY :
+			TFT_YELLOW;
+
+		mylcd.Fill_Rect(
+			BATTERY_X,
+			BATTERY_Y,
+			BATTERY_WIDTH,
+			BATTERY_HEIGHT,
+			battery_frame_color);
+		mylcd.Fill_Rect(
+			BATTERY_X + BATTERY_WIDTH -1,
+			BATTERY_Y + (BATTERY_HEIGHT/4),
+			4,
+			(BATTERY_HEIGHT/2),
+			battery_frame_color);
+		mylcd.Fill_Rect(
+			BATTERY_X + BATTERY_FRAME,
+			BATTERY_Y + BATTERY_FRAME,
+			BATTERY_WIDTH - 2*BATTERY_FRAME,
+			BATTERY_HEIGHT - 2*BATTERY_FRAME,
+			TFT_BLACK);
+
+		float pct = ftp_battery_level == -1 ? 1.0 : (((float)ftp_battery_level)-0x40) / 0x24;
+		int color = ftp_battery_level == -1 ? TFT_LIGHTGREY : (pct <= .15 ? TFT_RED : TFT_DARKGREEN);
+		if (pct > 1) pct = 1.0;
+
+		// display(0,"battery_level=%d   pct=%0.2f",ftp_battery_level,pct);
+
+		float left_width = pct * ((float) BATTERY_WIDTH - 2*BATTERY_FRAME);
+		float right_width = (1-pct) * ((float) BATTERY_WIDTH - 2*BATTERY_FRAME);
+		int left_int = left_width;
+		int right_int = right_width;
+
+		mylcd.Fill_Rect(
+			BATTERY_X + BATTERY_FRAME,
+			BATTERY_Y + BATTERY_FRAME,
+			left_int,
+			BATTERY_HEIGHT - 2*BATTERY_FRAME,
+			color);
+
+		if (right_int > 0)
+			mylcd.Fill_Rect(
+				BATTERY_X + BATTERY_FRAME + left_int,
+				BATTERY_Y + BATTERY_FRAME,
+				right_int,
+				BATTERY_HEIGHT - 2*BATTERY_FRAME,
+				TFT_BLACK);
+
+		last_battery_level = ftp_battery_level;
+	}
+
+
+	// MIDI INDICATORS (always if changed)
+	// remap from by output-cable  Di0,Di1,Do0,Do1,Hi0,Hi1,Ho0,Ho1
+	// to by cable-output:         Di0,Do0, Di1,Do1,  Hi0,Ho0, Hi1,Ho1
+
+	unsigned now = millis();
+	for (int cable_pair=0; cable_pair<NUM_PORTS/2; cable_pair++)
+	{
+		for (int out=0; out<2; out++)
+		{
+			#define INDEX_MASK_HOST     0x04
+			#define INDEX_MASK_OUTPUT   0x02
+			#define INDEX_MASK_CABLE    0x01
+
+			int i = ((cable_pair<<1)&INDEX_MASK_HOST) + (out*INDEX_MASK_OUTPUT) + (cable_pair&1);
+
+			bool midi_on =
+				now > midi_activity[i] &&
+				now < midi_activity[i] + MIDI_ACTIVITY_TIMEOUT;
+
+			if (draw_title_frame ||  midi_on != last_midi_activity[i])
+			{
+				last_midi_activity[i] = midi_on;
+				int color = midi_on ?
+					out ? TFT_RED : TFT_GREEN :
+					0;
+
+				mylcd.Set_Draw_color(color);
+				mylcd.Fill_Circle(
+					INDICATOR_X + cable_pair*INDICATOR_PAIR_SPACING + out*INDICATOR_SPACING,
+					INDICATOR_Y,
+					INDICATOR_RADIUS);
+			}
+		}
+	}
+
+	// tempo
+
+	#if GET_TEMPO_FROM_CLOCK
+		static int last_tempo = 0;
+		if (m_tempo != last_tempo)
+		{
+			last_tempo = m_tempo;
+			mylcd.setFont(Arial_14_Bold);
+			mylcd.Set_Text_colour(TFT_WHITE);
+			mylcd.printf_justified(
+				10,
+				200,
+				50,
+				30,
+				LCD_JUST_CENTER,
+				TFT_WHITE,
+				TFT_BLACK,
+				true,
+				"%d",
+				m_tempo);
+			display(0,"m_tempo=%d",m_tempo);
+		}
+	#endif
+
+    // getCurPatch()->updateUI();   // ??
+	win->updateUI();
+
+}
+
+
+
+
+#if !MIDI_ACTIVITY_INLINE
+	void expSystem::midiActivity(int port_num)
+	{
+		midi_activity[port_num] = millis();
+		display(dbg_exp,"midiActivity(%d)",port_num);
+	}
+#endif

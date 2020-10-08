@@ -5,8 +5,8 @@
 #include <LCDWIKI_KBV.h>    // my modified Hardware-specific library
 #include <font_Arial.h>
 #include <font_ArialBold.h>
-    
-    
+#include "defines.h"
+
 #define TFT_WIDTH           480
 #define TFT_HEIGHT          320
 
@@ -21,23 +21,33 @@
 #define TFT_MAGENTA         0xF81F
 #define TFT_YELLOW          0xFFE0
 #define TFT_WHITE           0xFFFF
-    
-#define TFT_NAVY            0x000F   
-#define TFT_DARKGREEN       0x03E0   
-#define TFT_DARKCYAN        0x03EF   
-#define TFT_MAROON          0x7800   
-#define TFT_PURPLE          0x780F   
-#define TFT_OLIVE           0x7BE0   
-#define TFT_LIGHTGREY       0xC618   
-#define TFT_DARKGREY        0x7BEF   
-#define TFT_ORANGE          0xFD20   
-#define TFT_GREENYELLOW     0xAFE5   
-#define TFT_PINK            0xF81F    
-    
+
+#define TFT_NAVY            0x000F
+#define TFT_DARKGREEN       0x03E0
+#define TFT_DARKCYAN        0x03EF
+#define TFT_MAROON          0x7800
+#define TFT_PURPLE          0x780F
+#define TFT_OLIVE           0x7BE0
+#define TFT_LIGHTGREY       0xC618
+#define TFT_DARKGREY        0x7BEF
+#define TFT_ORANGE          0xFD20
+#define TFT_GREENYELLOW     0xAFE5
+#define TFT_PINK            0xF81F
+
+
 
 
 extern LCDWIKI_KBV mylcd;
-extern void initMyTFT();    
-    
+extern void initMyTFT();
+
+inline void fillRect(int_rect &rect, int color)
+{
+    mylcd.Fill_Rect(
+            rect.xs,
+            rect.ys,
+            rect.width(),
+            rect.height(),
+            color);
+}
 
 #endif

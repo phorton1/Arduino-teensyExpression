@@ -18,14 +18,21 @@ class expressionPedal
 {
     public:
 
+
         int getNum()                    { return m_num; }
         const char *getName()           { return m_name; }
 
         int getValue()                  { return m_value; }
-        bool displayValueChanged()      { return m_last_value != m_value; }
-        void clearDisplayValueChanged() { m_last_value = m_value; }
-
         int getRawValue()               { return m_raw_value; }
+            // the actual values
+
+        int getDisplayValue()           { return m_display_value; }
+        void setDisplayValue(int i)     { m_display_value = i; }
+        bool displayValueChanged()      { return m_last_display_value != m_display_value; }
+        void clearDisplayValueChanged() { m_last_display_value = m_display_value; }
+            // completely separate display values
+
+
         inline float getRawValuePct()
         {
             float min = (m_mode & PEDAL_MODE_AUTO) ? 0 : getPrefPedalCalibMin(m_num);
@@ -46,10 +53,13 @@ class expressionPedal
             m_valid = false;
         }
 
+        // the pedal can
         void setPedalMode();
+        uint8_t getMode()           { return m_mode; }
+
         void autoCalibrate();
         bool inAutoCalibrate()      { return m_in_auto_calibrate; }
-        uint8_t getMode()           { return m_mode; }
+
         void setAutoRawValue(int i);
         int getAutoRawValue()       { return m_auto_value; }
 
@@ -103,7 +113,9 @@ class expressionPedal
         int      m_direction;       // -1,0,1
         unsigned m_settle_time;
         int      m_value;           // 0..127
-        int      m_last_value;      // display helper
+
+        int      m_display_value;           // display helper
+        int      m_last_display_value;      // display helper
 
         uint8_t  m_mode;
         int      m_auto_value;

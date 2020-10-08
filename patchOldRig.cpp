@@ -170,7 +170,8 @@ int patchOldRig::loop_ccs[NUM_BUTTON_COLS] =
 // patchOldRig
 //====================================================================
 
-patchOldRig::patchOldRig()
+patchOldRig::patchOldRig() :
+	expWindow(WIN_FLAG_SHOW_PEDALS)
 {
     m_quick_mode = false;
 	m_cur_bank_num = 0;
@@ -340,7 +341,7 @@ void patchOldRig::onButtonEvent(int row, int col, int event)
 			// send the CC for the one pedal that has (possibly) changed
 
 			expressionPedal *pedal = thePedals.getPedal(col);
-			float pedal_vol = pedal->getValue();
+			float pedal_vol = pedal->getDisplayValue();
 			float rel_vol = vol;
 			float new_value = (pedal_vol/127.0) * rel_vol;
 			int cc = NEW_LOOP_VOLUME_TRACK1 + col;
@@ -510,33 +511,14 @@ void patchOldRig::updateUI()
 	{
 		endQuickMode();
 	}
+
     bool draw_full = false;
     if (m_full_redraw)
-    {
+	{
         draw_full = true;
         m_full_redraw = false;
-        mylcd.Fill_Rect(0,230,480,30,TFT_YELLOW);
-        mylcd.setFont(Arial_18_Bold);   // Arial_16);
-        mylcd.Set_Text_colour(0);
-        mylcd.Set_Draw_color(TFT_YELLOW);
-        for (int i=0; i<NUM_PEDALS; i++)
-        {
-            mylcd.printf_justified(
-                i*120,
-                235,
-                120,
-                30,
-                LCD_JUST_CENTER,
-                TFT_BLACK,
-                TFT_YELLOW,
-				false,
-                "%s",
-                thePedals.getPedal(i)->getName());
+	}
 
-            if (i && i<NUM_PEDALS)
-                mylcd.Draw_Line(i*120,260,i*120,mylcd.Get_Display_Height()-1);
-        }
-    }
 
 	if (m_last_displayed_poly_mode != ftp_poly_mode)
 	{
@@ -554,40 +536,6 @@ void patchOldRig::updateUI()
 			"%s",
 			ftp_poly_mode ? "" : "MONO");
 	}
-
-
-    bool font_set = false;
-    for (int i=0; i<4; i++)
-    {
-        expressionPedal *pedal = thePedals.getPedal(i);
-        if (draw_full || pedal->displayValueChanged())
-        {
-            pedal->clearDisplayValueChanged();
-            int v = pedal->getValue();
-
-			// shows the frequency of UI vs MIDI messages on pedals
-			// display(0,"updateUI pedal(%d) changed to %d",i,v);
-
-            if (!font_set)
-            {
-                mylcd.setFont(Arial_40_Bold);   // Arial_40);
-                mylcd.Set_Text_colour(TFT_WHITE);
-                font_set = 1;
-            }
-
-            mylcd.printf_justified(
-                12+i*120,
-                260+14,
-                100,
-                45,
-                LCD_JUST_CENTER,
-                TFT_WHITE,
-                TFT_BLACK,
-				true,
-                "%d",
-                v);
-        }
-    }
 
 	// if quick mode changed, clear the whole display area
 	// title line is at 36, pedal names start at 230

@@ -24,21 +24,19 @@
 // which can also REACT to numbers sent to it, to go to a particular position, or
 // activate some haptic feedback feature or mode.
 //
-// Finally, now I am introducing "midi over serial" to the rPi looper
-// (on Serial3 from this teensy3.6) .. which has yet a different CC
-// number, but more importantly does not send anything out over the
-// main usb midi to the iPad ... but sends serial data, instead to the
-// teensy 3.2 inside the Looper which then relays it to the rPi.
+// Then there is "midi over serial" to the rPi looper (only for Looper volume pedal)
+// which has a hardwired "CC" and, instead of sending midi over USB, sends serial data,
+// to the teensy 3.2 inside the Looper which then relays it to the rPi.
 //
-// I *could* use the same CCs in the (current simpleminded) rPi implementation
-// (which bypasses my whole "midi sub system" thing that works over the rPi USB)
-// but I only want the loop pedal (pedal #2) to send CC 103 (0x67 = 0x65 + 2, where
-// 2 is CONTROL_LOOP_VOLUME on the rPi loopMachine object)
-//
-// Finally, each pedal, even with all that, has a set of three distinct
+// Also note that each pedal, even with all that, has a set of three distinct
 // programmable "curves", and all of the configuration *should* be
 // stored in EEPROM though NONE of the CC's are stored there at this
 // time (they are all in defines or spread throughout various code)
+//
+// Finally, with the introduction of the songMachine, there is a
+// "higher level" value which can be poked by the songMachine,
+// and will redisplay properly in expSystem UNTIL the pedal is
+// moved (and the actual underlying value changes) ...
 
 
 #define DEBUG_PEDALS  0
@@ -133,7 +131,9 @@ void expressionPedal::init(
 
     m_value = 0;
     m_valid = false;
-    m_last_value = -1;
+
+    m_display_value = 0;
+    m_last_display_value = -1;
 
     setPedalMode();
 }
@@ -393,23 +393,18 @@ void expressionPedal::poll()
             //     range_x,range_y,val_x,pct,val_y,value);
         }
 
-        #if 0   // old way
-            int calib_min = getPrefPedalCalibMin(m_num);
-            int calib_max = getPrefPedalCalibMax(m_num);
-            int value_min = getPrefPedalMin(m_num);
-            int value_max = getPrefPedalMax(m_num);
-            int value = map(m_raw_value,calib_min,calib_max,value_min,value_max);
-            if (value > value_max) value = value_max;
-            if (value < value_min) value = value_min;
-        #endif
+        // actual value changed
+        // overwrites the display value
 
         if (value != m_value)
         {
             m_value = value;
+            m_display_value = value;
+
             #if DEBUG_PEDALS
                 display(0,"pedal(%d) raw(%d) changed to %d",m_num,m_raw_value,m_value);
             #endif
-            // theSystem.pedalEvent(m_num,m_value);
+
             thePedals.pedalEvent(m_num,m_value);
         }
     }
@@ -441,8 +436,8 @@ void pedalManager::pedalEvent(int num, int value)
         }
     }
 
-    // if the Looper is in "relative volume mode" orchestrate
-    // the four messages to be sent here.
+    // if the Looper is in oldRig "relative volume mode"
+    // orchestrate the four messages to be sent here.
     // the CCs are currently SEQUENTIAL constants in oldRig_defs.h
 
     else if (num == PEDAL_LOOP && m_relative_loop_volume_mode)

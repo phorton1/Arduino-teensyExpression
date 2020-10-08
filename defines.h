@@ -207,4 +207,45 @@
 #define ansi_color_bg_white  		    107
 
 
+
+class int_rect
+{
+public:
+
+    int_rect()
+    {
+        xs = 0;
+        ys = 0;
+        xe = 0;
+        ye = 0;
+    }
+
+    int_rect(int ixs, int iys, int ixe, int iye)
+    {
+        xs = ixs;
+        ys = iys;
+        xe = ixe;
+        ye = iye;
+    }
+
+    void assign(int ixs, int iys, int ixe, int iye)
+    {
+        xs = ixs;
+        ys = iys;
+        xe = ixe;
+        ye = iye;
+    }
+
+
+    int width() { return xe-xs+1; }
+    int height()  { return ye-ys+1; }
+
+    int xs;
+    int ys;
+    int xe;
+    int ye;
+};
+
+
+
 #endif  // !__defines_h__

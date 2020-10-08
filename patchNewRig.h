@@ -23,6 +23,19 @@ class patchNewRig : public expWindow
 
         virtual bool onRotaryEvent(int num, int val);
 
+        // support for songMachine
+        // call with display_only=false from songMachine
+
+        static int findPatchByName(const char *patch_name);
+        void setPatchNumber(int patch_number);
+
+        void clearGuitarEffects(bool display_only);
+        void setGuitarEffect(int effect_num, bool on);
+
+        void clearLooper(bool display_only);
+            // other looper commands can be sent directly as
+            // LOOP_COMMANDs and the UI will pick them up
+
     private:
 
         virtual const char *name()          { return "New Rig"; }
@@ -42,7 +55,6 @@ class patchNewRig : public expWindow
         int  m_cur_bank_num;                     // synthesizer "bank" number (modal)
         int  m_cur_patch_num;                    // 0..23  (12 patches per bank, as defined by constants)
         int  m_last_set_poly_mode;
-
         int  m_guitar_state[NUM_GUITAR_EFFECTS];
 
         int  m_dub_mode;
@@ -79,8 +91,6 @@ class patchNewRig : public expWindow
         int m_last_erase_state[LOOPER_NUM_TRACKS];
 
         void resetDisplay();
-        void clearLooper();
-        void clearGuitarEffects();
         virtual void onSerialMidiEvent(int cc_num, int value);
 
         // static definitions
@@ -90,7 +100,14 @@ class patchNewRig : public expWindow
 
         static int patch_to_button(int patch_num);
         static int bank_button_to_patch(int bank, int button_num);
+
+        bool song_machine_running;
+
 };
 
+
+extern int_rect song_rect;
+extern patchNewRig *theNewRig;
+    // static globals for use by songMachine
 
 #endif // !__patchNewRig_h__
