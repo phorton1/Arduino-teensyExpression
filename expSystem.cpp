@@ -546,42 +546,9 @@ void expSystem::timer_handler()
 	thePedals.task();
 	pollRotary();
 
-	// serial midi events come in over Serial3
-	// that port *may* also be used by the fileSytem,
-	// or the fileSystem may come in over the main usb Serial port.
+	// check Serial3 for incoming midi or file commands
 
-	// Therefore, the fileSystem does a peek() and if the character
-	// is printable (or CR/LF), it eats it, but if not, it is still
-	// available for the midi event handling below.  The file system
-	// *may* shut down normal operations of pedals, rotaries, etc.
-
-	#if WITH_FILE_SYSTEM
-		fileSystem::task();
-	#endif
-
-	// TE ONLY expects 0x0B 4 byte packets
-	// If it sees a 0x0b, it eats 4 bytes
-
-	if (Serial3.available())
-	{
-		int p = Serial3.peek();
-
-		if (p == 0x0B)	// could be others in future
-		{
-			int c = Serial3.read();
-			display(dbg_exp+1,"expSystem got Serial3: chr=0x%02x '%c'",c,c>32?c:' ');
-
-			unsigned char midi_buf[4];
-			midi_buf[0] = c;
-			for (int i=0; i<3; i++)
-			{
-				while (!Serial3.available()) {fu++;}
-				midi_buf[i+1] = Serial3.read();
-			}
-			display_bytes(dbg_exp-1,"expSystem recv serial midi: ",midi_buf,4);
-		    theSystem.getCurPatch()->onSerialMidiEvent(midi_buf[2],midi_buf[3]);
-		}
-	}
+	theSystem.handleSerialData();
 
     // process incoming and outgoing midi events
 
@@ -798,3 +765,136 @@ void expSystem::updateUI()
 		display(dbg_exp,"midiActivity(%d)",port_num);
 	}
 #endif
+
+
+//--------------------------------------------------------
+// Serial Port Handler
+//--------------------------------------------------------
+// Polls Serial and Serial3 for data.
+// Data on Serial3 *may* be midi data (4 byte packet starting with 0x0b)
+// Data on either *may* be "file_command:.*"
+// Note that this implementation does not care about setting
+// of PREF_FILE_SYSTEM_PORT ... it will accept file commands
+// from either port.
+//
+// When a serial byte is received, this routine assumes a full
+// packet is following (4 bytes for midi, or <cr-lf> for text)
+// and reads the whole packet with blocking and a timeout
+
+#define MAX_BASE64_BUF  10240
+	// agreed upon in console.pm
+#define MAX_SERIAL_TEXT_LINE (MAX_BASE64_BUF+32)
+	// allow for "file_command:BASE64 " (13 + 6 + 1)
+
+
+#define SERIAL_TIMEOUT  200		   // ms
+char static_serial_buffer[MAX_SERIAL_TEXT_LINE+1];
+
+void expSystem::handleSerialData()
+{
+	// The main USB Serial is only expected to contain lines of text
+	// Serial3 may contain either.
+
+	int buf_ptr = 0;
+	bool is_midi = false;
+	bool started = false;
+	bool finished = false;
+	elapsedMillis line_timeout = 0;
+	bool from_serial3 = 0;
+
+	if (Serial.available())
+	{
+		started = true;
+		while (!finished && buf_ptr<MAX_SERIAL_TEXT_LINE && line_timeout<SERIAL_TIMEOUT)
+		{
+			if (Serial.available())
+			{
+				int c = Serial.read();
+				if (c == 0x0A)				// LF comes last
+				{
+					static_serial_buffer[buf_ptr++] = 0;
+					finished = 1;
+
+				}
+				else if (c != 0x0D)			// skip CR
+				{
+					static_serial_buffer[buf_ptr++] = c;
+					line_timeout = 0;
+				}
+			}
+		}
+	}
+	else if (Serial3.available())
+	{
+		started = true;
+		from_serial3 = 1;
+
+		int c = Serial3.read();
+		if (c == 0x0B)
+			is_midi = 1;
+		static_serial_buffer[buf_ptr++] = c;
+
+		line_timeout = 0;
+		while (!finished && buf_ptr<MAX_SERIAL_TEXT_LINE && line_timeout<SERIAL_TIMEOUT)
+		{
+			if (Serial3.available())
+			{
+				int c = Serial.read();
+				if (is_midi)
+				{
+					static_serial_buffer[buf_ptr++] = c;
+					line_timeout = 0;
+					if (buf_ptr == 4)
+						finished = 1;
+				}
+				else if (c == 0x0A)			// LF comesl last
+				{
+					static_serial_buffer[buf_ptr++] = 0;
+					finished = 1;
+				}
+				else if (c != 0x0D)			// skip CR
+				{
+					static_serial_buffer[buf_ptr++] = c;
+					line_timeout = 0;
+				}
+			}
+		}
+	}
+
+
+	if (started && !finished)
+	{
+		my_error("Could not finish serial input from_serial3(%d) is_midi(%d) buf_ptr(%d) %s",
+			from_serial3,
+			is_midi,
+			buf_ptr,
+			line_timeout>SERIAL_TIMEOUT ? "TIMEOUT" : "");
+		display_bytes(0,"BUF",(uint8_t*)static_serial_buffer,buf_ptr);
+	}
+	else if (finished && is_midi)
+	{
+		display_bytes(dbg_exp-1,"expSystem recv serial midi: ",(uint8_t*)static_serial_buffer,4);
+		theSystem.getCurPatch()->onSerialMidiEvent(static_serial_buffer[2],static_serial_buffer[3]);
+	}
+	else if (finished)
+	{
+		if (!strncmp(static_serial_buffer,"file_command:",13))
+		{
+			char *p_command = &static_serial_buffer[13];
+			char *p_param = p_command;
+			while (*p_param && *p_param != ' ') p_param++;
+			if (*p_param == ' ') *p_param++ = 0;
+			fileSystem::handleFileCommand(p_command,p_param);
+		}
+		else
+		{
+			static_serial_buffer[buf_ptr+1] = 0;
+			my_error("expSystem got unexpected serial data from_serial3(%d) is_midi(%d) buf_ptr(%d) %s",
+				from_serial3,
+				is_midi,
+				buf_ptr,
+				line_timeout>SERIAL_TIMEOUT ? "TIMEOUT" : "");
+			display_bytes(0,"BUF",(uint8_t*)static_serial_buffer,buf_ptr);
+		}
+	}
+}

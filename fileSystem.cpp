@@ -18,21 +18,17 @@
     // It "works" when this is on (0), but "not" when 1 (debugging turned off)
 
 
-#define MAX_FILE_SYSTEM_COMMAND 512
-    // maximum size of a line of text received over serial
 
 SdFatSdio SD;
     // SdFatSdio uses a traditional DMA SDIO implementation.
     // SdFatSdioEX SD; // SdFatSdioEX uses extended multi-block transfers without DMA.
     // Note the difference is speed and busy yield time.
     // Teensy 3.5 & 3.6 SDIO: 4 to 5 times the throughput using the 4-bit SDIO mode compared to the 1-bit SPI mode
+
 Stream *s_Serial = 0;
-    // passed in during init() ... the stream we are talking to
+    // The serial port to send commands to.
+    // Determined by preference.
 
-// the buffer for serial lines
-
-int file_system_line_ptr = 0;
-char file_system_line_buffer[MAX_FILE_SYSTEM_COMMAND+3];
 
 // state of current put
 
@@ -435,7 +431,13 @@ void dtCallback(uint16_t* date, uint16_t* time)
 
 
 
-void handleFileCommand(const char *command, const char *param)
+#define MAX_DECODED_BUF   10240
+    // the decoded base64 will always be less than the raw base64
+    // and 10240 is agreed upon between console.pm and teensyExpression.
+unsigned char decode_buf[MAX_DECODED_BUF];
+
+
+void fileSystem::handleFileCommand(const char *command, const char *param)
 {
     // DIRECTORY LIST
 
@@ -771,9 +773,6 @@ void handleFileCommand(const char *command, const char *param)
     {
         display(dbg_tfs,"base64 offset=%d",write_offset);
 
-        #define DECODED_BYTES   100
-
-        unsigned char decode_buf[DECODED_BYTES];
         int decoded_size = base64_decode((char *)decode_buf,(char *)param,strlen(param));
         int bytes_written = write_file.write(decode_buf,decoded_size);
 
@@ -929,51 +928,6 @@ void handleFileCommand(const char *command, const char *param)
 }
 
 
-
-//==================================================
-// task()
-//==================================================
-
-void fileSystem::task()
-{
-    // buffer incoming serial text commands
-    // using peek() and accepting any printable/CR/LF characters
-
-    if (!s_Serial)
-        return;
-    if (!s_Serial->available())
-        return;
-
-    int p = s_Serial->peek();
-    if (p>=32 || p==0x0D || p==0x0A)
-    {
-        int c = s_Serial->read();
-        if (c == 0x0A)  // ignore it
-        {
-        }
-        else if (c == 0x0D || file_system_line_ptr >= MAX_FILE_SYSTEM_COMMAND)
-        {
-            file_system_line_buffer[file_system_line_ptr++] = 0;
-            display(dbg_tfs,"fileSystem got: %s",file_system_line_buffer);
-            if (!strncmp(file_system_line_buffer,"file_command:",13))
-            {
-                char *p_command = &file_system_line_buffer[13];
-                char *p_param = p_command;
-                while (*p_param && *p_param != ' ') p_param++;
-                if (*p_param == ' ') *p_param++ = 0;
-                handleFileCommand(p_command,p_param);
-            }
-            file_system_line_buffer[0] = 0;
-            file_system_line_ptr = 0;
-
-        }
-        else
-        {
-            display(dbg_tfs+1,"fileSystem got s_Serial: chr=0x%02x '%c'",c,c>32?c:' ');
-            file_system_line_buffer[file_system_line_ptr++] = c;
-        }
-    }
-}
 
 
 // end of fileSystem.cpp

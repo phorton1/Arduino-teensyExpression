@@ -141,6 +141,8 @@ class expSystem
 
         int m_tempo;
 
+        void handleSerialData();
+
 };
 
 

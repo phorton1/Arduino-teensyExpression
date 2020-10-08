@@ -15,10 +15,11 @@ class fileSystem
 public:
 
    static bool init();
-   static void task();
 
    static uint32_t getFreeMB();
    static uint32_t getTotalMB();
+
+   static void handleFileCommand(const char *command, const char *param);
 
 };
 
