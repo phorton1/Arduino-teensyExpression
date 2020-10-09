@@ -55,10 +55,10 @@ void setDefaultPrefs()
 {
     _setDefaultPref8(PREF_BRIGHTNESS,        1,100, 30);    // 1..100 - default(30)
 
-    // use the existing max and strings for PREF_PATCH_NUM
+    // use the existing max and strings for PREF_RIG_NUM
     // which gets setup in expSystem::begin()
 
-    _setDefaultPref8(PREF_PATCH_NUM,         0,pref_max[PREF_PATCH_NUM], 1, pref_strings[PREF_PATCH_NUM]);
+    _setDefaultPref8(PREF_RIG_NUM,         0,pref_max[PREF_RIG_NUM], 1, pref_strings[PREF_RIG_NUM]);
         // 0..0 - default(1) .. better be some patches!
     _setDefaultPref8(PREF_DEBUG_PORT,        0,2,   1,  off_usb_serial);            // off, USB, Serial - default(USB)
     _setDefaultPref8(PREF_FILE_SYSTEM_PORT,  0,1,   0,  file_system_ports);         // MainUSB or AlternateSerial port

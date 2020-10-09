@@ -26,7 +26,7 @@
 //  TIMER_HANDLER
 //
 //      polls the buttons, rotaries, and pedals generating "events"
-//      based on them.   The patches (window) can "handle" those
+//      based on them.   The rigs (window) can "handle" those
 //      events, otherwise system functionality takes place.
 //
 //      the timer_handler also dequeues and prodesses midi messages
@@ -40,10 +40,10 @@
 //      *should* implement the midi monitor in expSystem base class.
 //
 //
-// PATCHES vs WINDOWS vs the configSystem object
+// RIGS vs WINDOWS vs the configSystem object
 //
-//     "Patches" are "top levell" expWindows that use 1 based numbering
-//     The configSystem object overuses patch #0 in current implementation.
+//     "Rigs" are "top levell" expWindows that use 1 based numbering
+//     The configSystem object overuses rig #0 in current implementation.
 //
 //     "Windows" are modal dialog windows with a return value mechanism
 //     that can be invoked in a stack-like manner.
@@ -56,14 +56,14 @@
 // THE_SYSTEM_BUTTON
 //
 //     The top right button has been delegated to the system and should be used
-//     consistently.  It is always "purple" in patches and the system configuration.
+//     consistently.  It is always "purple" in rigs and the system configuration.
 //
-//     In a patch, a long press means "go to the system configuration
+//     In a rig, a long press means "go to the system configuration
 //     window" (settings) and a short click, if using an FTP controller, goes to
 //     ftp tuner/sensitivity window pair.
 //
 //     In the system configuration window, a long press means "save the settings
-//     persistently" and a short click means "return to the patch".  The button
+//     persistently" and a short click means "return to the rig".  The button
 //     next to it is used as cancel on a short click, and reboot system on a
 //     long click.
 //
@@ -90,9 +90,9 @@
 //      Brightness          nn
 //          has quick keys
 //          is only implement "integerOption" with a terminal mode
-//      Patch               name
-//          has quick keys for patches 1-5
-//          other patches can be accessed with option
+//      Rig                name
+//          has quick keys for rigs 1-5
+//          other rigs can be accessed with option
 //
 //      FTP
 //          Spoof FTP       ON/OFF
@@ -123,7 +123,7 @@
 //          Sensitivity -> modal window, quick key lower left
 //
 //              I am torn with having these be tied to a "quick key
-//              available in any patch window (i.e. CLICK on the upper
+//              available in any rig window (i.e. CLICK on the upper
 //              right button, and a way to change between them as modal
 //              windows).
 //
@@ -131,7 +131,7 @@
 //                  the FTP "Touch Sensitivity" parameter which is NOT a split
 //                  parameter, AND have a tendency to think that the
 //                  dynamic range (sensitivity) and offset, and touch sensitivity,
-//                  will need to be overridable by patches.
+//                  will need to be overridable by rigs.
 //
 //             the string sensitivity is stored on the FTP controller,
 //                  but the dynamic range, dynamic offset, and touch sensitivity,
@@ -145,7 +145,7 @@
 //                  Having it buried here as an option is obtuse.
 //                  It really should be related to the specific
 //
-//                  sampletank-patch seleced in my patchOldRig,
+//                  sampletank-patch selected in my rigOld,
 //                  and there should be a whole new bank of sampleTank
 //                  patch numbers to play with
 //
@@ -164,7 +164,7 @@
 //               Pedal2  -> modal window
 //               Pedal3  -> modal window
 //               Pedal4  -> modal window
-//          Configure Pedals (default configuration can be overridden by patches?!?)
+//          Configure Pedals (default configuration can be overridden by rigs?!?)
 //               Pedal1  -> modal window
 //               Pedal2  -> modal window
 //               Pedal3  -> modal window
@@ -198,8 +198,8 @@
 //
 //      Brightness          nn                      default(50)
 //                  PREF_BRIGHTNESS
-//      Patch               name                    default(1=OldRig)
-//                  PREF_PATCH_NUM
+//      Rig                name                    default(1=OldRig)
+//                  PREF_RIG_NUM
 //      FTP
 //          Mode            DEFAULT/MONO/POLY       default(255=take whatever is found on device, 1=poly, 0=mono)
 //                  PREF_FTP_POLY_MODE
@@ -253,7 +253,7 @@
 //               Pedal2  -> modal window
 //               Pedal3  -> modal window
 //               Pedal4  -> modal window
-//          Configure Pedals (default configuration can be overridden by patches?!?)
+//          Configure Pedals (default configuration can be overridden by rigs?!?)
 //               Pedal1  -> modal window
 //               Pedal2  -> modal window
 //               Pedal3  -> modal window
@@ -303,7 +303,7 @@
 //
 
 
-//     Rotaries are considered to be available to patches and
+//     Rotaries are considered to be available to rigs and
 //         are not used in the sysConfig or other 'built-in' UI.
 //         The whole notion of "curves" on rotaries may need to be
 //         addressed.

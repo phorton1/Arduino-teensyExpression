@@ -1,5 +1,5 @@
 #include <myDebug.h>
-#include "patchMidiHost.h"
+#include "rigMidiHost.h"
 #include "defines.h"
 #include "myTFT.h"
 #include "myLeds.h"
@@ -30,7 +30,7 @@
 // life cycle
 //------------------------------------------------------------
 
-patchMidiHost::patchMidiHost()
+rigMidiHost::rigMidiHost()
 {
 	dbg_bank_num = 0;
 	dbg_patch_num = 0;
@@ -40,7 +40,7 @@ patchMidiHost::patchMidiHost()
 }
 
 
-void patchMidiHost::init()
+void rigMidiHost::init()
 {
 	draw_needed = 1;
 	for (int i=0; i<NUM_STRINGS; i++)
@@ -54,7 +54,7 @@ void patchMidiHost::init()
 
 
 // virtual
-void patchMidiHost::begin(bool warm)
+void rigMidiHost::begin(bool warm)
 {
 	init();
 	// initFTPifNeeded();
@@ -80,7 +80,7 @@ void patchMidiHost::begin(bool warm)
 
 
 // virtual
-void patchMidiHost::end()
+void rigMidiHost::end()
 {
 }
 
@@ -90,7 +90,7 @@ void patchMidiHost::end()
 // events
 //------------------------------------------------------------
 
-void patchMidiHost::myIncDec(int inc, uint8_t *val)
+void rigMidiHost::myIncDec(int inc, uint8_t *val)
 {
 	int i = *val;
 	i += inc;
@@ -105,7 +105,7 @@ void patchMidiHost::myIncDec(int inc, uint8_t *val)
 
 
 // virtual
-void patchMidiHost::onButtonEvent(int row, int col, int event)
+void rigMidiHost::onButtonEvent(int row, int col, int event)
 {
 	int num = row * NUM_BUTTON_COLS + col;
 	if (num == PAD1_UP || num == PAD1_DOWN)
@@ -230,7 +230,7 @@ void patchMidiHost::onButtonEvent(int row, int col, int event)
 //------------------------------------------------------------
 
 
-void patchMidiHost::vel2ToInts(int *vel, int *velocity)
+void rigMidiHost::vel2ToInts(int *vel, int *velocity)
 	// move the vel2 and velocity values from notes to local variable
 	// and only change vel by 1 in the process
 {
@@ -283,7 +283,7 @@ void patchMidiHost::vel2ToInts(int *vel, int *velocity)
 #define SENS_COLOR_MIDI_VEL     TFT_RGB_COLOR(0xff,0xff,0xff)
 
 
-void patchMidiHost::drawBox(int string, int box32, int vel16)
+void rigMidiHost::drawBox(int string, int box32, int vel16)
 {
 	bool on = (box32/2) < vel16;
 	int color =
@@ -303,7 +303,7 @@ void patchMidiHost::drawBox(int string, int box32, int vel16)
 
 
 // virtual
-void patchMidiHost::updateUI()	// draw
+void rigMidiHost::updateUI()	// draw
 {
 	bool full_draw = 0;
 	if (draw_needed)

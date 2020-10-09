@@ -10,8 +10,8 @@
 // Pedals
 //----------------------------------
 // for the time being there is one set of values for the pedals
-// across all patches.  An idea is then to have "pedal sets"
-// that can be shared between different patches while still
+// across all rigs.  An idea is then to have "pedal sets"
+// that can be shared between different rigs while still
 // allowing for multiple definitions.
 
 #define KEYPAD_UP      12

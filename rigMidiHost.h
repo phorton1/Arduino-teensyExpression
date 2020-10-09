@@ -1,14 +1,14 @@
-#ifndef _patchMidiHost_h_
-#define _patchMidiHost_h_
+#ifndef _rigMidiHost_h_
+#define _rigMidiHost_h_
 
 #include "expSystem.h"
 
 
-class patchMidiHost : public expWindow
+class rigMidiHost : public expWindow
 {
     public:
 
-        patchMidiHost();
+        rigMidiHost();
 
     private:
 
@@ -40,4 +40,4 @@ class patchMidiHost : public expWindow
 };
 
 
-#endif      // !_patchMidiHost_h_
+#endif      // !_rigMidiHost_h_

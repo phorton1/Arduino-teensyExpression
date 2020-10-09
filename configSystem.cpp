@@ -17,11 +17,11 @@
 #define BUTTON_EXIT_CANCEL      3
 #define BUTTON_EXIT_DONE        4
 
-#define ROW_CONFIGS             1
-#define FIRST_PATCH_BUTTON     (ROW_CONFIGS * NUM_BUTTON_COLS)
-#define MAX_SHOWN_PATCHES		5
+#define ROW_RIGS             1
+#define FIRST_RIG_BUTTON     (ROW_RIGS * NUM_BUTTON_COLS)
+#define MAX_SHOWN_RIGS		5
 
-#define GROUP_PATCH_NUMS  		1
+#define GROUP_RIG_NUMS  		1
 
 configOption *rootOption = 0;
 configOption *cur_menu = 0;
@@ -65,7 +65,7 @@ void createOptions()
 			PREF_BRIGHTNESS,
 			setLEDBrightness);
 
-		new configOption(rootOption,"Patch", OPTION_TYPE_CONFIG_NUM, PREF_PATCH_NUM);
+		new configOption(rootOption,"Rig", OPTION_TYPE_RIG_NUM, PREF_RIG_NUM);
 
 		configOption *optFTP = new configOption(rootOption,"FTP");
 		new configOption (optFTP,"Spoof FTP",	   OPTION_TYPE_NEEDS_REBOOT, PREF_SPOOF_FTP);
@@ -206,16 +206,16 @@ void configSystem::begin(bool warm)
 	theButtons.setButtonType(BUTTON_MOVE_RIGHT,	BUTTON_EVENT_PRESS);
 	theButtons.setButtonType(BUTTON_SELECT,	    BUTTON_EVENT_CLICK, 	LED_GREEN);
 
-    // setup the patch_num button row
+    // setup the rig_num button row
 
-    int num_show = theSystem.getNumPatches()-1;
-    if (num_show >= MAX_SHOWN_PATCHES) num_show = MAX_SHOWN_PATCHES;
+    int num_show = theSystem.getNumRigs()-1;
+    if (num_show >= MAX_SHOWN_RIGS) num_show = MAX_SHOWN_RIGS;
     for (int i=0; i<num_show; i++)
-        theButtons.setButtonType(FIRST_PATCH_BUTTON+i,BUTTON_TYPE_RADIO(GROUP_PATCH_NUMS));
+        theButtons.setButtonType(FIRST_RIG_BUTTON+i,BUTTON_TYPE_RADIO(GROUP_RIG_NUMS));
 
-	int patch_num = getPref8(PREF_PATCH_NUM);
-    if (patch_num && patch_num<=MAX_SHOWN_PATCHES)
-        theButtons.select(FIRST_PATCH_BUTTON+patch_num-1,1);
+	int rig_num = getPref8(PREF_RIG_NUM);
+    if (rig_num && rig_num<=MAX_SHOWN_RIGS)
+        theButtons.select(FIRST_RIG_BUTTON+rig_num-1,1);
 
     // finished
     // do not call draw() here!
@@ -329,10 +329,10 @@ void configSystem::onButtonEvent(int row, int col, int event)
 
             setLEDBrightness(getPref8(PREF_BRIGHTNESS));
 
-			// whereas there may be other ways to change the patch number
+			// whereas there may be other ways to change the rig number
 			// so it *might* not have been saved since last time ...
 
-            theSystem.activatePatch(theSystem.getPrevConfigNum());
+            theSystem.activateRig(theSystem.getPrevRigNum());
 
         }
     }
@@ -349,7 +349,7 @@ void configSystem::onButtonEvent(int row, int col, int event)
             }
         }
 
-        theSystem.activatePatch(getPref8(PREF_PATCH_NUM));
+        theSystem.activateRig(getPref8(PREF_RIG_NUM));
     }
 
 	// do something
@@ -373,15 +373,15 @@ void configSystem::onButtonEvent(int row, int col, int event)
 			{
 				cur_option->incValue(1);
 
-				// highlight the patch quick key
+				// highlight the rig quick key
 
-				if (cur_option->type & OPTION_TYPE_CONFIG_NUM)
+				if (cur_option->type & OPTION_TYPE_RIG_NUM)
 				{
-					int value = getPref8(PREF_PATCH_NUM);
-					if (value && value <= MAX_SHOWN_PATCHES)
-						theButtons.select(FIRST_PATCH_BUTTON+value-1,1);
+					int value = getPref8(PREF_RIG_NUM);
+					if (value && value <= MAX_SHOWN_RIGS)
+						theButtons.select(FIRST_RIG_BUTTON+value-1,1);
 					else
-						theButtons.clearRadioGroup(GROUP_PATCH_NUMS);
+						theButtons.clearRadioGroup(GROUP_RIG_NUMS);
 					showLEDs();
 				}
 
@@ -407,9 +407,9 @@ void configSystem::onButtonEvent(int row, int col, int event)
 			optBrightness->setValue(getPref8(PREF_BRIGHTNESS) + inc);
 		}
 
-		else if (row == ROW_CONFIGS)
+		else if (row == ROW_RIGS)
 		{
-			setPref8(PREF_PATCH_NUM,col + 1);
+			setPref8(PREF_RIG_NUM,col + 1);
 		}
 
 	}	// enabled
@@ -468,7 +468,7 @@ void configSystem::updateUI()
         mylcd.Fill_Screen(0);
 
         if (cur_option->pParent == rootOption)
-            theSystem.setTitle(theSystem.getCurPatch()->name());
+            theSystem.setTitle(theSystem.getCurRig()->name());
         else
         {
             configOption *opt = cur_option->pParent;

@@ -1,5 +1,5 @@
 #include "songMachine.h"
-#include "patchNewRig.h"
+#include "rigNew.h"
 #include "myDebug.h"
 #include "myTFT.h"
 
@@ -140,7 +140,7 @@ void songMachine::notifyLoop()
 
 
 void songMachine::task()
-    // called approx 30 times per second from patchNewRig::updateUI()
+    // called approx 30 times per second from rigNew::updateUI()
 {
     if (strcmp(display_song_name,song_name))
     {

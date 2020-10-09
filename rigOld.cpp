@@ -1,4 +1,4 @@
-#include "patchOldRig.h"
+#include "rigOld.h"
 #include <myDebug.h>
 #include "defines.h"
 #include "myLeds.h"
@@ -60,7 +60,7 @@
 #define NUM_PATCHES_PER_BANK (NUM_PATCH_COLS * NUM_PATCH_ROWS)
 
 // static
-int patchOldRig::patch_to_button(int patch_num)
+int rigOld::patch_to_button(int patch_num)
 {
 	patch_num %= NUM_PATCHES_PER_BANK;
 	int col = patch_num / NUM_PATCH_ROWS;
@@ -73,7 +73,7 @@ int patchOldRig::patch_to_button(int patch_num)
 
 
 // stati
-int patchOldRig::bank_button_to_patch(int bank, int button_num)
+int rigOld::bank_button_to_patch(int bank, int button_num)
 	// returns -1 if the button is not a patch button
 {
 	int patch = -1;
@@ -91,7 +91,7 @@ int patchOldRig::bank_button_to_patch(int bank, int button_num)
 }
 
 
-synthPatch_t patchOldRig::synth_patch[NUM_SYNTH_BANKS * NUM_SYNTH_PATCHES] = {
+synthPatch_t rigOld::synth_patch[NUM_SYNTH_BANKS * NUM_SYNTH_PATCHES] = {
 
 	// bank 0, starting with highest priorty bass sounds
 	// INDEX IS BY POSITION (first parameter, included for clarity, is ignored)
@@ -138,7 +138,7 @@ synthPatch_t patchOldRig::synth_patch[NUM_SYNTH_BANKS * NUM_SYNTH_PATCHES] = {
 // toneStack
 //----------------
 
-int patchOldRig::guitar_effect_ccs[NUM_BUTTON_COLS] = {
+int rigOld::guitar_effect_ccs[NUM_BUTTON_COLS] = {
     GUITAR_DISTORTION_EFFECT_CC,
     GUITAR_WAH_EFFECT_CC,
     GUITAR_FLANGER_EFFECT_CC,
@@ -151,7 +151,7 @@ int patchOldRig::guitar_effect_ccs[NUM_BUTTON_COLS] = {
 // Quantiloop
 //----------------
 
-int patchOldRig::loop_ccs[NUM_BUTTON_COLS] =
+int rigOld::loop_ccs[NUM_BUTTON_COLS] =
 {
     LOOP_CONTROL_TRACK1,
     LOOP_CONTROL_TRACK2,
@@ -167,10 +167,10 @@ int patchOldRig::loop_ccs[NUM_BUTTON_COLS] =
 
 
 //====================================================================
-// patchOldRig
+// rigOld
 //====================================================================
 
-patchOldRig::patchOldRig() :
+rigOld::rigOld() :
 	expWindow(WIN_FLAG_SHOW_PEDALS)
 {
     m_quick_mode = false;
@@ -191,7 +191,7 @@ patchOldRig::patchOldRig() :
 
 
 // virtual
-void patchOldRig::end()
+void rigOld::end()
 {
 	// save off the button states
 	for (int i=0; i<NUM_BUTTON_ROWS * NUM_BUTTON_COLS; i++)
@@ -203,7 +203,7 @@ void patchOldRig::end()
 
 
 // virtual
-void patchOldRig::begin(bool warm)
+void rigOld::begin(bool warm)
 {
     expWindow::begin(warm);
 
@@ -276,7 +276,7 @@ void patchOldRig::begin(bool warm)
 
 
 
-void patchOldRig::startQuickMode()
+void rigOld::startQuickMode()
 {
 	end();	// save off the button state
 	for (int c=0; c<4; c++)
@@ -290,12 +290,12 @@ void patchOldRig::startQuickMode()
 }
 
 
-void patchOldRig::endQuickMode()
+void rigOld::endQuickMode()
 {
 	m_quick_mode = false;		// may be called from updateUI
 	begin(true);
 	// restore the system button after begin() ...
-	// normally done in expSystem::activatePatch)()
+	// normally done in expSystem::activateRig)()
 	theButtons.getButton(0,THE_SYSTEM_BUTTON)->m_event_mask |= BUTTON_EVENT_LONG_CLICK;
 	for (int i=0; i<4; i++)
 		m_last_relative_vol[i] = -1;
@@ -304,7 +304,7 @@ void patchOldRig::endQuickMode()
 
 
 // virtual
-void patchOldRig::onButtonEvent(int row, int col, int event)
+void rigOld::onButtonEvent(int row, int col, int event)
 {
 	int num = row * NUM_BUTTON_COLS + col;
 
@@ -450,7 +450,7 @@ void patchOldRig::onButtonEvent(int row, int col, int event)
 			if (event == BUTTON_EVENT_PRESS ||
 				event == BUTTON_EVENT_CLICK)
 			{
-				sendSerialControlChange(loop_ccs[col],0x7f,"patchOldRig Loop Button");
+				sendSerialControlChange(loop_ccs[col],0x7f,"rigOld Loop Button");
 					// sends out cc_nums 21, 22, 23, 31, and 25 for the 5 buttons left to right
 			}
 
@@ -505,7 +505,7 @@ void patchOldRig::onButtonEvent(int row, int col, int event)
 
 
 // virtual
-void patchOldRig::updateUI()
+void rigOld::updateUI()
 {
 	if (m_quick_mode && m_quick_mode_time > QUICK_MODE_TIMEOUT)
 	{
@@ -653,9 +653,9 @@ void patchOldRig::updateUI()
 //-------------------------------------
 
 // virtual
-bool patchOldRig::onRotaryEvent(int num, int val)
+bool rigOld::onRotaryEvent(int num, int val)
 {
-	display(0,"patchOldRig::onRotaryEvent(%d,%d)",num,val);
+	display(0,"rigOld::onRotaryEvent(%d,%d)",num,val);
 
 	// send the value out on CC's 101 thru 105
 	// mapped from rotary controls
@@ -678,6 +678,6 @@ bool patchOldRig::onRotaryEvent(int num, int val)
 		num == 2 ? RPI_CONTROL_THRU_VOLUME :
 		RPI_CONTROL_MIX_VOLUME;
 
-	sendSerialControlChange(control_num + RPI_CONTROL_NUM_CC_OFFSET,val,"patchOldRig Rotary Control");
+	sendSerialControlChange(control_num + RPI_CONTROL_NUM_CC_OFFSET,val,"rigOld Rotary Control");
 	return true;
 }

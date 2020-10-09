@@ -1,5 +1,5 @@
 #include "songMachine.h"
-#include "patchNewRig.h"
+#include "rigNew.h"
 #include "myDebug.h"
 #include <SdFat.h>
 

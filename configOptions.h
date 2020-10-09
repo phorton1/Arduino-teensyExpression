@@ -8,8 +8,8 @@
 #define OPTION_TYPE_NEEDS_REBOOT    0x4000
     // sets static reboot_needed bit if setValue or incValue called on option,
     // which is used by configSystem to reboot on long click THE_SYSTEM_BUTTON
-#define OPTION_TYPE_CONFIG_NUM      0x0002
-    // used to flag special behavior in configSystem.cpp to set the patch
+#define OPTION_TYPE_RIG_NUM      0x0002
+    // used to flag special behavior in configSystem.cpp to set the rig
     // quick buttons when BUTTON_SELECT is pressed.
 
 

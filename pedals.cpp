@@ -9,13 +9,13 @@
 // 2020-09-20 prh I am not thrilled with the encapsulation of pedals at this time.
 //
 // The situation is fairly complex.  It is made more complex firstly by
-// my notion of "patches" which can have theoretically different pedal
+// my notion of "rigs" which can have theoretically different pedal
 // configurations, i.e. different CC's between the "old rig" and the
-// "new rig" patches. This is coupled with the fact that you want the
-// pedals to keep working when you change to the "configuration patch".
+// "new rig". This is coupled with the fact that you want the
+// pedals to keep working when you change to the configuration "rig".
 //
 // So, there is a global state for the pedals maintained in this object,
-// which can be "poked" by changing "patches".
+// which can be "poked" by changing "rigs".
 //
 // Another level of complexity is the experimental "AUTO_PEDAL" implementation,
 // for my motorized foot pedals with haptic feedback.  In this case, the teensy

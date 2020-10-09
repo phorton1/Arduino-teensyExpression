@@ -17,7 +17,7 @@
 // These define are also the locations in EEPROM of these items
 
 #define PREF_BRIGHTNESS         0           // 1..100 - default(40)
-#define PREF_PATCH_NUM          1           // 0..254 - default(1)
+#define PREF_RIG_NUM            1           // 0..254 - default(1)
 #define PREF_DEBUG_PORT         2           // off, USB, Serial - default(USB)
 #define PREF_FILE_SYSTEM_PORT   3
 #define PREF_SPOOF_FTP          4           // off, on - default(off)

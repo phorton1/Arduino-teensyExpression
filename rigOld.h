@@ -1,5 +1,5 @@
-#ifndef __patchOldRig_h__
-#define __patchOldRig_h__
+#ifndef __rigOld_h__
+#define __rigOld_h__
 
 #include "expSystem.h"
 #include "oldRig_defs.h"
@@ -31,11 +31,11 @@
 #define NUM_SYNTH_PATCHES 12
 
 
-class patchOldRig : public expWindow
+class rigOld : public expWindow
 {
     public:
 
-        patchOldRig();
+        rigOld();
 
         virtual bool onRotaryEvent(int num, int val);
 
@@ -87,4 +87,4 @@ class patchOldRig : public expWindow
 };
 
 
-#endif // !__patchOldRig_h__
+#endif // !__rigOld_h__

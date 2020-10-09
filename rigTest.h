@@ -1,14 +1,14 @@
-#ifndef __patchTest_h__
-#define __patchTest_h__
+#ifndef __rigTest_h__
+#define __rigTest_h__
 
 #include "expSystem.h"
 
 
-class patchTest : public expWindow
+class rigTest : public expWindow
 {
     public:
 
-        patchTest() {}
+        rigTest() {}
 
     private:
 
@@ -20,4 +20,4 @@ class patchTest : public expWindow
 };
 
 
-#endif // !__patchTest_h__
+#endif // !__rigTest_h__

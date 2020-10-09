@@ -13,10 +13,10 @@
 #include "midiQueue.h"
 
 #include "configSystem.h"
-#include "patchOldRig.h"
-#include "patchNewRig.h"
-#include "patchTest.h"
-#include "patchMidiHost.h"
+#include "rigOld.h"
+#include "rigNew.h"
+#include "rigTest.h"
+#include "rigMidiHost.h"
 
 #define WITH_FILE_SYSTEM    1
 
@@ -141,7 +141,7 @@
 //    the system is non functional
 
 expSystem theSystem;
-const char *patch_names[MAX_EXP_PATCHES];
+const char *rig_names[MAX_EXP_RIGS];
 
 //----------------------------------------
 // expWindow (base class)
@@ -176,9 +176,9 @@ expSystem::expSystem()
 {
 	m_tempo = 0;
 
-    m_num_patches = 0;
-    m_cur_patch_num = -1;
-    m_prev_patch_num = 0;
+    m_num_rigs = 0;
+    m_cur_rig_num = -1;
+    m_prev_rig_num = 0;
 
 	m_num_modals = 0;
 
@@ -191,8 +191,8 @@ expSystem::expSystem()
 	draw_title = 1;
 	m_title = 0;
 
-    for (int i=0; i<MAX_EXP_PATCHES; i++)
-        m_patches[i] = 0;
+    for (int i=0; i<MAX_EXP_RIGS; i++)
+        m_rigs[i] = 0;
 }
 
 
@@ -205,22 +205,22 @@ void expSystem::setTitle(const char *title)
 
 void expSystem::begin()
 {
-    addPatch(new configSystem());
-    addPatch(new patchNewRig());
-    addPatch(new patchOldRig());
-    addPatch(new patchTest());
-    addPatch(new patchMidiHost());
+    addRig(new configSystem());
+    addRig(new rigNew());
+    addRig(new rigOld());
+    addRig(new rigTest());
+    addRig(new rigMidiHost());
 
 	for (int i=0; i<NUM_PORTS; i++)
 	{
 		midi_activity[i] = millis();
 		last_midi_activity[i] = 0;
 	}
-	for (int i=0; i<m_num_patches; i++)
-		patch_names[i] = m_patches[i]->short_name();
+	for (int i=0; i<m_num_rigs; i++)
+		rig_names[i] = m_rigs[i]->short_name();
 
-	setPrefMax(PREF_PATCH_NUM,m_num_patches-1);
-	setPrefStrings(PREF_PATCH_NUM,patch_names);
+	setPrefMax(PREF_RIG_NUM,m_num_rigs-1);
+	setPrefStrings(PREF_RIG_NUM,rig_names);
 
     theButtons.init();
 	thePedals.init();
@@ -230,15 +230,15 @@ void expSystem::begin()
 
     setLEDBrightness(getPref8(PREF_BRIGHTNESS));
 
-    // get config_num from prefs and activate it
+    // get rig_num from prefs and activate it
 
-    int patch_num = getPref8(PREF_PATCH_NUM);
-    if (patch_num >= m_num_patches)
-        patch_num = m_num_patches - 1;
+    int rig_num = getPref8(PREF_RIG_NUM);
+    if (rig_num >= m_num_rigs)
+        rig_num = m_num_rigs - 1;
 
-    // patch_num = 0;
+    // rig_num = 0;
         // override prefs setting
-        // for working on a particular patch
+        // for working on a particular rig
 
     m_timer.priority(EXP_TIMER_PRIORITY);
     m_timer.begin(timer_handler,EXP_TIMER_INTERVAL);
@@ -247,7 +247,7 @@ void expSystem::begin()
     m_critical_timer.begin(critical_timer_handler,EXP_CRITICAL_TIMER_INTERVAL);
         // start the timer
 
-    activatePatch(patch_num);
+    activateRig(rig_num);
         // show the first windw
 
 	fileSystem::init();
@@ -255,55 +255,55 @@ void expSystem::begin()
 
 
 //-------------------------------------------------
-// Patch management
+// Rig management
 //-------------------------------------------------
 
-void expSystem::addPatch(expWindow *pConfig)
+void expSystem::addRig(expWindow *pRig)
 {
-    if (m_num_patches >= MAX_EXP_PATCHES + 1)
+    if (m_num_rigs >= MAX_EXP_RIGS + 1)
     {
-        my_error("TOO MANY PATCHES! %d",m_num_patches+1);
+        my_error("TOO MANY RIGS! %d",m_num_rigs+1);
         return;
     }
-    m_patches[m_num_patches++] = pConfig;
+    m_rigs[m_num_rigs++] = pRig;
 }
 
 
-void expSystem::activatePatch(int i)
+void expSystem::activateRig(int i)
 {
-    if (m_cur_patch_num >= m_num_patches)
+    if (m_cur_rig_num >= m_num_rigs)
     {
-        my_error("attempt to activate illegal patch number %d",i);
+        my_error("attempt to activate illegal rig number %d",i);
         return;
     }
 
-    // deactivate previous patch
+    // deactivate previous rig
 
-    if (m_cur_patch_num >= 0)
+    if (m_cur_rig_num >= 0)
     {
-        getCurPatch()->end();
-        m_prev_patch_num = m_cur_patch_num;
+        getCurRig()->end();
+        m_prev_rig_num = m_cur_rig_num;
     }
 
-    m_cur_patch_num = i;
-	expWindow *cur_patch = getCurPatch();
+    m_cur_rig_num = i;
+	expWindow *cur_rig = getCurRig();
 
-    // clear the TFT and show the patch (window) title
+    // clear the TFT and show the rig (window) title
 
-    if (m_cur_patch_num)
+    if (m_cur_rig_num)
     {
         mylcd.Fill_Screen(0);
-		if (cur_patch->m_flags & WIN_FLAG_SHOW_PEDALS)
+		if (cur_rig->m_flags & WIN_FLAG_SHOW_PEDALS)
 			draw_pedals = 1;
-		if (!(cur_patch->m_flags & WIN_FLAG_OWNER_TITLE))
-			setTitle(cur_patch->name());
+		if (!(cur_rig->m_flags & WIN_FLAG_OWNER_TITLE))
+			setTitle(cur_rig->name());
     	else
 			draw_title = 1;
 	}
 
-    // start the patch (window) running
+    // start the rig (window) running
 
-    cur_patch->begin(false);
+    cur_rig->begin(false);
 
     // add the system long click handler
 
@@ -326,7 +326,7 @@ void expSystem::startModal(expWindow *win)
 	}
 
 	if (!m_num_modals)
-		getCurPatch()->end();
+		getCurRig()->end();
 
 	// ok, so the modal windows should start with a clean slate of
 	// no buttons, but how does the client restore them?
@@ -391,7 +391,7 @@ void expSystem::endModal(expWindow *win, uint32_t param)
 	m_num_modals--;
 	expWindow *new_win = m_num_modals ?
 		getTopModalWindow() :
-		getCurPatch();
+		getCurRig();
 
 	mylcd.Fill_Screen(0);
 	if (!(new_win->m_flags & WIN_FLAG_OWNER_TITLE))
@@ -400,9 +400,9 @@ void expSystem::endModal(expWindow *win, uint32_t param)
 		draw_title = 1;
 	new_win->begin(true);
 
-	if (!m_num_modals && m_cur_patch_num)
+	if (!m_num_modals && m_cur_rig_num)
 	{
-		// returning to a patch window
+		// returning to a rig window
 		// reset the system button handler
 		theButtons.getButton(0,THE_SYSTEM_BUTTON)->m_event_mask |= BUTTON_EVENT_LONG_CLICK;
 	}
@@ -421,7 +421,7 @@ void expSystem::endModal(expWindow *win, uint32_t param)
 
 // void expSystem::pedalEvent(int num, int value)
 // {
-//     if (!getCurPatch()->onPedalEvent(num,value))
+//     if (!getCurRig()->onPedalEvent(num,value))
 // 	{
 // 		expressionPedal *pedal = thePedals.getPedal(num);
 // 		if (pedal->getCCChannel() && pedal->getCCNum())
@@ -441,35 +441,35 @@ void expSystem::rotaryEvent(int num, int value)
 	if (m_num_modals)
 		getTopModalWindow()->onRotaryEvent(num,value);
 	else
-		getCurPatch()->onRotaryEvent(num,value);
+		getCurRig()->onRotaryEvent(num,value);
 }
 
 
 
 void expSystem::buttonEvent(int row, int col, int event)
 {
-    // handle changes to configSystem
+    // handle THE_SYSTEM_BUTTON
 
 	int num = row * NUM_BUTTON_COLS + col;
 
 	if (m_num_modals)
 		getTopModalWindow()->onButtonEvent(row,col,event);
 
-	// handle the system button from within patches
+	// handle the system button globally
 
 	else if (num == THE_SYSTEM_BUTTON &&
- 			 m_cur_patch_num &&
+ 			 m_cur_rig_num &&
 			 event == BUTTON_EVENT_LONG_CLICK)
 	{
 		setLED(THE_SYSTEM_BUTTON,LED_PURPLE);
-		activatePatch(0);
+		activateRig(0);
 	}
 
 	// else let the window have it
 
 	else
 	{
-		getCurPatch()->onButtonEvent(row,col,event);
+		getCurRig()->onButtonEvent(row,col,event);
 	}
 }
 
@@ -573,7 +573,7 @@ void expSystem::timer_handler()
 	if (theSystem.m_num_modals)
 		theSystem.getTopModalWindow()->timer_handler();
 	else
-	    theSystem.getCurPatch()->timer_handler();
+	    theSystem.getCurRig()->timer_handler();
 }
 
 
@@ -686,7 +686,7 @@ void expSystem::handleSerialData()
 	else if (finished && is_midi)
 	{
 		display_bytes(dbg_exp-1,"expSystem recv serial midi: ",(uint8_t*)static_serial_buffer,4);
-		theSystem.getCurPatch()->onSerialMidiEvent(static_serial_buffer[2],static_serial_buffer[3]);
+		theSystem.getCurRig()->onSerialMidiEvent(static_serial_buffer[2],static_serial_buffer[3]);
 	}
 	else if (finished)
 	{
@@ -749,7 +749,7 @@ void expSystem::updateUI()
 
 	expWindow *win = m_num_modals ?
 		getTopModalWindow() :
-		getCurPatch();
+		getCurRig();
 
 	//----------------------------------
 	// PEDALS
@@ -989,7 +989,7 @@ void expSystem::updateUI()
 		}
 	#endif
 
-    // getCurPatch()->updateUI();   // ??
+    // getCurRig()->updateUI();   // ??
 	win->updateUI();
 
 }

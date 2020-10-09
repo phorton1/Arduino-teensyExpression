@@ -1,4 +1,4 @@
-#include "patchNewRig.h"
+#include "rigNew.h"
 #include <myDebug.h>
 #include "defines.h"
 #include "myLeds.h"
@@ -60,7 +60,7 @@ int_rect song_rect;
 #define NUM_PATCHES_PER_BANK (NUM_PATCH_COLS * NUM_PATCH_ROWS)
 
 // static
-int patchNewRig::patch_to_button(int patch_num)
+int rigNew::patch_to_button(int patch_num)
 {
 	patch_num %= NUM_PATCHES_PER_BANK;
 	int col = patch_num / NUM_PATCH_ROWS;
@@ -72,7 +72,7 @@ int patchNewRig::patch_to_button(int patch_num)
 }
 
 // static
-int patchNewRig::bank_button_to_patch(int bank, int button_num)
+int rigNew::bank_button_to_patch(int bank, int button_num)
 	// returns -1 if the button is not a patch button
 {
 	int patch = -1;
@@ -89,7 +89,7 @@ int patchNewRig::bank_button_to_patch(int bank, int button_num)
 
 }
 
-synthPatch_t patchNewRig::synth_patch[NUM_SYNTH_BANKS * NUM_SYNTH_PATCHES] = {
+synthPatch_t rigNew::synth_patch[NUM_SYNTH_BANKS * NUM_SYNTH_PATCHES] = {
 
 	// bank 0, starting with highest priorty bass sounds
 	// The program number sent is MULTI_OFFSET + the program number from the left column
@@ -131,7 +131,7 @@ synthPatch_t patchNewRig::synth_patch[NUM_SYNTH_BANKS * NUM_SYNTH_PATCHES] = {
 };
 
 // static
-int patchNewRig::findPatchByName(const char *patch_name)
+int rigNew::findPatchByName(const char *patch_name)
 {
 	for (int i=0; i<NUM_SYNTH_BANKS * NUM_SYNTH_PATCHES; i++)
 	{
@@ -146,7 +146,7 @@ int patchNewRig::findPatchByName(const char *patch_name)
 // toneStack
 //----------------
 
-int patchNewRig::guitar_effect_ccs[NUM_GUITAR_EFFECTS] = {
+int rigNew::guitar_effect_ccs[NUM_GUITAR_EFFECTS] = {
     GUITAR_DISTORTION_EFFECT_CC,
     GUITAR_WAH_EFFECT_CC,
     GUITAR_CHORUS_EFFECT_CC,
@@ -164,13 +164,13 @@ const char *guitar_effect_name[NUM_GUITAR_EFFECTS] = {
 
 
 //====================================================================
-// patchNewRig
+// rigNew
 //====================================================================
 
-patchNewRig *theNewRig = 0;
+rigNew *theNewRig = 0;
 
 
-patchNewRig::patchNewRig() :
+rigNew::rigNew() :
 	expWindow(WIN_FLAG_SHOW_PEDALS)
 {
 	theNewRig = this;
@@ -207,7 +207,7 @@ patchNewRig::patchNewRig() :
 
 
 
-void patchNewRig::resetDisplay()
+void rigNew::resetDisplay()
 {
 	m_full_redraw = 1;
 	m_last_displayed_poly_mode = -1;
@@ -240,7 +240,7 @@ void patchNewRig::resetDisplay()
 // setters to support songMachine
 //-----------------------------------
 
-void patchNewRig::setPatchNumber(int patch_number)
+void rigNew::setPatchNumber(int patch_number)
 {
 	if (m_cur_patch_num != -1)
 	{
@@ -277,7 +277,7 @@ void patchNewRig::setPatchNumber(int patch_number)
 
 
 
-void patchNewRig::setGuitarEffect(int effect_num, bool on)
+void rigNew::setGuitarEffect(int effect_num, bool on)
 {
 
 	m_guitar_state[effect_num] = on;
@@ -292,7 +292,7 @@ void patchNewRig::setGuitarEffect(int effect_num, bool on)
 
 
 
-void patchNewRig::clearGuitarEffects(bool display_only /* = false */)
+void rigNew::clearGuitarEffects(bool display_only /* = false */)
 {
 	for (int i=0; i<NUM_GUITAR_EFFECTS; i++)
 	{
@@ -309,7 +309,7 @@ void patchNewRig::clearGuitarEffects(bool display_only /* = false */)
 }
 
 
-void patchNewRig::clearLooper(bool display_only)
+void rigNew::clearLooper(bool display_only)
 {
 	m_dub_mode = 0;
 	m_track_flash = 0;
@@ -340,7 +340,7 @@ void patchNewRig::clearLooper(bool display_only)
 
 
 // virtual
-void patchNewRig::begin(bool warm)
+void rigNew::begin(bool warm)
 {
     expWindow::begin(warm);
 
@@ -410,7 +410,7 @@ void patchNewRig::begin(bool warm)
 // quick mode
 //------------------------------------
 
-void patchNewRig::startQuickMode()
+void rigNew::startQuickMode()
 {
 	resetDisplay();
 
@@ -435,13 +435,13 @@ void patchNewRig::startQuickMode()
 }
 
 
-void patchNewRig::endQuickMode()
+void rigNew::endQuickMode()
 {
 	m_quick_mode = false;		// may be called from updateUI
 	begin(true);
 
 	// restore the system button after begin() ...
-	// normally done in expSystem::activatePatch)()
+	// normally done in expSystem::activateRig)()
 
 	theButtons.getButton(0,THE_SYSTEM_BUTTON)->m_event_mask |= BUTTON_EVENT_LONG_CLICK;
 }
@@ -453,9 +453,9 @@ void patchNewRig::endQuickMode()
 // rotary controllers
 
 // virtual
-bool patchNewRig::onRotaryEvent(int num, int val)
+bool rigNew::onRotaryEvent(int num, int val)
 {
-	display(0,"patchNewRig::onRotaryEvent(%d,%d)",num,val);
+	display(0,"rigNew::onRotaryEvent(%d,%d)",num,val);
 
 	// send the value out on CC's 101 thru 105
 	// mapped from rotary controls
@@ -478,7 +478,7 @@ bool patchNewRig::onRotaryEvent(int num, int val)
 		num == 2 ? RPI_CONTROL_THRU_VOLUME :
 		RPI_CONTROL_MIX_VOLUME;
 
-	sendSerialControlChange(control_num + RPI_CONTROL_NUM_CC_OFFSET,val,"patchNewRig Rotary Control");
+	sendSerialControlChange(control_num + RPI_CONTROL_NUM_CC_OFFSET,val,"rigNew Rotary Control");
 	return true;
 }
 
@@ -486,13 +486,13 @@ bool patchNewRig::onRotaryEvent(int num, int val)
 
 
 // virtual
-void patchNewRig::onSerialMidiEvent(int cc_num, int value)
+void rigNew::onSerialMidiEvent(int cc_num, int value)
 {
 	// track state messages
 	if (cc_num >= TRACK_STATE_BASE_CC && cc_num < TRACK_STATE_BASE_CC+4)
 	{
 		int track_num = cc_num - TRACK_STATE_BASE_CC;
-		display(0,"patchNewRig track_state[%d] = 0x%02x",track_num,value);
+		display(0,"rigNew track_state[%d] = 0x%02x",track_num,value);
 		m_track_state[track_num] = value;
 	}
 	else if (cc_num == LOOP_DUB_STATE_CC)
@@ -519,7 +519,7 @@ void patchNewRig::onSerialMidiEvent(int cc_num, int value)
 //---------------------------------------------------------------------------------
 
 // virtual
-void patchNewRig::onButtonEvent(int row, int col, int event)
+void rigNew::onButtonEvent(int row, int col, int event)
 {
 	int num = row * NUM_BUTTON_COLS + col;
 
@@ -539,7 +539,7 @@ void patchNewRig::onButtonEvent(int row, int col, int event)
 	{
 		if (row == QUICK_ROW_ERASE_TRACK)
 		{
-			display(0,"patchNewRig ERASE TRACK(%d)",col);
+			display(0,"rigNew ERASE TRACK(%d)",col);
 			sendSerialControlChange(LOOP_COMMAND_CC,LOOP_COMMAND_ERASE_TRACK_BASE+col,"ERASE_TRACK button click");
 		}
 		else if (row > QUICK_CLIP_FIRST_ROW-LOOPER_NUM_LAYERS)
@@ -649,7 +649,7 @@ void patchNewRig::onButtonEvent(int row, int col, int event)
 	{
 		if (event == BUTTON_EVENT_LONG_CLICK)
 		{
-			display(0,"patchNewRig::SONG_MACHINE_BUTTON LONG_CLICK running(%d)",song_machine_running);
+			display(0,"rigNew::SONG_MACHINE_BUTTON LONG_CLICK running(%d)",song_machine_running);
 			if (song_machine_running)
 			{
 				song_machine_running = 0;
@@ -664,7 +664,7 @@ void patchNewRig::onButtonEvent(int row, int col, int event)
 		}
 		else	// EVENT_CLICK
 		{
-			display(0,"patchNewRig::SONG_MACHINE_BUTTON click",0);
+			display(0,"rigNew::SONG_MACHINE_BUTTON click",0);
 			if (song_machine_running)
 			{
 				songMachine::notifyPress();
@@ -682,7 +682,7 @@ void patchNewRig::onButtonEvent(int row, int col, int event)
 
 
 // virtual
-void patchNewRig::updateUI()
+void rigNew::updateUI()
 {
 	// SONG MACHINE
 

@@ -1,5 +1,5 @@
-#ifndef __patchNewRig_h__
-#define __patchNewRig_h__
+#ifndef __rigNew_h__
+#define __rigNew_h__
 
 #include "expSystem.h"
 #include "oldRig_defs.h"
@@ -15,11 +15,11 @@
 #define TRACKS_TIMES_CLIPS    (LOOPER_NUM_TRACKS * LOOPER_NUM_LAYERS)
 
 
-class patchNewRig : public expWindow
+class rigNew : public expWindow
 {
     public:
 
-        patchNewRig();
+        rigNew();
 
         virtual bool onRotaryEvent(int num, int val);
 
@@ -107,7 +107,7 @@ class patchNewRig : public expWindow
 
 
 extern int_rect song_rect;
-extern patchNewRig *theNewRig;
+extern rigNew *theNewRig;
     // static globals for use by songMachine
 
-#endif // !__patchNewRig_h__
+#endif // !__rigNew_h__

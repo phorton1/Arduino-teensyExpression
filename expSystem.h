@@ -4,7 +4,7 @@
 #include "defines.h"
 #include <Arduino.h>        // for intevalTimer
 
-#define MAX_EXP_PATCHES     10
+#define MAX_EXP_RIGS     10
 #define MAX_MODAL_STACK     10
 
 
@@ -25,7 +25,7 @@ extern int_rect client_rect;
 
 
 class expWindow
-    // base class for patches, modal windows, and the configSystem
+    // base class for rigs, modal windows, and the configSystem
 {
     public:
 
@@ -36,7 +36,7 @@ class expWindow
         virtual const char *name() = 0;
             // used for titles
         virtual const char *short_name() { return ""; };
-            // only used for patches in config window
+            // only used for rigs in the config window
         virtual uint32_t getId()    { return 0; }
 
 
@@ -89,13 +89,12 @@ class expSystem
         void begin();
         void updateUI();
 
-        void activatePatch(int i);
+        void activateRig(int i);
 
-        int getNumPatches()         { return m_num_patches; }
-        int getCurPatchNum()        { return m_cur_patch_num; }
-        int getPrevConfigNum()      { return m_prev_patch_num; }
-        expWindow *getCurPatch()    { return m_patches[m_cur_patch_num]; }
-        expWindow *getPatch(int i)  { return m_patches[i]; }
+        int getNumRigs()         { return m_num_rigs; }
+        int getCurRigNum()       { return m_cur_rig_num; }
+        int getPrevRigNum()      { return m_prev_rig_num; }
+        expWindow *getCurRig()   { return m_rigs[m_cur_rig_num]; }
 
         // void pedalEvent(int num, int val);
         void rotaryEvent(int num, int val);
@@ -118,17 +117,17 @@ class expSystem
 
     private:
 
-        int m_num_patches;
-        int m_cur_patch_num;
-        int m_prev_patch_num;
+        int m_num_rigs;
+        int m_cur_rig_num;
+        int m_prev_rig_num;
 
-        void addPatch(expWindow *pConfig);
+        void addRig(expWindow *pRig);
 
         int m_num_modals;
         expWindow *m_modal_stack[MAX_MODAL_STACK];
 
-        expWindow *m_patches[MAX_EXP_PATCHES + 1];
-            // 1 extra for patch #0 which is overloaded
+        expWindow *m_rigs[MAX_EXP_RIGS + 1];
+            // 1 extra for rig #0 which is overloaded
             // as the configSystem window.
 
         IntervalTimer m_timer;
@@ -138,14 +137,11 @@ class expSystem
         static void critical_timer_handler();
 
         int last_battery_level;
-        // moved to ftp.cpp::initQueryFTP()
-        // elapsedMillis battery_time;
 
         const char *m_title;
         bool draw_pedals;
         bool draw_title;
             // state for redraw
-
 
         unsigned midi_activity[NUM_PORTS];
         bool last_midi_activity[NUM_PORTS];

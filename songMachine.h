@@ -51,7 +51,7 @@ class songMachine
             // notify the songMachine that a loop has taken place
 
         static void task();
-            // called approx 30 times per second from patchNewRig::updateUI()
+            // called approx 30 times per second from rigNew::updateUI()
 
 };
 

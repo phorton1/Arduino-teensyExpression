@@ -1,5 +1,5 @@
 #include <myDebug.h>
-#include "patchTest.h"
+#include "rigTest.h"
 #include "myTFT.h"
 #include "myLeds.h"
 
@@ -58,7 +58,7 @@ bool draw_needed = false;
 
 
 // virtual
-void patchTest::begin(bool warm)
+void rigTest::begin(bool warm)
 {
     expWindow::begin(warm);
     draw_needed = true;
@@ -90,7 +90,7 @@ void patchTest::begin(bool warm)
 
 
 // virtual
-void patchTest::updateUI()
+void rigTest::updateUI()
 {
     if (draw_needed)
     {
