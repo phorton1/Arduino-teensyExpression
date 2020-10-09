@@ -16,7 +16,7 @@ button1:
     LOOP_VOLUME 70
     SYNTH_VOLUME 0
     GUITAR_VOLUME 70
-    SYNTH_PATCH  bass1
+    SYNTH_PATCH  "BASS1"
     GUITAR_EFFECT_NONE
     CLEAR_LOOPER
     DISPLAY "press to start record guitar"
@@ -45,7 +45,7 @@ button1:                        # record bass behind 1st verse
     # effects for the follosing guitar lead
 
 loop:                          # AT/AFTER 1st loop
-    LOOPER_TRACK1              # will start looping guitar*1 and bass*2 at acoustic lead
+    LOOPER_TRACK 1             # will start looping guitar*1 and bass*2 at acoustic lead
     DISPLAY "ready acoustic lead"
 
 #----------------------------------
@@ -59,7 +59,7 @@ loop:
     SYNTH_VOLUME 0              # turn down the synth
     GUITAR_VOLUME 70            # turn up the guitar
     GUITAR_EFFECT_ECHO on       # turn on the echo effect
-    SYNTH_PATCH organ1          # select the organ for use later
+    SYNTH_PATCH "ORGAN1"        # select the organ for use later
     DISPLAY "play acoustic lead, ready verse2"
 
 # note that we are "backwards with the bass*2 track from here on out ...
@@ -77,7 +77,7 @@ loop:
 
 loop:
     LOOP_VOLUME 80
-    LOOPER_CLIP 3,mute          # but it will not start playing next time through
+    LOOPER_CLIP 3 mute          # but it will not start playing next time through
     LOOPER_TRACK 1              # start playing next time through
     DISPLAY "sing chorus, record organ"
     GUITAR_EFFECT_WAH on        # ready guitar effects
@@ -105,10 +105,10 @@ loop:
     LOOP_VOLUME 80
     GUITAR_EFFECT_WAH off       # turn off the guitar effects
     GUITAR_EFFECT_DISTORT off
-    LOOPER_CLIP   1,mute        # stop playing the canned guitar
-    LOOPER_CLIP   3,unmute      # enable start playing the organ
+    LOOPER_CLIP   1 mute        # stop playing the canned guitar
+    LOOPER_CLIP   3 unmute      # enable start playing the organ
     SYNTH_VOLUME 0              # turn down the organ
-    SYNTH_PATCH  bass1          # select the base
+    SYNTH_PATCH  "BASS1"        # select the base
     DISPLAY "final verse, strum guitar"
 
 
@@ -127,7 +127,7 @@ button1:    # press this at repeat point
 
 loop:
     LOOP_VOLUME 90
-    LOOPER_CLIP   1,unmute      # bring back the canned guitar
+    LOOPER_CLIP   1 unmute      # bring back the canned guitar
     DISPLAY "2nd time through"
 
 loop:

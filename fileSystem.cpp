@@ -741,6 +741,8 @@ void fileSystem::handleFileCommand(const char *command, const char *param)
 
         if (ok)
         {
+            SD.remove(filename);
+
             write_file = SD.open(filename, FILE_WRITE);
             if (!write_file)
             {
