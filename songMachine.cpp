@@ -49,7 +49,7 @@ void songMachine::uc(char *buf)
 
 void songMachine::error_msg(const char *format, ...)
 {
-    mylcd.setFont(Arial_18_Bold);
+    mylcd.setFont(Arial_18);
     mylcd.Set_Text_colour(TFT_RED);
     mylcd.Print_String("ERROR!",song_rect.xe-105,song_rect.ys+5);
 
@@ -59,25 +59,10 @@ void songMachine::error_msg(const char *format, ...)
     char display_buffer[DISPLAY_BUFFER_SIZE];
     vsprintf(display_buffer,format,var);
 
+    mylcd.setFont(Arial_16);
+    mylcd.Set_Text_colour(TFT_ORANGE);
     fillRect(song_msg_rect,TFT_BLACK);
-
-    mylcd.setFont(Arial_18);
-    mylcd.Set_Text_colour(TFT_RED);
-
-    int y = 0;
-    int offset = 0;
-    int len = strlen(display_buffer);
-    while (offset < len && y < song_msg_rect.ye)
-    {
-        char buf[51];
-        int size = len > 50 ? 50 : len;
-        strncpy(buf,&display_buffer[offset],size);
-        buf[size] = 0;
-        offset += size;
-
-		mylcd.Print_String(buf,song_msg_rect.xs+5,song_msg_rect.ys + y);
-        y += 20;
-    }
+    mylcd.Print_String(display_buffer,song_msg_rect.xs,song_msg_rect.ys);
 }
 
 
@@ -116,7 +101,7 @@ bool songMachine::load(const char *song_name)
         setMachineState(SONG_STATE_RUNNING);
         return true;
     }
-    clear();
+    // clear();
     return false;
 }
 

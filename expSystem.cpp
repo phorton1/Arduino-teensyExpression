@@ -18,13 +18,13 @@
 #include "rigTest.h"
 #include "rigMidiHost.h"
 
-#define WITH_FILE_SYSTEM    2
+#define WITH_FILE_SYSTEM    1
 
 #if WITH_FILE_SYSTEM
     #include "fileSystem.h"
 #endif
 
-#define dbg_exp   1
+#define dbg_exp   2
 	// 1 still shows midi messages
 	// 0 shows Serial3 issues
 

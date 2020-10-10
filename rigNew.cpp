@@ -12,6 +12,10 @@
 #include "songParser.h"
 #include "winSelectSong.h"
 
+#define dbg_patch_buttons    	1
+#define dbg_serial_midi         1
+#define dbg_rignew				1
+#define dbg_song_machine		0
 
 
 #define SONG_MACHINE_BUTTON     9
@@ -71,7 +75,7 @@ int rigNew::patch_to_button(int patch_num)
 	int row = patch_num % NUM_PATCH_ROWS;
 	row = 2 - row;
 	int button = (row * NUM_BUTTON_COLS + col);
-	display(0,"patch_to_button(%d)=%d",patch_num,button);
+	display(dbg_patch_buttons,"patch_to_button(%d)=%d",patch_num,button);
 	return button;
 }
 
@@ -88,7 +92,7 @@ int rigNew::bank_button_to_patch(int bank, int button_num)
 		patch = bank * NUM_SYNTH_PATCHES + col * NUM_PATCH_ROWS + row;
 	}
 
-	display(0,"bank_button_to_patch(%d,%d)=%d",bank,button_num,patch);
+	display(dbg_patch_buttons,"bank_button_to_patch(%d,%d)=%d",bank,button_num,patch);
 	return patch;
 
 }
@@ -472,7 +476,7 @@ void rigNew::endQuickMode()
 // virtual
 bool rigNew::onRotaryEvent(int num, int val)
 {
-	display(0,"rigNew::onRotaryEvent(%d,%d)",num,val);
+	display(dbg_rignew,"rigNew::onRotaryEvent(%d,%d)",num,val);
 
 	// send the value out on CC's 101 thru 105
 	// mapped from rotary controls
@@ -505,13 +509,13 @@ bool rigNew::onRotaryEvent(int num, int val)
 // virtual
 void rigNew::onSerialMidiEvent(int cc_num, int value)
 {
-	// display(0,"rigNew::SerialMidiEvent(0x%02x,0x%02x)",cc_num,value);
+	display(dbg_serial_midi+1,"rigNew::SerialMidiEvent(0x%02x,0x%02x)",cc_num,value);
 
 	// track state messages
 	if (cc_num >= TRACK_STATE_BASE_CC && cc_num < TRACK_STATE_BASE_CC+4)
 	{
 		int track_num = cc_num - TRACK_STATE_BASE_CC;
-		display(0,"rigNew track_state[%d] = 0x%02x",track_num,value);
+		display(dbg_serial_midi,"rigNew track_state[%d] = 0x%02x",track_num,value);
 		m_track_state[track_num] = value;
 	}
 	else if (cc_num == LOOP_DUB_STATE_CC)
@@ -558,14 +562,14 @@ void rigNew::onButtonEvent(int row, int col, int event)
 	{
 		if (row == QUICK_ROW_ERASE_TRACK)
 		{
-			display(0,"rigNew ERASE TRACK(%d)",col);
+			display(dbg_rignew,"rigNew ERASE TRACK(%d)",col);
 			sendSerialControlChange(LOOP_COMMAND_CC,LOOP_COMMAND_ERASE_TRACK_BASE+col,"ERASE_TRACK button click");
 		}
 		else if (row > QUICK_CLIP_FIRST_ROW-LOOPER_NUM_LAYERS)
 		{
 			int layer_num = 4-row;
 			int clip_num = m_selected_track_num * LOOPER_NUM_LAYERS + layer_num;
-			display(0,"quick_mode row(%d) col(%d)  layer=%d  clip_num=%d ",row,col,layer_num,clip_num);
+			display(dbg_rignew,"quick_mode row(%d) col(%d)  layer=%d  clip_num=%d ",row,col,layer_num,clip_num);
 
 			if (col == QUICK_COL_MUTE) 	// mute
 			{
@@ -1032,10 +1036,10 @@ void rigNew::updateUI()
 // virtual
 void rigNew::onEndModal(expWindow *win, uint32_t param)
 {
-	display(0,"rigNew::onEndModal(%08x,%08x)",(uint32_t)win,param);
+	display(dbg_song_machine,"rigNew::onEndModal(%08x,%08x)",(uint32_t)win,param);
 	if (param)
 	{
-		display(0,"SELECTED_NAME=%s",winSelectSong::selected_name);
+		display(dbg_song_machine,"SELECTED_NAME=%s",winSelectSong::selected_name);
 		pending_open_song = winSelectSong::selected_name;
 	}
 	else
