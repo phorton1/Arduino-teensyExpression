@@ -24,6 +24,12 @@ SdFatSdio SD;
     // SdFatSdioEX SD; // SdFatSdioEX uses extended multi-block transfers without DMA.
     // Note the difference is speed and busy yield time.
     // Teensy 3.5 & 3.6 SDIO: 4 to 5 times the throughput using the 4-bit SDIO mode compared to the 1-bit SPI mode
+    //
+    // prh - I was getting an error when starting the system from a cold power up.
+    // it was working ok from a compile (ctrl-I in Komodo) right after the TeensyLoader
+    // put the program on the teensy, but not on a subsequent cold-powerup.
+    // I "fixed" it by increasing BUSY_TIMEOUT_MICROS from 500000 to 1000000
+    // in /Arduino/libraries/SdFat/src/SdCard/SdioTeensy.cpp.
 
 Stream *s_Serial = 0;
     // The serial port to send commands to.
