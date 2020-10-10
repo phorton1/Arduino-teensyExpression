@@ -2,39 +2,20 @@
 #include "rigNew.h"
 #include "myDebug.h"
 #include "myTFT.h"
+#include "myLEDS.h"
 #include "songParser.h"
 
-// globals here
+songMachine *theSongMachine = 0;
 
-int song_machine_state = SONG_STATE_EMPTY;
-int songMachine::getMachineState()
+
+songMachine::songMachine()
 {
-    return song_machine_state;
+    init();
+    theSongMachine = this;
 }
 
-void songMachine::setMachineState(int state)
-{
-    song_machine_state = state;
-    if (state == SONG_STATE_EMPTY)
-    {
-        clear();
-    }
-    else
-    {
-        mylcd.setFont(Arial_18_Bold);
-        mylcd.Set_Text_colour(TFT_YELLOW);
-        mylcd.Fill_Rect(
-            song_rect.xe-105,
-            song_rect.ys+5,
-            100,25,0);
 
-        mylcd.Print_String(
-            song_machine_state==SONG_STATE_PAUSED ?
-                "paused" : "running",
-            song_rect.xe-105,
-            song_rect.ys+5);
-    }
-}
+// static utils
 
 
 void songMachine::uc(char *buf)
@@ -46,6 +27,7 @@ void songMachine::uc(char *buf)
 		buf++;
 	}
 }
+
 
 void songMachine::error_msg(const char *format, ...)
 {
@@ -65,63 +47,6 @@ void songMachine::error_msg(const char *format, ...)
     mylcd.Print_String(display_buffer,song_msg_rect.xs,song_msg_rect.ys);
 }
 
-
-//----------------------------------
-// API
-//----------------------------------
-
-void songMachine::clear()
-   // clear the currently running program, if any
-{
-    display(0,"songMachine::clear()",0);
-    song_machine_state = SONG_STATE_EMPTY;
-    songParser::clear();
-    fillRect(song_rect,TFT_BLACK);
-    fillRect(song_msg_rect,TFT_BLACK);
-}
-
-
-
-bool songMachine::load(const char *song_name)
-    // load the test song, parse it, and prepare machine to run
-    // will eventually have a UI for filenames and load any given song file
-{
-    display(0,"songMachine::load()",0);
-    clear();
-    mylcd.setFont(Arial_18_Bold);
-    mylcd.Set_Text_colour(TFT_CYAN);
-    mylcd.Print_String(song_name,song_rect.xs+5,song_rect.ys+4);
-
-    if (songParser::openSongFile(song_name))
-    {
-        #if 1
-            dumpCode();
-        #endif
-
-        setMachineState(SONG_STATE_RUNNING);
-        return true;
-    }
-    // clear();
-    return false;
-}
-
-
-void songMachine::notifyPress(int button_num)
-{
-    display(0,"songMachine::notifyPress(%d)",button_num);
-}
-
-void songMachine::notifyLoop()
-    // notify the songMachine that a loop has taken place
-{
-    display(0,"songMachine::notifyLoop()",0);
-}
-
-
-void songMachine::task()
-    // called approx 30 times per second from rigNew::updateUI()
-{
-}
 
 
 //------------------------------------------
@@ -222,100 +147,125 @@ void songMachine::dumpCode()
 
 
 
-//--------------------------------------
-// NOTES
-//--------------------------------------
+//----------------------------------
+// API
+//----------------------------------
 
-#if 0
 
-    int i = findPatchByName("PIANO2");
-    if (i != -1)
+bool songMachine::load(const char *song_name)
+    // load the test song, parse it, and prepare machine to run
+    // will eventually have a UI for filenames and load any given song file
+{
+    display(0,"songMachine::load()",0);
+
+    init();
+
+    mylcd.setFont(Arial_18_Bold);
+    mylcd.Set_Text_colour(TFT_CYAN);
+    mylcd.Print_String(song_name,song_rect.xs+5,song_rect.ys+4);
+
+    if (songParser::openSongFile(song_name))
     {
-        setPatchNumber(i);
+        #if 1
+            dumpCode();
+        #endif
+
+        setMachineState(SONG_STATE_RUNNING);
+        return true;
     }
+    return false;
+}
 
-    // OR
 
-    if (fade_vol_time)
+void songMachine::setMachineState(int state)
+{
+    m_state = state;
+    display(0,"songMachine::setMachineState(%d)",state);
+    if (m_state == SONG_STATE_EMPTY)
     {
-        fade_vol_time = 0;
+        songParser::clear();
+        init();
     }
     else
     {
-        fade_vol_time = millis();
-        start_fade_vol = thePedals.getPedal(1)->getDisplayValue();
-        if (end_fade_vol)
-        {
-            end_fade_vol = 0;
-        }
-        else
-        {
-            end_fade_vol = 127;
-        }
+        m_redraw = 1;
     }
-    // test a fade over 10 seconds
-#endif
-
-#if 0
-	int end_fade_vol = 0;
-	int start_fade_vol = 0;
-	uint32_t fade_vol_time = 0;
-#endif
+}
 
 
-#if 0
-    if (fade_vol_time)
+
+//--------------------------
+// events
+//--------------------------
+
+void songMachine::notifyPress(int button_num)
+{
+    display(0,"songMachine::notifyPress(%d)",button_num);
+}
+
+void songMachine::notifyLoop()
+{
+    display(0,"songMachine::notifyLoop()",0);
+}
+
+
+
+
+//------------------------------------------
+// updateUI
+//------------------------------------------
+
+void songMachine::updateUI()
+    // called approx 30 times per second from rigNew::updateUI()
+{
+    bool redraw = m_redraw;
+    m_redraw = false;
+
+    // song name
+
+    if (redraw)
     {
-        uint32_t now = millis();
-        uint32_t elapsed = now - fade_vol_time;
-        if (elapsed > 10000)
-        {
-            fade_vol_time = 0;
-        }
-        else
-        {
-            float pct = ((float) elapsed) / 10000.00;
-            float range = abs(end_fade_vol - start_fade_vol);
-
-            int use_vol;
-            if (end_fade_vol)		// fading up
-            {
-                use_vol = pct * range;
-            }
-            else
-            {
-                use_vol = (1.0-pct) * range;
-            }
-
-            if (use_vol != thePedals.getPedal(1)->getDisplayValue())
-            {
-                thePedals.getPedal(1)->setDisplayValue(use_vol);
-                thePedals.pedalEvent(1,use_vol);
-            }
-        }
-
+        fillRect(song_rect,TFT_BLACK);
+        mylcd.setFont(Arial_18_Bold);
+        mylcd.Set_Text_colour(TFT_CYAN);
+        mylcd.Print_String(songParser::getTheSongName(),song_rect.xs+5,song_rect.ys+4);
     }
 
+    // state
 
+    if (redraw || m_state != m_last_state)
+    {
+        m_last_state = m_state;
+        mylcd.setFont(Arial_18_Bold);
+        mylcd.Set_Text_colour(TFT_YELLOW);
+        mylcd.Fill_Rect(
+            song_rect.xe-105,
+            song_rect.ys+5,
+            100,25,0);
+        mylcd.Print_String(
+            m_state == SONG_STATE_PAUSED ? "paused" :
+            m_state == SONG_STATE_RUNNING ? "running" : "",
+            song_rect.xe-105,
+            song_rect.ys+5);
+    }
 
+    // buttons
 
+    if (m_last_state == SONG_STATE_RUNNING)
+    {
+        bool show_leds = false;
+        for (int i=0; i<NUM_SONG_BUTTONS; i++)
+        {
+            if (redraw ||
+                m_last_button_color[i] != m_button_color[i])
+            {
+                show_leds = true;
+                setLED(20+i,m_button_color[i]);
+                m_last_button_color[i] = m_button_color[i];
+            }
+        }
+        if (show_leds)
+            showLEDs();
+    }
 
-// The songMachine sets pedal volumes by calling
-//
-// 	   thePedals.getPedal(1)->setDisplayValue(use_vol) and
-//     thePedals.pedalEvent(1,use_vol) directly.
-//
-// If the pedal is touched it should stop any volume fading
-// in progress for that pedal.  Hence it keeps it's own
-// copy of expressionPedal->getValue(), and, if at anytime
-// during a fade, that value changes, it should cease and not
-// send any more pedal values.
-
-// The song machine compiler calls theNewRig::findPatchByName(identifier)
-// to get the patch number, which becomes the opcode operand, and then
-// calls theNewRig setPatchNumber() to change it, which not only sends
-// out the proper patch change message and polymode, but will cause the
-// display to update as the songMachine runs.
-
-
-#endif
+}

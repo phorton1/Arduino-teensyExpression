@@ -255,6 +255,8 @@ void rigNew::resetDisplay()
         m_last_clip_vol[i] = -1;
 	}
 
+	if (theSongMachine)
+		theSongMachine->resetDisplay();
 }
 
 
@@ -270,15 +272,15 @@ void rigNew::setPatchNumber(int patch_number)
 		setLED(button_num,0);
 	}
 
+	m_cur_patch_num = patch_number;
+
 	if (patch_number == -1)
 	{
 		m_cur_bank_num = 0;
-		m_cur_patch_num = -1;    // 0..15
 	}
 	else
 	{
 		m_cur_bank_num = patch_number / NUM_SYNTH_PATCHES;
-		m_cur_patch_num = patch_number % NUM_SYNTH_PATCHES;
 	}
 
 	if (m_cur_patch_num != -1)
@@ -367,6 +369,9 @@ void rigNew::begin(bool warm)
 
 	thePedals.setLoopPedalRelativeVolumeMode(false);
 		// 2020-09-22 - vestigial
+
+	if (!theSongMachine)
+		new songMachine();
 
 	resetDisplay();
 
@@ -532,6 +537,10 @@ void rigNew::onSerialMidiEvent(int cc_num, int value)
 		int num = cc_num - CLIP_MUTE_BASE_CC;
 		m_clip_mute[num] = value;
 	}
+	else if (cc_num == NOTIFY_LOOP)
+	{
+		theSongMachine->notifyLoop();
+	}
 }
 
 
@@ -604,6 +613,7 @@ void rigNew::onButtonEvent(int row, int col, int event)
 		if (event == BUTTON_EVENT_CLICK)
 		{
 			int patch_num = bank_button_to_patch(m_cur_bank_num,num);	// my patch number
+			display(0,"set_patch_num %d m_cur_bank_num=%d",patch_num,m_cur_bank_num);
 			setPatchNumber(patch_num);
 		}
 	}
@@ -614,6 +624,7 @@ void rigNew::onButtonEvent(int row, int col, int event)
 		event == BUTTON_EVENT_CLICK)
 	{
 		m_cur_bank_num = (m_cur_bank_num + 1) % NUM_SYNTH_BANKS;
+		display(0,"m_cur_bank_num=%d",m_cur_bank_num);
 	}
 
 	//	Guitar effects
@@ -657,9 +668,9 @@ void rigNew::onButtonEvent(int row, int col, int event)
 
 		// otherwise, it is presumed that those button presses are track buttons
 
-		else if (songMachine::getMachineState() == SONG_STATE_RUNNING)
+		else if (theSongMachine->getMachineState() == SONG_STATE_RUNNING)
 		{
-			songMachine::notifyPress(num - LOOP_FIRST_TRACK_BUTTON + 1);
+			theSongMachine->notifyPress(num - LOOP_FIRST_TRACK_BUTTON + 1);
 		}
 		else
 		{
@@ -680,11 +691,15 @@ void rigNew::onButtonEvent(int row, int col, int event)
 		}
 		else	// EVENT_CLICK
 		{
-			int song_state = songMachine::getMachineState();
+			int song_state = theSongMachine->getMachineState();
 			if (song_state == SONG_STATE_RUNNING)
-				songMachine::setMachineState(SONG_STATE_PAUSED);
+				theSongMachine->setMachineState(SONG_STATE_PAUSED);
 			else if (song_state == SONG_STATE_PAUSED)
-				songMachine::setMachineState(SONG_STATE_RUNNING);
+				theSongMachine->setMachineState(SONG_STATE_RUNNING);
+			for (int i=0; i<LOOPER_NUM_TRACKS; i++)
+			{
+				m_last_track_state[i] = -1;
+			}
 		}
 	}
 }
@@ -701,10 +716,6 @@ void rigNew::onButtonEvent(int row, int col, int event)
 // virtual
 void rigNew::updateUI()
 {
-	// SONG MACHINE
-
-	songMachine::task();
-
 	// other stuff
 
 	bool leds_changed = false;
@@ -857,7 +868,7 @@ void rigNew::updateUI()
 			leds_changed = true;
 		}
 
-		int song_state = songMachine::getMachineState();
+		int song_state = theSongMachine->getMachineState();
 		if (m_last_song_state != song_state)
 		{
 			m_last_song_state = song_state;
@@ -1018,9 +1029,12 @@ void rigNew::updateUI()
 
 	if (pending_open_song)
 	{
-		songMachine::load(pending_open_song);
+		theSongMachine->load(pending_open_song);
 		pending_open_song = 0;
 	}
+
+	if (theSongMachine)
+		theSongMachine->updateUI();
 
 	if (leds_changed)
 		showLEDs();
@@ -1044,6 +1058,6 @@ void rigNew::onEndModal(expWindow *win, uint32_t param)
 	}
 	else
 	{
-		songMachine::setMachineState(SONG_STATE_EMPTY);
+		theSongMachine->setMachineState(SONG_STATE_EMPTY);
 	}
 }

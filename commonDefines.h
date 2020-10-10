@@ -43,6 +43,7 @@
 #define TRACK_STATE_BASE_CC    0x14		// recv     send        for 0..3 tracks, value is track state
 #define CLIP_VOL_BASE_CC       0x30		// send     recv        for 4 tracks * 3 clips - value is volume 0..127
 #define CLIP_MUTE_BASE_CC      0x50		// both     both        for 4 tracks * 3 clips - value is mute state
+#define NOTIFY_LOOP            0x64     // recv     send        value=number of pending loop notifies
 
 
 #endif
