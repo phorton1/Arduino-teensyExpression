@@ -8,6 +8,9 @@
 start:
 
     BUTTON_COLOR 1,green
+
+start2:
+
     DISPLAY "set synth 0, guitar 70"
     BUTTON_COLOR 4,red
     BUTTON_COLOR 4,purple
@@ -16,8 +19,12 @@ button1:
 
     BUTTON_COLOR 1,orange
     DISPLAY "OK, press to start song"
+    GOTO start
+    GOTO start2
 
+before2:
 button1:
+after2:
 
     LOOP_VOLUME 70
     SYNTH_VOLUME 0
@@ -28,24 +35,35 @@ button1:
     BUTTON_COLOR 1,yellow
     DISPLAY "press to start record guitar"
 
+    goto after2
+    goto before2
+
 #--------------------------
 # INTRO CHORUS
 #--------------------------
 
+before3:
 button1:                        # record guitar behind intro-chorus
+after3:
     LOOPER_TRACK 1              # start recording track0, clip0
     DUB_MODE                    # set dub mode for next press of TRACK1 button
     DISPLAY "press to start record bass"
+    goto after3
+    goto before3
 
 #--------------------------
 # 1st VERSE and CHORUS
 #--------------------------
 
+before4:
 button1:                        # record bass behind 1st verse
+after4:
     SYNTH_VOLUME 70             # turn up the synth
     LOOPER_TRACK 1              # finish recording guitar, start recording bass
     GUITAR_VOLUME 0             # turn down the guitar!
     DISPLAY "recording bass"
+    goto after4
+    goto before4
 
     # will record base for 2 times thru
     # the next press is to prepare the guitar
@@ -76,32 +94,48 @@ loop:
 # 2md VERSE/CHORUS
 #--------------------------
 
+before7:
 loop:
+after7:
     DISPLAY "sing verse2, ready organ"
     DUB_MODE
     LOOPER_TRACK 1              # start recording next time through
     GUITAR_VOLUME 0             # turn down the guitar
+    goto after7
+    goto before7
 
+before8:
 loop:
+after8:
     LOOP_VOLUME 80
     LOOPER_CLIP 3,mute          # but it will not start playing next time through
     LOOPER_TRACK 1              # start playing next time through
     DISPLAY "sing chorus, record organ"
     GUITAR_EFFECT_WAH on        # ready guitar effects
     GUITAR_EFFECT_DISTORT on
+    goto after8
+    goto before8
 
 
 #----------------------------------
 # 2nd (long) WAH GUITAR LEAD
 #----------------------------------
 
+before9:
 lead:
 
 loop:
+
+after9:
+
     LOOP_VOLUME 70
     SYNTH_VOLUME 0              # turn down the synth
     GUITAR_VOLUME 70            # turn up the guitar
     DISPLAY "1st half guitar lead"
+
+    goto after9
+    goto before9
+    goto lead
 
 loop:
     DISPLAY "2nd half guitar lead"

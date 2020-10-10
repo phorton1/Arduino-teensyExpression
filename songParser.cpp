@@ -42,6 +42,7 @@ int songParser::num_song_names = 0;
 char *songParser::song_names[MAX_SONG_NAMES];
 
 
+
 const char *songParser::tokenToString(int token_num)
 {
     if (token_num == TOKEN_DISPLAY                ) return "DISPLAY";
@@ -69,7 +70,7 @@ const char *songParser::tokenToString(int token_num)
     if (token_num == TOKEN_MUTE                   ) return "MUTE";
     if (token_num == TOKEN_UNMUTE                 ) return "UNMUTE";
     if (token_num == TOKEN_LOOPER_SET_START_MARK  ) return "LOOPER_SET_START_MARK";
-    if (token_num == TOKEN_IDENTIFIER             ) return "STRING";
+    if (token_num == TOKEN_IDENTIFIER             ) return "IDENT";
     if (token_num == TOKEN_STRING                 ) return "STRING";
     if (token_num == TOKEN_NUMBER                 ) return "NUMBER";
     if (token_num == TOKEN_COMMA                  ) return "COMMA";
@@ -84,6 +85,7 @@ const char *songParser::tokenToString(int token_num)
     if (token_num == TOKEN_ORANGE                 ) return "ORANGE";
     if (token_num == TOKEN_WHITE                  ) return "WHITE";
     if (token_num == TOKEN_CYAN                   ) return "CYAN";
+    if (token_num == TOKEN_BLACK                  ) return "BLACK";
     if (token_num == TOKEN_EOF                    ) return "EOF";
     return "UNKNOWN_TOKEN_NUMBER";
 }
@@ -126,6 +128,7 @@ int songParser::stringToToken(const char *buf)
     if (!strcmp(buf,"ORANGE"))                     return TOKEN_ORANGE;
     if (!strcmp(buf,"WHITE"))                      return TOKEN_WHITE;
     if (!strcmp(buf,"CYAN"))                       return TOKEN_CYAN;
+    if (!strcmp(buf,"BLACK"))                      return TOKEN_BLACK;
     return -1;  // unknown token
 }
 
@@ -535,7 +538,7 @@ bool songParser::parseSongText()
                 parse_error("Could not find patch",token);
                 return false;
             }
-            display(dbg_parse,"    %s '%s' == %d",ttype,token,patch_num);
+            display(dbg_parse,"%-5d:    %s '%s' == %d",song_code_len,ttype,token,patch_num);
             if (!addSongCode(t))
                 return false;
             if (!addSongCode(patch_num))
@@ -555,16 +558,16 @@ bool songParser::parseSongText()
                 return false;
             }
             int len = strlen(token);
-            display(dbg_parse,"    %s %d:'%s'",ttype,len,token);
+            display(dbg_parse,"%-5d:    %s %d:'%s'",song_code_len,ttype,len,token);
             if (!addSongCode(t))
-                return false;
-            if (!addSongCode(len))
                 return false;
             for (int i=0; i<len; i++)
             {
                 if (!addSongCode(token[i]))
                     return false;
             }
+            if (!addSongCode(0))
+                return false;
         }
 
         // opcodes that take single integer parameters
@@ -591,7 +594,7 @@ bool songParser::parseSongText()
                 parse_error("track number out of range",ttype);
             }
 
-            display(dbg_parse,"    %s %d",ttype,int_token);
+            display(dbg_parse,"%-5d:    %s %d",song_code_len,ttype,int_token);
             if (!addSongCode(t))
                 return false;
             if (!addSongCode(int_token))
@@ -616,7 +619,7 @@ bool songParser::parseSongText()
             }
 
             int val = t2 == TOKEN_ON ? 1 : 0;
-            display(dbg_parse,"    %s %d",ttype,val);
+            display(dbg_parse,"%-5d:    %s %d",song_code_len,ttype,val);
             if (!addSongCode(t))
                 return false;
             if (!addSongCode(val))
@@ -661,7 +664,7 @@ bool songParser::parseSongText()
             }
 
             int val = t2 == TOKEN_MUTE ? 1 : 0;
-            display(dbg_parse,"    %s %d,%d",ttype,clip_num,val);
+            display(dbg_parse,"%-5d:    %s %d,%d",song_code_len,ttype,clip_num,val);
             if (!addSongCode(t))
                 return false;
             if (!addSongCode(clip_num))
@@ -707,13 +710,14 @@ bool songParser::parseSongText()
                 t2 != TOKEN_PURPLE &&
                 t2 != TOKEN_ORANGE &&
                 t2 != TOKEN_WHITE  &&
-                t2 != TOKEN_CYAN )
+                t2 != TOKEN_CYAN   &&
+                t2 != TOKEN_BLACK)
             {
                 parse_error("expected a color follwing comma for",ttype);
                 return false;
             }
 
-            display(dbg_parse,"    %s %d,%s",ttype,button_num,tokenToString(t2));
+            display(dbg_parse,"%-5d:    %s %d,%s",song_code_len,ttype,button_num,tokenToString(t2));
             if (!addSongCode(t))
                 return false;
             if (!addSongCode(button_num))
@@ -731,7 +735,7 @@ bool songParser::parseSongText()
                  t == TOKEN_BUTTON4 ||
                  t == TOKEN_LOOP)
         {
-            display(dbg_parse,"%s",ttype);
+            display(dbg_parse,"%-5d: %s",song_code_len,ttype);
 
             int t2 = getToken();
             if (t2<0)
@@ -754,7 +758,7 @@ bool songParser::parseSongText()
                  t == TOKEN_DUB_MODE ||
                  t == TOKEN_LOOPER_SET_START_MARK)
         {
-            display(dbg_parse,"    %s",ttype);
+            display(dbg_parse,"%-5d:    %s",song_code_len,ttype);
             if (!addSongCode(t))
                 return false;
         }
@@ -763,7 +767,7 @@ bool songParser::parseSongText()
 
         else if (t == TOKEN_IDENTIFIER)
         {
-            display(dbg_parse,"    %s %s",ttype,token);
+            display(dbg_parse,"%-5d:    %s %s",song_code_len,ttype,token);
 
             if (token_len > MAX_ID_LEN)
             {
@@ -779,6 +783,7 @@ bool songParser::parseSongText()
             label_t *label = &labels[num_labels++];
             strcpy(label->name,token);
             label->code_offset = song_code_len;
+            display(dbg_parse+1,"addLabel(%d) %d:%s",num_labels-1,label->code_offset,label->name);
 
             int t2 = getToken();
             if (t2<0)
@@ -800,23 +805,27 @@ bool songParser::parseSongText()
                 parse_error("expected integer following ",ttype);
                 return false;
             }
-            display(dbg_parse,"    %s %s",ttype,token);
-            if (!findLabel(token))
+            display(dbg_parse,"%-5d:    %s %s",song_code_len,ttype,token);
+            label_t *label = findLabel(token);
+            if (!label)
             {
                 parse_error("could not find label",ttype);
                 return false;
             }
+            display(dbg_parse+1,"foundLabel %d:%s  0x%02x 0x%02x",
+                label->code_offset,
+                label->name,
+                label->code_offset & 0xFF,
+                (label->code_offset >> 8) & 0xFF);
 
-            int len = strlen(token);
+            // store the offset as two bytes, LSB first
+
             if (!addSongCode(t))
                 return false;
-            if (!addSongCode(len))
+            if (!addSongCode(label->code_offset & 0xFF))
                 return false;
-            for (int i=0; i<len; i++)
-            {
-                if (!addSongCode(token[i]))
-                    return false;
-            }
+            if (!addSongCode((label->code_offset >> 8) & 0xFF))
+                return false;
         }
 
 
@@ -834,7 +843,6 @@ bool songParser::parseSongText()
     display(dbg_parse,"parseSongText() returning true",0);
     return true;
 }
-
 
 
 

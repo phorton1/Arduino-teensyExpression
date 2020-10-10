@@ -4,9 +4,14 @@
 #define song_error(f,...)        { error_fxn(f,__VA_ARGS__); songMachine::error_msg(f,__VA_ARGS__); }
 
 
-#define SONG_STATE_EMPTY   0
-#define SONG_STATE_RUNNING 1
-#define SONG_STATE_PAUSED  2
+#define SONG_STATE_EMPTY            0x0000
+#define SONG_STATE_RUNNING          0x0001
+#define SONG_STATE_PAUSED           0x0002
+#define SONG_STATE_WAITING_BUTTON   0x0010
+#define SONG_STATE_WAITING_LOOP     0x0020
+#define SONG_STATE_FINISHED         0x1000
+#define SONG_STATE_ERROR            0x8000
+
 #define NUM_SONG_BUTTONS   4
 
 class songMachine
@@ -52,14 +57,35 @@ class songMachine
                 m_button_color[i] = 0;
                 m_last_button_color[i] = -1;
             }
+
+            m_code_ptr = 0;
+            m_show_msg = 0;
+            m_last_show_msg = 0;
+            m_selected_track_num = -1;
         }
+
+        // ui variables
+
+        bool m_redraw;
 
         int m_state;
         int m_last_state;
         int m_button_color[NUM_SONG_BUTTONS];
         int m_last_button_color[NUM_SONG_BUTTONS];
-        bool m_redraw;
         const char *m_song_name;
+        const char *m_show_msg;
+        const char *m_last_show_msg;
+
+        // machine variables and methods
+
+        int m_code_ptr;
+        int m_selected_track_num;
+
+        void runMachine();
+        void doSongOp(int op);
+        int tokenToColor(int ttype);
+
+        // debugging
 
         void dumpCode();
 

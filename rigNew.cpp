@@ -554,6 +554,7 @@ void rigNew::onSerialMidiEvent(int cc_num, int value)
 void rigNew::onButtonEvent(int row, int col, int event)
 {
 	int num = row * NUM_BUTTON_COLS + col;
+	int song_state = theSongMachine->getMachineState();
 
 	// QUICK MODE
 
@@ -666,12 +667,19 @@ void rigNew::onButtonEvent(int row, int col, int event)
 			}
 		}
 
-		// otherwise, it is presumed that those button presses are track buttons
+		// otherwise, the press is on one of the four "track" buttons
+		// which *may* be redirected to the songMachine ...
+		// if the machine is in non-zero state without FINISHED
+		// or PAUSE the buttons go to the song machine ..
 
-		else if (theSongMachine->getMachineState() == SONG_STATE_RUNNING)
+		else if (song_state &&
+				 !(song_state & (SONG_STATE_PAUSED | SONG_STATE_FINISHED | SONG_STATE_ERROR)))
 		{
 			theSongMachine->notifyPress(num - LOOP_FIRST_TRACK_BUTTON + 1);
 		}
+
+		// otherwise they are serial commands to the looper
+
 		else
 		{
 			m_selected_track_num = num - LOOP_FIRST_TRACK_BUTTON;
@@ -689,13 +697,16 @@ void rigNew::onButtonEvent(int row, int col, int event)
 			expWindow *win = new winSelectSong(songParser::getTheSongName());
 			theSystem.startModal(win);
 		}
-		else	// EVENT_CLICK
+
+		// CLICK is only available if the machine is actually
+		// running (the button is lit up, in which case we
+		// toggle the PAUSED bit
+
+		else if (song_state && !(song_state & (SONG_STATE_FINISHED | SONG_STATE_ERROR)))
 		{
-			int song_state = theSongMachine->getMachineState();
-			if (song_state == SONG_STATE_RUNNING)
-				theSongMachine->setMachineState(SONG_STATE_PAUSED);
-			else if (song_state == SONG_STATE_PAUSED)
-				theSongMachine->setMachineState(SONG_STATE_RUNNING);
+			song_state ^= SONG_STATE_PAUSED;
+			theSongMachine->setMachineState(song_state);
+
 			for (int i=0; i<LOOPER_NUM_TRACKS; i++)
 			{
 				m_last_track_state[i] = -1;
@@ -872,14 +883,16 @@ void rigNew::updateUI()
 		if (m_last_song_state != song_state)
 		{
 			m_last_song_state = song_state;
-			setLED(SONG_MACHINE_BUTTON,
-				song_state == SONG_STATE_PAUSED ? LED_PURPLE :
-				song_state == SONG_STATE_RUNNING ? LED_YELLOW :
-				0);
+			int color =
+				song_state & SONG_STATE_ERROR ? LED_RED :
+				song_state & SONG_STATE_FINISHED ? 0 :
+				song_state & SONG_STATE_PAUSED ? LED_PURPLE :
+				song_state & SONG_STATE_RUNNING ? LED_YELLOW : 0;
+			setLED(SONG_MACHINE_BUTTON,color);
 			leds_changed = true;
 		}
 
-		if (song_state != SONG_STATE_RUNNING)
+		if (!song_state || (song_state & (SONG_STATE_PAUSED | SONG_STATE_FINISHED | SONG_STATE_ERROR)))
 		{
 			for (int i=0; i<LOOPER_NUM_TRACKS; i++)
 			{

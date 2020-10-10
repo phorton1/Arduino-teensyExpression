@@ -3,7 +3,10 @@
 #include "myDebug.h"
 #include "myTFT.h"
 #include "myLEDS.h"
+#include "pedals.h"
+#include "commonDefines.h"
 #include "songParser.h"
+#include "midiQueue.h"  // for sendSerialControlChange
 
 songMachine *theSongMachine = 0;
 
@@ -29,22 +32,17 @@ void songMachine::uc(char *buf)
 }
 
 
+#define DISPLAY_BUFFER_SIZE  255
+char error_display_buffer[DISPLAY_BUFFER_SIZE];
+
+
 void songMachine::error_msg(const char *format, ...)
 {
-    mylcd.setFont(Arial_18);
-    mylcd.Set_Text_colour(TFT_RED);
-    mylcd.Print_String("ERROR!",song_rect.xe-105,song_rect.ys+5);
-
     va_list var;
     va_start(var, format);
-    #define DISPLAY_BUFFER_SIZE  255
-    char display_buffer[DISPLAY_BUFFER_SIZE];
-    vsprintf(display_buffer,format,var);
-
-    mylcd.setFont(Arial_16);
-    mylcd.Set_Text_colour(TFT_ORANGE);
-    fillRect(song_msg_rect,TFT_BLACK);
-    mylcd.Print_String(display_buffer,song_msg_rect.xs,song_msg_rect.ys);
+    vsprintf(error_display_buffer,format,var);
+    theSongMachine->m_show_msg = error_display_buffer;
+    theSongMachine->m_state |= SONG_STATE_ERROR;
 }
 
 
@@ -61,20 +59,27 @@ void songMachine::dumpCode()
 
     while (song_ptr < songParser::codeLen())
     {
+        int start_offset = song_ptr;
         int ttype = songParser::getCode(song_ptr++);
         const char *tname = songParser::tokenToString(ttype);
 
         // those with string/identifier params
 
-        if (ttype == TOKEN_DISPLAY ||
-            ttype == TOKEN_GOTO)
+        if (ttype == TOKEN_DISPLAY)
         {
-            char buf[MAX_SONG_TOKEN+1];
-            int len = songParser::getCode(song_ptr++);
-            for (int i=0; i<len; i++)
-                buf[i] = songParser::getCode(song_ptr++);
-            buf[len] = 0;
-            display(0,"   %s %d:'%s'",tname,len,buf);
+            const char *pstr = songParser::getCodeString(song_ptr);
+            while (songParser::getCode(song_ptr)) song_ptr++; // skip to zero
+            song_ptr++;     // skip the zero
+            display(0,"%-5d:   %s '%s'",start_offset,tname,pstr);
+        }
+
+        // those with long integer params
+
+        else if (ttype == TOKEN_GOTO)
+        {
+            int offset = songParser::getCodeInteger(song_ptr);
+            song_ptr += 2;
+            display(0,"%-5d:   %s %d",start_offset,tname,offset);
         }
 
         // those with single integer params
@@ -90,7 +95,7 @@ void songMachine::dumpCode()
                  ttype == TOKEN_SYNTH_PATCH)
         {
             int val = songParser::getCode(song_ptr++);
-            display(0,"   %s %d",tname,val);
+            display(0,"%-5d:   %s %d",start_offset,tname,val);
         }
 
         // multiple parameters
@@ -99,13 +104,13 @@ void songMachine::dumpCode()
         {
             int clip_num = songParser::getCode(song_ptr++);
             int mute = songParser::getCode(song_ptr++);
-            display(0,"   %s %d,%d",tname,clip_num,mute);
+            display(0,"%-5d:   %s %d,%d",start_offset,tname,clip_num,mute);
         }
         else if (ttype == TOKEN_BUTTON_COLOR)
         {
             int button_num = songParser::getCode(song_ptr++);
             int color = songParser::getCode(song_ptr++);
-            display(0,"   %s %d,%s",tname,button_num,songParser::tokenToString(color));
+            display(0,"%-5d:   %s %d,%s",start_offset,tname,button_num,songParser::tokenToString(color));
         }
 
         // monadic outdented
@@ -116,7 +121,7 @@ void songMachine::dumpCode()
                  ttype == TOKEN_BUTTON4 ||
                  ttype == TOKEN_LOOP)
         {
-            display(0,"%s:",tname);
+            display(0,"%-5d: %s:",start_offset,tname);
         }
 
         //  other monadic
@@ -127,7 +132,7 @@ void songMachine::dumpCode()
                  ttype == TOKEN_DUB_MODE ||
                  ttype == TOKEN_LOOPER_SET_START_MARK)
         {
-            display(0,"   %s",tname);
+            display(0,"%-5d:   %s",start_offset,tname);
         }
         else    // anything else is bogus
         {
@@ -199,13 +204,54 @@ void songMachine::setMachineState(int state)
 //--------------------------
 
 void songMachine::notifyPress(int button_num)
+    // one based
 {
     display(0,"songMachine::notifyPress(%d)",button_num);
+
+    // Find the next occurance of the button, if any
+    // give an warning message if not found
+
+    int find_op = TOKEN_BUTTON1 + button_num - 1;
+    int found_offset = -1;
+    int find_ptr = m_code_ptr;
+    int code_len = songParser::codeLen();
+    while (find_ptr < code_len)
+    {
+        if (songParser::getCode(find_ptr) == find_op)
+        {
+            found_offset = find_ptr;
+            break;
+        }
+        find_ptr++;
+    }
+
+    if (found_offset >= 0)
+    {
+        m_code_ptr = found_offset+1;            // skip the opcode
+        m_state &= ~SONG_STATE_WAITING_BUTTON;  // clear the wait state
+    }
+    else
+    {
+        m_show_msg = "warning: could not find button";
+    }
 }
+
 
 void songMachine::notifyLoop()
 {
     display(0,"songMachine::notifyLoop()",0);
+    if (m_state & SONG_STATE_WAITING_LOOP)
+    {
+        if (songParser::getCode(m_code_ptr) == TOKEN_LOOP)
+        {
+            m_state &= ~SONG_STATE_WAITING_LOOP;
+            m_code_ptr++;
+        }
+        else
+        {
+            song_error("notifyLoop expected TOKEN_LOOP at offset %d",m_code_ptr);
+        }
+    }
 }
 
 
@@ -220,6 +266,11 @@ void songMachine::updateUI()
 {
     bool redraw = m_redraw;
     m_redraw = false;
+
+    // run the machine
+
+    if (m_state && !(m_state & (SONG_STATE_FINISHED | SONG_STATE_ERROR)))
+        runMachine();
 
     // song name
 
@@ -237,16 +288,40 @@ void songMachine::updateUI()
     {
         m_last_state = m_state;
         mylcd.setFont(Arial_18_Bold);
-        mylcd.Set_Text_colour(TFT_YELLOW);
+
+        int color = m_state & SONG_STATE_ERROR ?
+            TFT_RED :
+            TFT_YELLOW;
+
+        mylcd.Set_Text_colour(color);
         mylcd.Fill_Rect(
             song_rect.xe-105,
             song_rect.ys+5,
             100,25,0);
         mylcd.Print_String(
-            m_state == SONG_STATE_PAUSED ? "paused" :
-            m_state == SONG_STATE_RUNNING ? "running" : "",
+            m_state & SONG_STATE_ERROR ? "ERROR" :
+            m_state & SONG_STATE_FINISHED ? "DONE" :
+            m_state & SONG_STATE_PAUSED ? "paused" :
+            m_state & SONG_STATE_WAITING_BUTTON ? "button" :
+            m_state & SONG_STATE_WAITING_LOOP   ? "looping" :
+            m_state & SONG_STATE_RUNNING ? "running" : "",
             song_rect.xe-105,
             song_rect.ys+5);
+    }
+
+    // message
+
+    if (redraw || m_last_show_msg != m_show_msg)
+    {
+        m_last_show_msg = m_show_msg;
+
+        int color = m_state & SONG_STATE_ERROR ?
+            TFT_ORANGE : TFT_WHITE;
+
+        mylcd.setFont(Arial_16);
+        mylcd.Set_Text_colour(color);
+        fillRect(song_msg_rect,TFT_BLACK);
+        mylcd.Print_String(m_last_show_msg?m_last_show_msg:"",song_msg_rect.xs,song_msg_rect.ys);
     }
 
     // buttons
@@ -268,4 +343,162 @@ void songMachine::updateUI()
             showLEDs();
     }
 
+}
+
+
+//================================================
+// the machine
+//================================================
+
+void songMachine::runMachine()
+{
+    if (m_state && !(m_state & (SONG_STATE_PAUSED | SONG_STATE_FINISHED | SONG_STATE_ERROR)))
+    {
+        if (m_code_ptr >= songParser::codeLen())
+        {
+            m_state |= SONG_STATE_FINISHED;
+        }
+        else
+        {
+            int c = songParser::getCode(m_code_ptr);
+            if (c >= TOKEN_BUTTON1 && c <= TOKEN_BUTTON4)
+            {
+                m_state |= SONG_STATE_WAITING_BUTTON;
+            }
+            else if (c == TOKEN_LOOP)
+            {
+                m_state |= SONG_STATE_WAITING_LOOP;
+            }
+            else
+            {
+                m_code_ptr++;
+                doSongOp(c);
+
+            }   // not waiting for a button or loop
+        }   //  code left to run
+    }   // running and not finished
+}
+
+
+
+int songMachine::tokenToColor(int ttype)
+{
+    if (ttype == TOKEN_RED    ) return LED_RED;
+    if (ttype == TOKEN_GREEN  ) return LED_GREEN;
+    if (ttype == TOKEN_BLUE   ) return LED_BLUE;
+    if (ttype == TOKEN_YELLOW ) return LED_YELLOW;
+    if (ttype == TOKEN_PURPLE ) return LED_PURPLE;
+    if (ttype == TOKEN_ORANGE ) return LED_ORANGE;
+    if (ttype == TOKEN_WHITE  ) return LED_WHITE;
+    if (ttype == TOKEN_CYAN   ) return LED_CYAN;
+    if (ttype == TOKEN_BLACK  ) return 0;
+
+    song_error("unexpected color token 0x%02x %s at offset %d",
+        ttype,
+        songParser::tokenToString(ttype),
+        m_code_ptr);
+
+    return 0;
+}
+
+
+
+
+
+
+
+void songMachine::doSongOp(int op)
+{
+    switch (op)
+    {
+        case TOKEN_DISPLAY:
+            m_show_msg = songParser::getCodeString(m_code_ptr);
+            while (songParser::getCode(m_code_ptr)) m_code_ptr++;   // skip to zero
+            m_code_ptr++;   // skip the zero
+            break;
+
+        case TOKEN_BUTTON_COLOR:
+        {
+            int button_num = songParser::getCode(m_code_ptr++) - 1;
+            m_button_color[button_num] = tokenToColor(songParser::getCode(m_code_ptr++));
+            break;
+        }
+
+        case TOKEN_GOTO:
+            m_code_ptr = songParser::getCodeInteger(m_code_ptr);
+            break;
+
+        case TOKEN_LOOP_VOLUME:
+        case TOKEN_SYNTH_VOLUME:
+        case TOKEN_GUITAR_VOLUME:
+        {
+            int pedal =
+                op == TOKEN_LOOP_VOLUME ? PEDAL_LOOP :
+                op == TOKEN_SYNTH_VOLUME ? PEDAL_SYNTH :
+                PEDAL_GUITAR;
+            int value = songParser::getCode(m_code_ptr++);
+            thePedals.getPedal(pedal)->setDisplayValue(value);
+            thePedals.pedalEvent(pedal,value);
+            break;
+        }
+
+        case TOKEN_GUITAR_EFFECT_NONE:
+            theNewRig->clearGuitarEffects(false);
+            break;
+
+        case TOKEN_GUITAR_EFFECT_DISTORT:
+        case TOKEN_GUITAR_EFFECT_WAH:
+        case TOKEN_GUITAR_EFFECT_CHORUS:
+        case TOKEN_GUITAR_EFFECT_ECHO:
+        {
+            int effect_num = op - TOKEN_GUITAR_EFFECT_DISTORT;
+            int value = songParser::getCode(m_code_ptr++);
+            theNewRig->setGuitarEffect(effect_num, value);
+            break;
+        }
+
+        case TOKEN_SYNTH_PATCH:
+            theNewRig->setPatchNumber(songParser::getCode(m_code_ptr++));
+            break;
+
+        case TOKEN_CLEAR_LOOPER:
+			m_selected_track_num = -1;
+            theNewRig->clearLooper(false);
+            break;
+
+        case TOKEN_LOOPER_STOP:
+			sendSerialControlChange(LOOP_COMMAND_CC,LOOP_COMMAND_STOP,"songMachine STOP");
+            break;
+        case TOKEN_DUB_MODE:
+			sendSerialControlChange(LOOP_COMMAND_CC,LOOP_COMMAND_DUB_MODE,"songMachine DUB");
+            break;
+
+        case TOKEN_LOOPER_SET_START_MARK:
+            // not implemented yet
+            break;
+
+        case TOKEN_LOOPER_TRACK:
+        {
+			m_selected_track_num = songParser::getCode(m_code_ptr++)-1;
+			int value = m_selected_track_num + LOOP_COMMAND_TRACK_BASE;
+			sendSerialControlChange(LOOP_COMMAND_CC,value,"aongMachine TRACK BUTTON");
+            break;
+        }
+
+        case TOKEN_LOOPER_CLIP:
+        {
+            int layer_num = songParser::getCode(m_code_ptr++)-1;
+            int mute_value = songParser::getCode(m_code_ptr++);
+            if (m_selected_track_num >= 0)
+            {
+                int clip_num = m_selected_track_num * LOOPER_NUM_LAYERS + layer_num;
+				sendSerialControlChange(CLIP_MUTE_BASE_CC+clip_num,mute_value,"songMachine MUTE_CLIP");
+            }
+            break;
+        }
+
+
+        default:
+            song_error("UNEXPECTED OPCODE: %d: 0x%02x-%s",m_code_ptr,op,songParser::tokenToString(op));
+    }
 }

@@ -14,7 +14,7 @@
 typedef struct
 {
     char name[MAX_ID_LEN+1];
-    int  code_offset;
+    uint16_t  code_offset;
 }   label_t;
 
 
@@ -59,8 +59,8 @@ typedef struct
 #define TOKEN_ORANGE                    38   // colors
 #define TOKEN_WHITE                     39   // colors
 #define TOKEN_CYAN                      40   // colors
-
-#define TOKEN_EOF                       41   // end of file
+#define TOKEN_BLACK                     41   // colors
+#define TOKEN_EOF                       42   // end of file
 
 
 class songParser
@@ -84,6 +84,9 @@ class songParser
         static int codeLen()               { return song_code_len; }
         static int textLen()               { return song_text_len; }
         static int getCode(int offset)     { return song_code[offset]; }
+        static const char *getCodeString(int offset)    { return (const char *)&song_code[offset]; }
+        static const uint16_t getCodeInteger(int offset){ return song_code[offset] | (song_code[offset+1]<<8); }
+
         static int getText(int offset)     { return song_text[offset]; }
 
         static label_t *findLabel(const char *id);
