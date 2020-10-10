@@ -161,13 +161,13 @@ void expressionPedal::setPedalMode()
 
     if (m_mode & PEDAL_MODE_AUTO)
     {
-        display(0,"AUTO_PEDAL(%d) pin=%d",m_num,m_pin);
+        display(1,"AUTO_PEDAL(%d) pin=%d",m_num,m_pin);
         pinMode(m_pin,INPUT);
         attachInterrupt(digitalPinToInterrupt(m_pin), pedal_isrs[m_num], RISING );
     }
     else
     {
-        display(0,"REGULAR_PEDAL(%d)",m_num);
+        display(1,"REGULAR_PEDAL(%d)",m_num);
         pinMode(m_pin,INPUT_PULLDOWN);
     }
 }

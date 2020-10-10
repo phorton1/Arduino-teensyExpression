@@ -123,7 +123,7 @@ class expSystem
 
         void addRig(expWindow *pRig);
 
-        int m_num_modals;
+        volatile int m_num_modals;
         expWindow *m_modal_stack[MAX_MODAL_STACK];
 
         expWindow *m_rigs[MAX_EXP_RIGS + 1];

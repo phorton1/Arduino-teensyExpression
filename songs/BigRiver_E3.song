@@ -26,7 +26,7 @@ button1:
     GUITAR_EFFECT_NONE
     CLEAR_LOOPER
     BUTTON_COLOR 1,yellow
-    DISPLAY "press to start record guitar"
+    DISPLAY "press to start record guitar lkfdjlkdfsjlkjdfs fdslkjdfsljkdfs fsdlkjsdflkjdsfl sfldsfkjlfskjfslkjdsf dsflkjdsfljkfdsljdsf sdflkjsdflkjdsfljkfdljkdsfljsdf dsflkjdsflkjfdslkjdsf fdslkjfdslkjdsfljksdf ldsfkjdsflkjdsflkjsdf"
 
 #--------------------------
 # INTRO CHORUS
@@ -65,7 +65,7 @@ loop:                          # AT/AFTER 1st loop
 loop:
     SYNTH_VOLUME 0              # turn down the synth
     GUITAR_VOLUME 70            # turn up the guitar
-    GUITAR_EFFECT_ECHO on       # turn on the echo effect
+    GUITAR_EFFECT_ECHO 0       # turn on the echo effect
     SYNTH_PATCH Organ1          # select the organ for use later
     DISPLAY "play acoustic lead, ready verse2"
 

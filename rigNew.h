@@ -101,12 +101,16 @@ class rigNew : public expWindow
         static int patch_to_button(int patch_num);
         static int bank_button_to_patch(int bank, int button_num);
 
-        bool song_machine_running;
+        // song machine additions
 
+        virtual void onEndModal(expWindow *win, uint32_t param);
+        int m_last_song_state;
 };
 
 
 extern int_rect song_rect;
+extern int_rect song_msg_rect;
+
 extern rigNew *theNewRig;
     // static globals for use by songMachine
 

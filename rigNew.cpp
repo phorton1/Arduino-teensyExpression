@@ -9,6 +9,9 @@
 #include "ftp.h"
 #include "ftp_defs.h"
 #include "songMachine.h"
+#include "songParser.h"
+#include "winSelectSong.h"
+
 
 
 #define SONG_MACHINE_BUTTON     9
@@ -40,6 +43,7 @@
 int_rect synth_rect;
 int_rect guitar_rect;
 int_rect song_rect;
+int_rect song_msg_rect;
 
 #define LEFT_MARGIN    80
 	// room for the "rectangle labels
@@ -130,12 +134,22 @@ synthPatch_t rigNew::synth_patch[NUM_SYNTH_BANKS * NUM_SYNTH_PATCHES] = {
 
 };
 
+
+
 // static
 int rigNew::findPatchByName(const char *patch_name)
 {
+	char buf1[80];
+	strcpy(buf1,patch_name);
+	songMachine::uc(buf1);
+
 	for (int i=0; i<NUM_SYNTH_BANKS * NUM_SYNTH_PATCHES; i++)
 	{
-		if (!strcmp(patch_name,synth_patch[i].short_name))
+		char buf2[80];
+		strcpy(buf2,synth_patch[i].short_name);
+		songMachine::uc(buf2);
+
+		if (!strcmp(buf1,buf2))
 			return i;
 	}
 	return -1;
@@ -168,6 +182,7 @@ const char *guitar_effect_name[NUM_GUITAR_EFFECTS] = {
 //====================================================================
 
 rigNew *theNewRig = 0;
+const char *pending_open_song = 0;
 
 
 rigNew::rigNew() :
@@ -199,10 +214,12 @@ rigNew::rigNew() :
 		client_rect.xs + LEFT_MARGIN,
 		guitar_rect.ye + 1,
 		client_rect.xe,
+		guitar_rect.ye + 35);
+	song_msg_rect.assign(
+		client_rect.xs,
+		song_rect.ye + 1,
+		client_rect.xe,
 		client_rect.ye);
-
-	song_machine_running = 0;
-
 }
 
 
@@ -213,6 +230,7 @@ void rigNew::resetDisplay()
 	m_last_displayed_poly_mode = -1;
 	m_last_bank_num	= -1;
 	m_last_patch_num = -1;
+	m_last_song_state = -1;
 
 	for (int i=0; i<NUM_GUITAR_EFFECTS; i++)
 	{
@@ -279,7 +297,6 @@ void rigNew::setPatchNumber(int patch_number)
 
 void rigNew::setGuitarEffect(int effect_num, bool on)
 {
-
 	m_guitar_state[effect_num] = on;
 	m_last_guitar_state[effect_num] = -1;
 
@@ -488,6 +505,8 @@ bool rigNew::onRotaryEvent(int num, int val)
 // virtual
 void rigNew::onSerialMidiEvent(int cc_num, int value)
 {
+	// display(0,"rigNew::SerialMidiEvent(0x%02x,0x%02x)",cc_num,value);
+
 	// track state messages
 	if (cc_num >= TRACK_STATE_BASE_CC && cc_num < TRACK_STATE_BASE_CC+4)
 	{
@@ -634,6 +653,10 @@ void rigNew::onButtonEvent(int row, int col, int event)
 
 		// otherwise, it is presumed that those button presses are track buttons
 
+		else if (songMachine::getMachineState() == SONG_STATE_RUNNING)
+		{
+			songMachine::notifyPress(num - LOOP_FIRST_TRACK_BUTTON + 1);
+		}
 		else
 		{
 			m_selected_track_num = num - LOOP_FIRST_TRACK_BUTTON;
@@ -644,34 +667,24 @@ void rigNew::onButtonEvent(int row, int col, int event)
 
 	// SONG MACHINE
 
-
 	else if (num == SONG_MACHINE_BUTTON)
 	{
 		if (event == BUTTON_EVENT_LONG_CLICK)
 		{
-			display(0,"rigNew::SONG_MACHINE_BUTTON LONG_CLICK running(%d)",song_machine_running);
-			if (song_machine_running)
-			{
-				song_machine_running = 0;
-				songMachine::clear();
-			}
-			else
-			{
-				song_machine_running = songMachine::load();
-			}
-			setLED(SONG_MACHINE_BUTTON,song_machine_running?LED_YELLOW:0);
-			showLEDs();
+			expWindow *win = new winSelectSong(songParser::getTheSongName());
+			theSystem.startModal(win);
 		}
 		else	// EVENT_CLICK
 		{
-			display(0,"rigNew::SONG_MACHINE_BUTTON click",0);
-			if (song_machine_running)
-			{
-				songMachine::notifyPress();
-			}
+			int song_state = songMachine::getMachineState();
+			if (song_state == SONG_STATE_RUNNING)
+				songMachine::setMachineState(SONG_STATE_PAUSED);
+			else if (song_state == SONG_STATE_PAUSED)
+				songMachine::setMachineState(SONG_STATE_RUNNING);
 		}
 	}
 }
+
 
 
 
@@ -840,29 +853,43 @@ void rigNew::updateUI()
 			leds_changed = true;
 		}
 
-		for (int i=0; i<LOOPER_NUM_TRACKS; i++)
+		int song_state = songMachine::getMachineState();
+		if (m_last_song_state != song_state)
 		{
-			int state = m_track_state[i] ;
-			if ((state != m_last_track_state[i]) ||
-				((last_track_flash != m_track_flash) && (state & TRACK_STATE_PENDING)))
+			m_last_song_state = song_state;
+			setLED(SONG_MACHINE_BUTTON,
+				song_state == SONG_STATE_PAUSED ? LED_PURPLE :
+				song_state == SONG_STATE_RUNNING ? LED_YELLOW :
+				0);
+			leds_changed = true;
+		}
+
+		if (song_state != SONG_STATE_RUNNING)
+		{
+			for (int i=0; i<LOOPER_NUM_TRACKS; i++)
 			{
-				m_last_track_state[i] = state;
+				int state = m_track_state[i] ;
+				if ((state != m_last_track_state[i]) ||
+					((last_track_flash != m_track_flash) && (state & TRACK_STATE_PENDING)))
+				{
+					m_last_track_state[i] = state;
 
-				int color = 0;			// EMPTY
-				if (state & (TRACK_STATE_RECORDING | TRACK_STATE_PENDING_RECORD))
-					color = LED_RED;
-				else if (state & (TRACK_STATE_PLAYING | TRACK_STATE_PENDING_PLAY))
-					color = LED_YELLOW;
-				else if (state & TRACK_STATE_PENDING_STOP)
-					color = LED_CYAN;
-				else if (state & TRACK_STATE_STOPPED)
-					color = LED_GREEN;
+					int color = 0;			// EMPTY
+					if (state & (TRACK_STATE_RECORDING | TRACK_STATE_PENDING_RECORD))
+						color = LED_RED;
+					else if (state & (TRACK_STATE_PLAYING | TRACK_STATE_PENDING_PLAY))
+						color = LED_YELLOW;
+					else if (state & TRACK_STATE_PENDING_STOP)
+						color = LED_CYAN;
+					else if (state & TRACK_STATE_STOPPED)
+						color = LED_GREEN;
 
-				if ((state & TRACK_STATE_PENDING) && !m_track_flash)
-					color = 0;
+					if ((state & TRACK_STATE_PENDING) && !m_track_flash)
+						color = 0;
 
-				setLED(LOOP_FIRST_TRACK_BUTTON+i,color);
-				leds_changed = true;
+					setLED(LOOP_FIRST_TRACK_BUTTON+i,color);
+					leds_changed = true;
+				}
 			}
 		}
 
@@ -977,12 +1004,42 @@ void rigNew::updateUI()
 				TFT_BLACK,
 				true,
 				"%s",
-				ftp_poly_mode ? "poly" : "MONO");
+				ftp_poly_mode ? "" : "MONO");
 		}
 
 	}	// Normal redraw (!m_quick_mode)
 
+	// the song machine takes over the four bottom left buttons
+	// and starts off as running if load() succeeds ...
+
+	if (pending_open_song)
+	{
+		songMachine::load(pending_open_song);
+		pending_open_song = 0;
+	}
+
 	if (leds_changed)
 		showLEDs();
 
+}
+
+
+
+//---------------------------
+// songMachine hooks
+//---------------------------
+
+// virtual
+void rigNew::onEndModal(expWindow *win, uint32_t param)
+{
+	display(0,"rigNew::onEndModal(%08x,%08x)",(uint32_t)win,param);
+	if (param)
+	{
+		display(0,"SELECTED_NAME=%s",winSelectSong::selected_name);
+		pending_open_song = winSelectSong::selected_name;
+	}
+	else
+	{
+		songMachine::setMachineState(SONG_STATE_EMPTY);
+	}
 }

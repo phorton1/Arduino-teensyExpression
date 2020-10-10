@@ -18,7 +18,7 @@
 #include "rigTest.h"
 #include "rigMidiHost.h"
 
-#define WITH_FILE_SYSTEM    1
+#define WITH_FILE_SYSTEM    2
 
 #if WITH_FILE_SYSTEM
     #include "fileSystem.h"
@@ -250,7 +250,13 @@ void expSystem::begin()
     activateRig(rig_num);
         // show the first windw
 
-	fileSystem::init();
+	if (!fileSystem::init())
+	{
+        mylcd.Set_Text_colour(TFT_YELLOW);
+        mylcd.println("");
+        mylcd.println("expSystem: COULD NOT START FILE SYSTEM!!");
+		delay(10000);
+	}
 }
 
 
@@ -405,6 +411,7 @@ void expSystem::endModal(expWindow *win, uint32_t param)
 		// returning to a rig window
 		// reset the system button handler
 		theButtons.getButton(0,THE_SYSTEM_BUTTON)->m_event_mask |= BUTTON_EVENT_LONG_CLICK;
+		draw_pedals = 1;
 	}
 
 	new_win->onEndModal(win,param);
@@ -547,7 +554,6 @@ void expSystem::critical_timer_handler()
 
 
 
-volatile int fu = 0;
 
 // static
 void expSystem::timer_handler()
@@ -602,6 +608,9 @@ void expSystem::timer_handler()
 #define SERIAL_TIMEOUT  200		   // ms
 char static_serial_buffer[MAX_SERIAL_TEXT_LINE+1];
 
+volatile int fu = 0;
+
+
 void expSystem::handleSerialData()
 {
 	// The main USB Serial is only expected to contain lines of text
@@ -643,31 +652,42 @@ void expSystem::handleSerialData()
 
 		int c = Serial3.read();
 		if (c == 0x0B)
-			is_midi = 1;
-		static_serial_buffer[buf_ptr++] = c;
-
-		line_timeout = 0;
-		while (!finished && buf_ptr<MAX_SERIAL_TEXT_LINE && line_timeout<SERIAL_TIMEOUT)
 		{
-			if (Serial3.available())
+			is_midi = 1;
+			static_serial_buffer[buf_ptr++] = c;
+			for (int i=0; i<3; i++)
 			{
-				int c = Serial.read();
-				if (is_midi)
+				while (!Serial3.available()) {fu++;}
+				c = Serial3.read();
+				static_serial_buffer[buf_ptr++] = c;
+			}
+			finished = true;
+		}
+		else
+		{
+			line_timeout = 0;
+			while (!finished && buf_ptr<MAX_SERIAL_TEXT_LINE && line_timeout<SERIAL_TIMEOUT)
+			{
+				if (Serial3.available())
 				{
-					static_serial_buffer[buf_ptr++] = c;
-					line_timeout = 0;
-					if (buf_ptr == 4)
+					int c = Serial.read();
+					if (is_midi)
+					{
+						static_serial_buffer[buf_ptr++] = c;
+						line_timeout = 0;
+						if (buf_ptr == 4)
+							finished = 1;
+					}
+					else if (c == 0x0A)			// LF comesl last
+					{
+						static_serial_buffer[buf_ptr++] = 0;
 						finished = 1;
-				}
-				else if (c == 0x0A)			// LF comesl last
-				{
-					static_serial_buffer[buf_ptr++] = 0;
-					finished = 1;
-				}
-				else if (c != 0x0D)			// skip CR
-				{
-					static_serial_buffer[buf_ptr++] = c;
-					line_timeout = 0;
+					}
+					else if (c != 0x0D)			// skip CR
+					{
+						static_serial_buffer[buf_ptr++] = c;
+						line_timeout = 0;
+					}
 				}
 			}
 		}
