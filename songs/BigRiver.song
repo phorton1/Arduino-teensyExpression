@@ -14,8 +14,8 @@ start:
     SYNTH_PATCH Bass1
     GUITAR_EFFECT_NONE
     CLEAR_LOOPER
-    BUTTON_COLOR 4,red
-    BUTTON_COLOR 1,green
+    BUTTON_COLOR 4,yellow
+    BUTTON_COLOR 1,red
     DISPLAY "button1 to record guitar"
 
 #--------------------------
@@ -25,6 +25,7 @@ start:
 button1:                        # record guitar behind intro-chorus
     LOOPER_TRACK 1              # start recording track0, clip0
     DUB_MODE                    # set dub mode for next press of TRACK1 button
+    BUTTON_COLOR 1,orange
     DISPLAY "button1 to record bass"
 
 #--------------------------
@@ -32,7 +33,7 @@ button1:                        # record guitar behind intro-chorus
 #--------------------------
 
 button1:                        # record bass behind 1st verse
-    SYNTH_VOLUME 110            # turn up the synth
+    SYNTH_VOLUME 100            # turn up the synth
     LOOPER_TRACK 1              # finish recording guitar, start recording bass
     GUITAR_VOLUME 0             # turn down the guitar!
     BUTTON_COLOR 1,black
@@ -130,12 +131,12 @@ loop:
 
 loop:
     LOOP_VOLUME 90
-    DISPLAY "3rd time through, ready end riff"
+    DISPLAY "3rd time through, ready end-riff"
     LOOPER_STOP     # looper will stop at end of third repeat
 
 loop:   # we get one last loop point message
     BUTTON_COLOR 1,green
-    DISPLAY "button1 on stinger"
+    DISPLAY "end-riff - press button1 on stinger"
 
 # GUITAR RIFF of some kind to fill to end note
 
@@ -144,21 +145,9 @@ loop:   # we get one last loop point message
 #---------------------------
 
 button1:    # press this ON the final end note of riff
-    SYNTH_VOLUME 120              # turn up the synth
-
-# STINGER
-
-button1:    # press this at end of final note
+    SYNTH_VOLUME 100              # turn up the synth
     CLEAR_LOOPER
-    BUTTON_COLOR 1,yellow
-
-# finally, this is a place keeper to stop the looper
-# from going back to the beginning automatically.
-# press this to restart BigRiver.song
-
-# note that you can only go to PREVIOUS labels
-# this should be more like "onButton" or a subroutine
-
+    BUTTON_COLOR 1,purple
     DISPLAY "button1=finish button4=start over"
 
 button4:
