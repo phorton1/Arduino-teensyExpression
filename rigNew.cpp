@@ -264,6 +264,47 @@ void rigNew::resetDisplay()
 // setters to support songMachine
 //-----------------------------------
 
+void rigNew::selectTrack(int num)
+{
+	display(dbg_song_machine,"rigNew::selectTrack(%d)",num);
+	m_selected_track_num = num;
+	int value = m_selected_track_num + LOOP_COMMAND_TRACK_BASE;
+	sendSerialControlChange(LOOP_COMMAND_CC,value,"rigNew::selectTrack()");
+}
+
+void rigNew::setClipMute(int layer_num, bool mute_on)
+{
+	if (m_selected_track_num >= 0)
+	{
+		int clip_num = m_selected_track_num * LOOPER_NUM_LAYERS + layer_num;
+		display(dbg_song_machine,"rigNew::setClipMute(%d,%d) clip_num=%d",layer_num,mute_on,clip_num);
+		sendSerialControlChange(CLIP_MUTE_BASE_CC+clip_num,mute_on,"rigNew::setClipMute()");
+		m_clip_mute[clip_num] = mute_on;
+	}
+	else
+	{
+		display(0,"WARNING: setClipMute(%d,%d) called with no selected track",layer_num,mute_on);
+	}
+}
+
+void rigNew::setClipVolume(int layer_num, int val)
+{
+	if (m_selected_track_num >= 0)
+	{
+		int clip_num = m_selected_track_num * LOOPER_NUM_LAYERS + layer_num;
+		display(dbg_rignew,"rigNew::setClipVolume(%d,%d) clip_num=%d",layer_num,val,clip_num);
+		if (val < 0) val = 0;
+		if (val > 127) val = 127;
+		m_clip_vol[clip_num] = val;
+		sendSerialControlChange(CLIP_VOL_BASE_CC+clip_num,val,"rigNew::setClipVolume()");
+	}
+	else
+	{
+		display(0,"WARNING: setClipVolume(%d,%d) called with no selected track",layer_num,val);
+	}
+}
+
+
 void rigNew::setPatchNumber(int patch_number)
 {
 	if (m_cur_patch_num != -1)
@@ -360,6 +401,11 @@ void rigNew::clearLooper(bool display_only)
 		sendSerialControlChange(LOOP_COMMAND_CC,LOOP_COMMAND_CLEAR_ALL,"LOOP BUTTON long click");
 }
 
+
+
+//============================================
+// begin()
+//============================================
 
 
 // virtual
@@ -585,22 +631,14 @@ void rigNew::onButtonEvent(int row, int col, int event)
 			{
 				int mute = m_clip_mute[clip_num];
 				mute = mute ? 0 : 1;
-				m_clip_mute[clip_num] = mute;
-				sendSerialControlChange(CLIP_MUTE_BASE_CC+clip_num,mute,"MUTE_CLIP button click");
+				setClipMute(layer_num,mute);
 			}
 			else if (col == QUICK_COL_VOL_DOWN || col == QUICK_COL_VOL_UP)	// volume up or down
 			{
 				int inc = col == QUICK_COL_VOL_DOWN ? -1 : 1;
 				int val = m_clip_vol[clip_num];
 				val += inc;
-				if (val < 0) val = 0;
-				if (val > 127) val = 127;
-				m_clip_vol[clip_num] = val;
-
-				// send it to the rPi ...
-				// we'll update the display later ...
-
-				sendSerialControlChange(CLIP_VOL_BASE_CC+clip_num,val,"CLIP_VOL button click");
+				setClipVolume(layer_num,val);
 			}
 
 		}
@@ -653,6 +691,8 @@ void rigNew::onButtonEvent(int row, int col, int event)
 		if (event == BUTTON_EVENT_LONG_CLICK)	// only button with long press
 		{
 			clearLooper(false);
+			// also clear the song machine
+			theSongMachine->setMachineState(SONG_STATE_EMPTY);
 		}
 		else if (event == BUTTON_EVENT_CLICK)
 		{
@@ -678,13 +718,11 @@ void rigNew::onButtonEvent(int row, int col, int event)
 			theSongMachine->notifyPress(num - LOOP_FIRST_TRACK_BUTTON + 1);
 		}
 
-		// otherwise they are serial commands to the looper
+		// otherwise they are serial TRACK1..n commands to the looper
 
 		else
 		{
-			m_selected_track_num = num - LOOP_FIRST_TRACK_BUTTON;
-			int value = m_selected_track_num + LOOP_COMMAND_TRACK_BASE;
-			sendSerialControlChange(LOOP_COMMAND_CC,value,"LOOP TRACK BUTTON");
+			selectTrack(num - LOOP_FIRST_TRACK_BUTTON);
 		}
 	}
 
@@ -886,8 +924,8 @@ void rigNew::updateUI()
 			int color =
 				song_state & SONG_STATE_ERROR ? LED_RED :
 				song_state & SONG_STATE_FINISHED ? 0 :
-				song_state & SONG_STATE_PAUSED ? LED_PURPLE :
-				song_state & SONG_STATE_RUNNING ? LED_YELLOW : 0;
+				song_state & SONG_STATE_PAUSED ?  LED_YELLOW:
+				song_state & SONG_STATE_RUNNING ? LED_PURPLE : 0;
 			setLED(SONG_MACHINE_BUTTON,color);
 			leds_changed = true;
 		}

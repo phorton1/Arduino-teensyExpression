@@ -462,7 +462,6 @@ void songMachine::doSongOp(int op)
             break;
 
         case TOKEN_CLEAR_LOOPER:
-			m_selected_track_num = -1;
             theNewRig->clearLooper(false);
             break;
 
@@ -479,21 +478,15 @@ void songMachine::doSongOp(int op)
 
         case TOKEN_LOOPER_TRACK:
         {
-			m_selected_track_num = songParser::getCode(m_code_ptr++)-1;
-			int value = m_selected_track_num + LOOP_COMMAND_TRACK_BASE;
-			sendSerialControlChange(LOOP_COMMAND_CC,value,"aongMachine TRACK BUTTON");
+			int track_num = songParser::getCode(m_code_ptr++)-1;
+            theNewRig->selectTrack(track_num);
             break;
         }
-
         case TOKEN_LOOPER_CLIP:
         {
             int layer_num = songParser::getCode(m_code_ptr++)-1;
             int mute_value = songParser::getCode(m_code_ptr++);
-            if (m_selected_track_num >= 0)
-            {
-                int clip_num = m_selected_track_num * LOOPER_NUM_LAYERS + layer_num;
-				sendSerialControlChange(CLIP_MUTE_BASE_CC+clip_num,mute_value,"songMachine MUTE_CLIP");
-            }
+            theNewRig->setClipMute(layer_num,mute_value);
             break;
         }
 

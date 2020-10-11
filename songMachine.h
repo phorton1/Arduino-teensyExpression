@@ -61,7 +61,6 @@ class songMachine
             m_code_ptr = 0;
             m_show_msg = 0;
             m_last_show_msg = 0;
-            m_selected_track_num = -1;
         }
 
         // ui variables
@@ -79,7 +78,6 @@ class songMachine
         // machine variables and methods
 
         int m_code_ptr;
-        int m_selected_track_num;
 
         void runMachine();
         void doSongOp(int op);

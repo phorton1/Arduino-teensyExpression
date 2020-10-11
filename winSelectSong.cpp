@@ -30,8 +30,7 @@ winSelectSong::winSelectSong(const char *sel_name) :
 	expWindow(WIN_FLAG_DELETE_ON_END)
 {
 	init();
-	selected_name[0] = 0;
-	if (sel_name)
+	if (sel_name && *sel_name)
 		strcpy(selected_name,sel_name);	// 80 char max!!
 }
 
@@ -106,7 +105,7 @@ void winSelectSong::onButtonEvent(int row, int col, int event)
 	else if (num == KEYPAD_CANCEL)
 	{
 		songParser::releaseSongNames();
-		selected_name[0] = 0;
+		// selected_name[0] = 0;
 		endModal(0);
 	}
 	else if (num == KEYPAD_SELECT ||

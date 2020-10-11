@@ -33,8 +33,11 @@ class rigNew : public expWindow
         void setGuitarEffect(int effect_num, bool on);
 
         void clearLooper(bool display_only);
-            // other looper commands can be sent directly as
-            // LOOP_COMMANDs and the UI will pick them up
+
+        void selectTrack(int num);
+        void setClipMute(int layer_num, bool on);
+        void setClipVolume(int layer_num, int val);
+
 
     private:
 
