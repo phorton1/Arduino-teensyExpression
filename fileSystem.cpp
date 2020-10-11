@@ -13,7 +13,7 @@
 #include <SdFat.h>
 #include <Base64.h>
 
-#define dbg_tfs    1
+#define dbg_tfs    2
     // This debugging *may* affect timing.
     // It "works" when this is on (0), but "not" when 1 (debugging turned off)
 
@@ -446,6 +446,8 @@ unsigned char decode_buf[MAX_DECODED_BUF];
 void fileSystem::handleFileCommand(const char *command, const char *param)
 {
     // DIRECTORY LIST
+
+     display(dbg_tfs-1,"handleFileCommand %s - %s",command);
 
     if (!strcmp(command,"list"))
     {

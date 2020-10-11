@@ -666,35 +666,34 @@ void expSystem::handleSerialData()
 		else
 		{
 			line_timeout = 0;
-			while (!finished && buf_ptr<MAX_SERIAL_TEXT_LINE && line_timeout<SERIAL_TIMEOUT)
+			while (!finished && buf_ptr<MAX_SERIAL_TEXT_LINE)
 			{
-				if (Serial3.available())
+				if (c == 0x0A)			// LF comesl last
 				{
-					int c = Serial.read();
-					if (is_midi)
+					static_serial_buffer[buf_ptr++] = 0;
+					finished = 1;
+				}
+				else
+				{
+					if (c != 0x0D)			// skip CR
 					{
 						static_serial_buffer[buf_ptr++] = c;
 						line_timeout = 0;
-						if (buf_ptr == 4)
-							finished = 1;
+
 					}
-					else if (c == 0x0A)			// LF comesl last
+					while (!Serial3.available())
 					{
-						static_serial_buffer[buf_ptr++] = 0;
-						finished = 1;
+						if (line_timeout>=SERIAL_TIMEOUT)
+							break;
 					}
-					else if (c != 0x0D)			// skip CR
-					{
-						static_serial_buffer[buf_ptr++] = c;
-						line_timeout = 0;
-					}
+ 					c = Serial3.read();
 				}
 			}
 		}
-	}
+	}	// Serial3.available()
 
 
-	if (started && !finished)
+ 	if (started && !finished)
 	{
 		my_error("Could not finish serial input from_serial3(%d) is_midi(%d) buf_ptr(%d) %s",
 			from_serial3,
