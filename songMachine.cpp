@@ -129,6 +129,7 @@ void songMachine::dumpCode()
         else if (ttype == TOKEN_GUITAR_EFFECT_NONE ||
                  ttype == TOKEN_CLEAR_LOOPER ||
                  ttype == TOKEN_LOOPER_STOP ||
+                 ttype == TOKEN_LOOPER_STOP_IMMEDIATE  ||
                  ttype == TOKEN_DUB_MODE ||
                  ttype == TOKEN_LOOPER_SET_START_MARK)
         {
@@ -468,12 +469,15 @@ void songMachine::doSongOp(int op)
         case TOKEN_LOOPER_STOP:
 			sendSerialControlChange(LOOP_COMMAND_CC,LOOP_COMMAND_STOP,"songMachine STOP");
             break;
+        case TOKEN_LOOPER_STOP_IMMEDIATE:
+			sendSerialControlChange(LOOP_COMMAND_CC,LOOP_COMMAND_STOP_IMMEDIATE,"songMachine STOP_IMMEDIATE");
+            break;
         case TOKEN_DUB_MODE:
 			sendSerialControlChange(LOOP_COMMAND_CC,LOOP_COMMAND_DUB_MODE,"songMachine DUB");
             break;
 
         case TOKEN_LOOPER_SET_START_MARK:
-            // not implemented yet
+			sendSerialControlChange(LOOP_COMMAND_CC,LOOP_COMMAND_SET_LOOP_START,"temp song machine button");
             break;
 
         case TOKEN_LOOPER_TRACK:

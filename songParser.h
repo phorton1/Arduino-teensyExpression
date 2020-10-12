@@ -38,29 +38,30 @@ typedef struct
 #define TOKEN_LOOP                      17   // "LOOP:"
 #define TOKEN_LOOPER_TRACK              18   // "LOOPER_TRACK"
 #define TOKEN_LOOPER_STOP               19   // "LOOPER_STOP"
-#define TOKEN_DUB_MODE                  20   // "DUB_MODE"
-#define TOKEN_SYNTH_PATCH               21   // "SYNTH_PATCH"
-#define TOKEN_LOOPER_CLIP               22   // "LOOPER_CLIP"
-#define TOKEN_MUTE                      23   // "MUTE"
-#define TOKEN_UNMUTE                    24   // "UNMUTE"
-#define TOKEN_LOOPER_SET_START_MARK     25   // "LOOPER_SET_START_MARK"
-#define TOKEN_IDENTIFIER                26   // user defined identifier
-#define TOKEN_STRING                    27   // "string"
-#define TOKEN_NUMBER                    28   // number
-#define TOKEN_COMMA                     29   // comma
-#define TOKEN_COLON                     30   // colon
-#define TOKEN_GOTO                      31   // GOTO
-#define TOKEN_BUTTON_COLOR              32   // "BUTTON_COLOR"
-#define TOKEN_RED                       33   // colors
-#define TOKEN_GREEN                     34   // colors
-#define TOKEN_BLUE                      35   // colors
-#define TOKEN_YELLOW                    36   // colors
-#define TOKEN_PURPLE                    37   // colors
-#define TOKEN_ORANGE                    38   // colors
-#define TOKEN_WHITE                     39   // colors
-#define TOKEN_CYAN                      40   // colors
-#define TOKEN_BLACK                     41   // colors
-#define TOKEN_EOF                       42   // end of file
+#define TOKEN_LOOPER_STOP_IMMEDIATE     20   // "LOOPER_STOP"
+#define TOKEN_DUB_MODE                  21   // "DUB_MODE"
+#define TOKEN_SYNTH_PATCH               22   // "SYNTH_PATCH"
+#define TOKEN_LOOPER_CLIP               23   // "LOOPER_CLIP"
+#define TOKEN_MUTE                      24   // "MUTE"
+#define TOKEN_UNMUTE                    25   // "UNMUTE"
+#define TOKEN_LOOPER_SET_START_MARK     26   // "LOOPER_SET_START_MARK"
+#define TOKEN_IDENTIFIER                27   // user defined identifier
+#define TOKEN_STRING                    28   // "string"
+#define TOKEN_NUMBER                    29   // number
+#define TOKEN_COMMA                     30   // comma
+#define TOKEN_COLON                     31   // colon
+#define TOKEN_GOTO                      32   // GOTO
+#define TOKEN_BUTTON_COLOR              33   // "BUTTON_COLOR"
+#define TOKEN_RED                       34   // colors
+#define TOKEN_GREEN                     35   // colors
+#define TOKEN_BLUE                      36   // colors
+#define TOKEN_YELLOW                    37   // colors
+#define TOKEN_PURPLE                    38   // colors
+#define TOKEN_ORANGE                    39   // colors
+#define TOKEN_WHITE                     40   // colors
+#define TOKEN_CYAN                      41   // colors
+#define TOKEN_BLACK                     42  // colors
+#define TOKEN_EOF                       43   // end of file
 
 
 class songParser

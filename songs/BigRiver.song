@@ -131,12 +131,17 @@ loop:
 
 loop:
     LOOP_VOLUME 90
-    DISPLAY "3rd time through, ready end-riff"
-    LOOPER_STOP     # looper will stop at end of third repeat
+    DISPLAY "3rd time through, button1=STOP!"
+    LOOPER_STOP         # in case button not hit
 
-loop:   # we get one last loop point message
+loop:       # just in case
+    goto AFTER_STOP
+
+button1:    # will now stop immediate
+    LOOPER_STOP_IMMEDIATE
+after_stop:
     BUTTON_COLOR 1,green
-    DISPLAY "end-riff - press button1 on stinger"
+    DISPLAY "end-riff .. button1 on stinger"
 
 # GUITAR RIFF of some kind to fill to end note
 
@@ -146,7 +151,6 @@ loop:   # we get one last loop point message
 
 button1:    # press this ON the final end note of riff
     SYNTH_VOLUME 100              # turn up the synth
-    CLEAR_LOOPER
     BUTTON_COLOR 1,purple
     DISPLAY "button1=finish button4=start over"
 

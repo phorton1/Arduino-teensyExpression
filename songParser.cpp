@@ -64,6 +64,7 @@ const char *songParser::tokenToString(int token_num)
     if (token_num == TOKEN_LOOP                   ) return "LOOP";
     if (token_num == TOKEN_LOOPER_TRACK           ) return "LOOPER_TRACK";
     if (token_num == TOKEN_LOOPER_STOP            ) return "LOOPER_STOP";
+    if (token_num == TOKEN_LOOPER_STOP_IMMEDIATE  ) return "LOOPER_STOP_IMMEDIATE";
     if (token_num == TOKEN_DUB_MODE               ) return "DUB_MODE";
     if (token_num == TOKEN_SYNTH_PATCH            ) return "SYNTH_PATCH";
     if (token_num == TOKEN_LOOPER_CLIP            ) return "LOOPER_CLIP";
@@ -112,6 +113,7 @@ int songParser::stringToToken(const char *buf)
     if (!strcmp(buf,"LOOP"))                       return TOKEN_LOOP;
     if (!strcmp(buf,"LOOPER_TRACK"))               return TOKEN_LOOPER_TRACK;
     if (!strcmp(buf,"LOOPER_STOP"))                return TOKEN_LOOPER_STOP;
+    if (!strcmp(buf,"LOOPER_STOP_IMMEDIATE"))      return TOKEN_LOOPER_STOP_IMMEDIATE;
     if (!strcmp(buf,"DUB_MODE"))                   return TOKEN_DUB_MODE;
     if (!strcmp(buf,"SYNTH_PATCH"))                return TOKEN_SYNTH_PATCH;
     if (!strcmp(buf,"LOOPER_CLIP"))                return TOKEN_LOOPER_CLIP;
@@ -755,6 +757,7 @@ bool songParser::parseSongText()
         else if (t == TOKEN_GUITAR_EFFECT_NONE ||
                  t == TOKEN_CLEAR_LOOPER ||
                  t == TOKEN_LOOPER_STOP ||
+                 t == TOKEN_LOOPER_STOP_IMMEDIATE ||
                  t == TOKEN_DUB_MODE ||
                  t == TOKEN_LOOPER_SET_START_MARK)
         {

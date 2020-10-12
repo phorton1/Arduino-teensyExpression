@@ -740,14 +740,26 @@ void rigNew::onButtonEvent(int row, int col, int event)
 		// running (the button is lit up, in which case we
 		// toggle the PAUSED bit
 
-		else if (song_state && !(song_state & (SONG_STATE_FINISHED | SONG_STATE_ERROR)))
+		else
 		{
-			song_state ^= SONG_STATE_PAUSED;
-			theSongMachine->setMachineState(song_state);
+			// in song state empty, the button sends out COMMAND_SET_LOOP start
 
-			for (int i=0; i<LOOPER_NUM_TRACKS; i++)
+			if (!song_state)
 			{
-				m_last_track_state[i] = -1;
+				sendSerialControlChange(LOOP_COMMAND_CC,LOOP_COMMAND_SET_LOOP_START,"temp song machine button");
+			}
+
+			// otherwise, it toggles song state if it's running
+
+			else if (song_state && !(song_state & (SONG_STATE_FINISHED | SONG_STATE_ERROR)))
+			{
+				song_state ^= SONG_STATE_PAUSED;
+				theSongMachine->setMachineState(song_state);
+
+				for (int i=0; i<LOOPER_NUM_TRACKS; i++)
+				{
+					m_last_track_state[i] = -1;
+				}
 			}
 		}
 	}
