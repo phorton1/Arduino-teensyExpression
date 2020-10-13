@@ -83,7 +83,7 @@ int rigNew::bank_button_to_patch(int bank, int button_num)
 	if (row<NUM_PATCH_ROWS && col<NUM_PATCH_COLS)
 	{
 		row = 2 - row;
-		patch = bank * NUM_SYNTH_PATCHES + col * NUM_PATCH_ROWS + row;
+		patch = bank * RIGNEW_NUM_SYNTH_PATCHES + col * NUM_PATCH_ROWS + row;
 	}
 
 	display(dbg_patch_buttons,"bank_button_to_patch(%d,%d)=%d",bank,button_num,patch);
@@ -91,7 +91,7 @@ int rigNew::bank_button_to_patch(int bank, int button_num)
 
 }
 
-synthPatch_t rigNew::synth_patch[NUM_SYNTH_BANKS * NUM_SYNTH_PATCHES] = {
+synthPatch_t rigNew::synth_patch[RIGNEW_NUM_SYNTH_BANKS * RIGNEW_NUM_SYNTH_PATCHES] = {
 
 	// bank 0, starting with highest priorty bass sounds
 	// The program number sent is MULTI_OFFSET + the program number from the left column
@@ -141,7 +141,7 @@ int rigNew::findPatchByName(const char *patch_name)
 	strcpy(buf1,patch_name);
 	songMachine::uc(buf1);
 
-	for (int i=0; i<NUM_SYNTH_BANKS * NUM_SYNTH_PATCHES; i++)
+	for (int i=0; i<RIGNEW_NUM_SYNTH_BANKS * RIGNEW_NUM_SYNTH_PATCHES; i++)
 	{
 		char buf2[80];
 		strcpy(buf2,synth_patch[i].short_name);
@@ -158,14 +158,14 @@ int rigNew::findPatchByName(const char *patch_name)
 // toneStack
 //----------------
 
-int rigNew::guitar_effect_ccs[NUM_GUITAR_EFFECTS] = {
+int rigNew::guitar_effect_ccs[RIGNEW_NUM_GUITAR_EFFECTS] = {
     GUITAR_DISTORTION_EFFECT_CC,
     GUITAR_WAH_EFFECT_CC,
     GUITAR_CHORUS_EFFECT_CC,
     GUITAR_ECHO_EFFECT_CC,
 };
 
-const char *guitar_effect_name[NUM_GUITAR_EFFECTS] = {
+const char *rigNew::guitar_effect_name[RIGNEW_NUM_GUITAR_EFFECTS] = {
 	"DIST",
 	"WAH ",
 	"CHOR",
@@ -243,7 +243,7 @@ void rigNew::resetDisplay()
 	m_last_patch_num = -1;
 	m_last_song_state = -1;
 
-	for (int i=0; i<NUM_GUITAR_EFFECTS; i++)
+	for (int i=0; i<RIGNEW_NUM_GUITAR_EFFECTS; i++)
 	{
 		m_last_guitar_state[i] = 0;
 	}
@@ -328,7 +328,7 @@ void rigNew::setPatchNumber(int patch_number)
 	}
 	else
 	{
-		m_cur_bank_num = patch_number / NUM_SYNTH_PATCHES;
+		m_cur_bank_num = patch_number / RIGNEW_NUM_SYNTH_PATCHES;
 	}
 
 	if (m_cur_patch_num != -1)
@@ -365,7 +365,7 @@ void rigNew::setGuitarEffect(int effect_num, bool on)
 
 void rigNew::clearGuitarEffects(bool display_only /* = false */)
 {
-	for (int i=0; i<NUM_GUITAR_EFFECTS; i++)
+	for (int i=0; i<RIGNEW_NUM_GUITAR_EFFECTS; i++)
 	{
 		m_guitar_state[i] = 0;
 		m_last_guitar_state[i] = -1;
@@ -669,7 +669,7 @@ void rigNew::onButtonEvent(int row, int col, int event)
 	else if (num == THE_SYSTEM_BUTTON &&		// bank select
 		event == BUTTON_EVENT_CLICK)
 	{
-		m_cur_bank_num = (m_cur_bank_num + 1) % NUM_SYNTH_BANKS;
+		m_cur_bank_num = (m_cur_bank_num + 1) % RIGNEW_NUM_SYNTH_BANKS;
 		display(0,"m_cur_bank_num=%d",m_cur_bank_num);
 	}
 
@@ -977,7 +977,7 @@ void rigNew::updateUI()
 
 		// GUITAR BUTTONS
 
-		for (int i=0; i<NUM_GUITAR_EFFECTS; i++)
+		for (int i=0; i<RIGNEW_NUM_GUITAR_EFFECTS; i++)
 		{
 			if (redraw_all || m_last_guitar_state[i] != m_guitar_state[i])
 			{

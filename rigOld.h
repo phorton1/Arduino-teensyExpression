@@ -27,8 +27,8 @@
 // default in EEPROM.
 
 
-#define NUM_SYNTH_BANKS   2
-#define NUM_SYNTH_PATCHES 12
+#define OLDRIG_NUM_SYNTH_BANKS   2
+#define OLDRIG_NUM_SYNTH_PATCHES 12
 
 
 class rigOld : public expWindow
@@ -78,7 +78,7 @@ class rigOld : public expWindow
 
         // static definitions, though currently same between old and new rigs
 
-        static synthPatch_t synth_patch[NUM_SYNTH_BANKS * NUM_SYNTH_PATCHES];
+        static synthPatch_t synth_patch[OLDRIG_NUM_SYNTH_BANKS * OLDRIG_NUM_SYNTH_PATCHES];
         static int guitar_effect_ccs[NUM_BUTTON_COLS];
         static int loop_ccs[NUM_BUTTON_COLS];
 

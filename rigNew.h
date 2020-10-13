@@ -7,9 +7,9 @@
     // LOOPER_NUM_TRACKS and LAYERS, TRACK_STATES, LOOP_COMMANDS, and common CC's
     // denormalized H file common to circle-Looper and Arduino-teensyExpression projects
 
-#define NUM_SYNTH_BANKS   2
-#define NUM_SYNTH_PATCHES 12
-#define NUM_GUITAR_EFFECTS 4
+#define RIGNEW_NUM_SYNTH_BANKS   2
+#define RIGNEW_NUM_SYNTH_PATCHES 12
+#define RIGNEW_NUM_GUITAR_EFFECTS 4
 
 
 #define TRACKS_TIMES_CLIPS    (LOOPER_NUM_TRACKS * LOOPER_NUM_LAYERS)
@@ -59,7 +59,7 @@ class rigNew : public expWindow
         int  m_cur_bank_num;                     // synthesizer "bank" number (modal)
         int  m_cur_patch_num;                    // 0..23  (12 patches per bank, as defined by constants)
         int  m_last_set_poly_mode;
-        int  m_guitar_state[NUM_GUITAR_EFFECTS];
+        int  m_guitar_state[RIGNEW_NUM_GUITAR_EFFECTS];
 
         int  m_dub_mode;
         int  m_stop_button_cmd;
@@ -83,7 +83,7 @@ class rigNew : public expWindow
         int m_last_displayed_poly_mode;
             // opposite of ftp_poly_mode
 
-        int  m_last_guitar_state[NUM_GUITAR_EFFECTS];
+        int  m_last_guitar_state[RIGNEW_NUM_GUITAR_EFFECTS];
 
         int m_last_dub_mode;
         int m_last_stop_button_cmd;
@@ -99,8 +99,9 @@ class rigNew : public expWindow
 
         // static definitions
 
-        static synthPatch_t synth_patch[NUM_SYNTH_BANKS * NUM_SYNTH_PATCHES];
-        static int guitar_effect_ccs[NUM_GUITAR_EFFECTS];
+        static synthPatch_t synth_patch[RIGNEW_NUM_SYNTH_BANKS * RIGNEW_NUM_SYNTH_PATCHES];
+        static int guitar_effect_ccs[RIGNEW_NUM_GUITAR_EFFECTS];
+        static const char *guitar_effect_name[RIGNEW_NUM_GUITAR_EFFECTS];
 
         static int patch_to_button(int patch_num);
         static int bank_button_to_patch(int bank, int button_num);

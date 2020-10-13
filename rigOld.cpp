@@ -82,7 +82,7 @@ int rigOld::bank_button_to_patch(int bank, int button_num)
 	if (row<NUM_PATCH_ROWS && col<NUM_PATCH_COLS)
 	{
 		row = 2 - row;
-		patch = bank * NUM_SYNTH_PATCHES + col * NUM_PATCH_ROWS + row;
+		patch = bank * OLDRIG_NUM_SYNTH_PATCHES + col * NUM_PATCH_ROWS + row;
 	}
 
 	display(0,"bank_button_to_patch(%d,%d)=%d",bank,button_num,patch);
@@ -91,7 +91,7 @@ int rigOld::bank_button_to_patch(int bank, int button_num)
 }
 
 
-synthPatch_t rigOld::synth_patch[NUM_SYNTH_BANKS * NUM_SYNTH_PATCHES] = {
+synthPatch_t rigOld::synth_patch[OLDRIG_NUM_SYNTH_BANKS * OLDRIG_NUM_SYNTH_PATCHES] = {
 
 	// bank 0, starting with highest priorty bass sounds
 	// INDEX IS BY POSITION (first parameter, included for clarity, is ignored)
@@ -373,7 +373,7 @@ void rigOld::onButtonEvent(int row, int col, int event)
 	else if (num == THE_SYSTEM_BUTTON &&		// bank select
 		event == BUTTON_EVENT_CLICK)
 	{
-		m_cur_bank_num = (m_cur_bank_num + 1) % NUM_SYNTH_BANKS;
+		m_cur_bank_num = (m_cur_bank_num + 1) % OLDRIG_NUM_SYNTH_BANKS;
 		// weird - the current patch should stay at the old color, but
 		// NEXT time it should change to the new color
 
