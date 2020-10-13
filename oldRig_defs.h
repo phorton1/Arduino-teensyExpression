@@ -176,25 +176,15 @@ extern int g_ipad_is_new_rig;
 // Quantiloop
 //----------------
 
-#define LOOP_CONTROL_CHANNEL        9   // one based
+#define QUANTILOOP_CHANNEL        9   // one based
 
-#define LOOP_CONTROL_TRACK1         21
-#define LOOP_CONTROL_TRACK2         22
-#define LOOP_CONTROL_TRACK3         23
-#define LOOP_CONTROL_TRACK4         31      // ADDED!!
-    // There are three of these buttons assigned to tracks 1-3
-    // Midi Command: CC     (not Note On/Off)
-    // Type: Momentary Action   Up/MinValue: 0   Down/MaxValue:127
-    //       not Latching, Continuous
-    // Action: Rec-Play-Dub TrackN
-    // Hold Action: Undo/Red
-    // Double Tap Action: Stop Track
-#define LOOP_CONTROL_CLEAR_ALL      24
+#define QUANTILOOP_CC_CLEAR_ALL      24
     // Midi Command: CC     (not Note On/Off)
     // Type: Momentary Action   Up/MinValue: 0   Down/MaxValue:127
     //       not Latching, Continuous
     // Action: Clear All
-#define LOOP_STOP_START_IMMEDIATE   25
+
+#define QUANTILOOP_CC_STOP_START_IMMEDIATE   25
     // Midi Command: CC     (not Note On/Off)
     // Type: Momentary Action   Up/MinValue: 0   Down/MaxValue:127
     //       not Latching, Continuous
@@ -202,37 +192,49 @@ extern int g_ipad_is_new_rig;
     // Hold Action: Clear All / End Song
     // Double Tap Action: Clear All / End Song
 
-#define LOOP_VOLUME_CC        7
-    // not used in new rig
+#define QUANTILOOP_CC_TRACK1         21
+#define QUANTILOOP_CC_TRACK2         22
+#define QUANTILOOP_CC_TRACK3         23
+#define QUANTILOOP_CC_TRACK4         31      // ADDED!!
+    // There are three of these buttons assigned to tracks 1-3
+    // Midi Command: CC     (not Note On/Off)
+    // Type: Momentary Action   Up/MinValue: 0   Down/MaxValue:127
+    //       not Latching, Continuous
+    // Action: Rec-Play-Dub TrackN
+    // Hold Action: Undo/Red
+    // Double Tap Action: Stop Track
+
+#define QUANTILOOP_CC_LOOP_VOLUME        7
     // Midi Command: CC     (not Note On/Off)
     // Type: Continous   Up/MinValue: 0   Down/MaxValue:127
     //       not Latching, Momentary Action
-    // 4 separate control assignments in Quantiloop
-    // Action: Track Volume: Track 1
-    // Action: Track Volume: Track 2
-    // Action: Track Volume: Track 3
-    // Action: Track Volume: Track 4
+    // Action: Track Volume N
+    // This command goes to the 4 separate track values
+    // if not using relative volume modes
 
-// previously unused
 
-#define NEW_LOOP_DUB_MODE       17
+#define QUANTILOOP_CC_TRACK_VOLUME1    75
+// #define QUANTILOOP_CC_TRACK_VOLUME2    76
+// #define QUANTILOOP_CC_TRACK_VOLUME3    77
+// #define QUANTILOOP_CC_TRACK_VOLUME4    78
+    // Midi Command: CC     (not Note On/Off)
+    // Type: Continous   Up/MinValue: 0   Down/MaxValue:127
+    //       not Latching, Momentary Action
+    // Action: Track Volume N
+    // 75,76,77, and 78 are assigned in quantiloop
+    // one for each track
+
+
+#define QUANTILOOP_CC_DUB_MODE       17
     // Midi Command: CC     (not Note On/Off)
     // Type: Momentary Action   Up/MinValue: 0   Down/MaxValue:127
     //       not Latching, Continuous
     // Action: Dub Mode
-#define UNUSED_LOOP_TAP_TEMPO      88
-    // NOTE CONFLICT WITH WAH_EFFECT_CC, also on ch9
-    // Midi Command: CC     (not Note On/Off)
-    // Type: Momentary Action   Up/MinValue: 0   Down/MaxValue:127
-    //       not Latching, Continuous
-    // Action: Tap Tempo
 
-// new rig
 
-#define NEW_LOOP_VOLUME_TRACK1    75
-#define NEW_LOOP_VOLUME_TRACK2    76
-#define NEW_LOOP_VOLUME_TRACK3    77
-#define NEW_LOOP_VOLUME_TRACK4    78
+
+
+
 
 
 //--------------------------

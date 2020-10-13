@@ -273,13 +273,17 @@ void expSystem::addRig(expWindow *pRig)
 }
 
 
-void expSystem::activateRig(int i)
+void expSystem::activateRig(int new_rig_num)
 {
-    if (m_cur_rig_num >= m_num_rigs)
+    if (new_rig_num >= m_num_rigs)
     {
-        my_error("attempt to activate illegal rig number %d",i);
+        my_error("attempt to activate illegal rig number %d",new_rig_num);
         return;
     }
+
+    // clearLEDs();
+	// theButtons.clear();
+	// showLEDs();
 
     // deactivate previous rig
 
@@ -289,27 +293,25 @@ void expSystem::activateRig(int i)
         m_prev_rig_num = m_cur_rig_num;
     }
 
-    theButtons.clear();
-
-    m_cur_rig_num = i;
-	expWindow *cur_rig = getCurRig();
+    m_cur_rig_num = new_rig_num;
+	expWindow *new_rig = m_rigs[new_rig_num];
 
     // clear the TFT and show the rig (window) title
 
-    if (m_cur_rig_num)
+    if (new_rig_num)
     {
         mylcd.Fill_Screen(0);
-		if (cur_rig->m_flags & WIN_FLAG_SHOW_PEDALS)
+		if (new_rig->m_flags & WIN_FLAG_SHOW_PEDALS)
 			draw_pedals = 1;
-		if (!(cur_rig->m_flags & WIN_FLAG_OWNER_TITLE))
-			setTitle(cur_rig->name());
+		if (!(new_rig->m_flags & WIN_FLAG_OWNER_TITLE))
+			setTitle(new_rig->name());
     	else
 			draw_title = 1;
 	}
 
     // start the rig (window) running
 
-    cur_rig->begin(false);
+    new_rig->begin(false);
 
     // add the system long click handler
 

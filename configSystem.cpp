@@ -333,6 +333,20 @@ void configSystem::onButtonEvent(int row, int col, int event)
     {
         if (event == BUTTON_EVENT_LONG_CLICK)
         {
+			// display(0,"before save prefs",0);
+			//
+			// there is apparently some kind of interaction between
+			// the showLEDs() that is asynchronously running right
+			// now (as we just set the button color and called showLEDs).
+			// and the below call to the EEPROM. i sort of remember reading
+			// about it.
+			//
+			// Without a delay there are spurious colors written to the picels,
+			// though the led memory is correct.
+			//
+			// the simplest thing is to add a small delay before save_gloabl_prefs
+
+			delay(200);
 			bool reboot_needed = configOption::reboot_needed();
 			pref_changed8(PREF_SPOOF_FTP);
 			save_global_prefs();
@@ -340,6 +354,12 @@ void configSystem::onButtonEvent(int row, int col, int event)
             {
                 reboot(num);
             }
+
+			// withtout the above delay, I got garbage showing in the LEDs
+			// as witnessed by this code snippet
+			//
+			// 		display(0,"after save prefs",0);
+			// 		delay(10000);
         }
 
         theSystem.activateRig(getPref8(PREF_RIG_NUM));
@@ -475,7 +495,7 @@ void configSystem::updateUI()
         mylcd.Fill_Screen(0);
 
         if (cur_option->pParent == rootOption)
-            theSystem.setTitle(theSystem.getCurRig()->name());
+            theSystem.setTitle(name());
         else
         {
             configOption *opt = cur_option->pParent;

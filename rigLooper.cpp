@@ -152,13 +152,13 @@ const char *rigLooper::guitar_effect_name[RIGLOOPER_NUM_GUITAR_EFFECTS] = {
 // quantiloop
 //--------------------
 
-int quantiloop_ccs[NUM_BUTTON_COLS] =
+int quantiloop_track_ccs[NUM_BUTTON_COLS] =
+	// since they're not a rangeat this time
 {
-    LOOP_CONTROL_TRACK1,
-    LOOP_CONTROL_TRACK2,
-    LOOP_CONTROL_TRACK3,
-    LOOP_CONTROL_TRACK4,
-    LOOP_STOP_START_IMMEDIATE,
+    QUANTILOOP_CC_TRACK1,
+    QUANTILOOP_CC_TRACK2,
+    QUANTILOOP_CC_TRACK3,
+    QUANTILOOP_CC_TRACK4,
 };
 
 
@@ -375,13 +375,13 @@ void rigLooper::selectTrack(int num)
 	if (m_quantiloop_mode)
 	{
 		mySendDeviceControlChange(
-			quantiloop_ccs[num],
+			quantiloop_track_ccs[num],
 			0x7f,
-			LOOP_CONTROL_CHANNEL);
+			QUANTILOOP_CHANNEL);
 		mySendDeviceControlChange(
-			quantiloop_ccs[num],
+			quantiloop_track_ccs[num],
 			0x00,
-			LOOP_CONTROL_CHANNEL);
+			QUANTILOOP_CHANNEL);
 	}
 	else
 	{
@@ -535,13 +535,13 @@ void rigLooper::clearLooper(bool display_only)
 		if (m_quantiloop_mode)
 		{
 			mySendDeviceControlChange(
-				LOOP_CONTROL_CLEAR_ALL,
+				QUANTILOOP_CC_CLEAR_ALL,
 				0x7f,
-				LOOP_CONTROL_CHANNEL);
+				QUANTILOOP_CHANNEL);
 			mySendDeviceControlChange(
-				LOOP_CONTROL_CLEAR_ALL,
+				QUANTILOOP_CC_CLEAR_ALL,
 				0x00,
-				LOOP_CONTROL_CHANNEL);
+				QUANTILOOP_CHANNEL);
 		}
 		else
 		{
@@ -746,7 +746,14 @@ void rigLooper::onButtonEvent(int row, int col, int event)
 
 				if (m_quantiloop_mode)
 				{
-					// prh - send quantiloop STOP_IMMEDIATE command
+					mySendDeviceControlChange(
+						QUANTILOOP_CC_STOP_START_IMMEDIATE,
+						0x7f,
+						QUANTILOOP_CHANNEL);
+					mySendDeviceControlChange(
+						QUANTILOOP_CC_STOP_START_IMMEDIATE,
+						0x00,
+						QUANTILOOP_CHANNEL);
 				}
 				else if (m_stop_button_cmd)
 				{
@@ -762,7 +769,14 @@ void rigLooper::onButtonEvent(int row, int col, int event)
 			{
 				if (m_quantiloop_mode)
 				{
-					// prh - toggle dub mode and send QL command
+					mySendDeviceControlChange(
+						QUANTILOOP_CC_DUB_MODE,
+						0x7f,
+						QUANTILOOP_CHANNEL);
+					mySendDeviceControlChange(
+						QUANTILOOP_CC_DUB_MODE,
+						0x00,
+						QUANTILOOP_CHANNEL);
 				}
 				else
 				{

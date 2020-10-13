@@ -92,7 +92,7 @@ void pedalManager::init()
         m_relative_loop_volume[i] = 100;
 
     m_pedals[PEDAL_SYNTH ].init(PEDAL_SYNTH,  PIN_EXPR1, "Synth",  SYNTH_VOLUME_CHANNEL,   SYNTH_VOLUME_CC);
-    m_pedals[PEDAL_LOOP  ].init(PEDAL_LOOP,   PIN_EXPR2, "Loop",   LOOP_CONTROL_CHANNEL,   LOOP_VOLUME_CC);
+    m_pedals[PEDAL_LOOP  ].init(PEDAL_LOOP,   PIN_EXPR2, "Loop",   QUANTILOOP_CHANNEL,   QUANTILOOP_CC_LOOP_VOLUME);
     m_pedals[PEDAL_WAH   ].init(PEDAL_WAH,    PIN_EXPR3, "Wah",    GUITAR_EFFECTS_CHANNEL, GUITAR_WAH_CONTROL_CC);
     m_pedals[PEDAL_GUITAR].init(PEDAL_GUITAR, PIN_EXPR4, "Guitar", GUITAR_VOLUME_CHANNEL,  GUITAR_VOLUME_CC);
 }
@@ -447,7 +447,7 @@ void pedalManager::pedalEvent(int num, int value)
             float vol = value;
             float rel_vol = m_relative_loop_volume[i];
             float new_value = (vol/127.0) * rel_vol;
-            int cc = NEW_LOOP_VOLUME_TRACK1 + i;
+            int cc = QUANTILOOP_CC_TRACK_VOLUME1 + i;
 
             mySendDeviceControlChange(
                 cc,
