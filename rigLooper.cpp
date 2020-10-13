@@ -1,6 +1,6 @@
-#include "rigNew.h"
+#include "rigLooper.h"
 #include <myDebug.h>
-#include "defines.h"
+#include "oldRig_defs.h"
 #include "myLeds.h"
 #include "myTFT.h"
 #include "pedals.h"
@@ -12,9 +12,13 @@
 #include "songParser.h"
 #include "winSelectSong.h"
 
+// The difference between using Quantiloop and using the looper pedal can be detected using
+// the setting on Pedal(1).  If the loop pedal is serial, we are working with the Looper.
+// If not, we are working with Quantiloop.
+
 #define dbg_patch_buttons    	1
 #define dbg_serial_midi         1
-#define dbg_rignew				1
+#define dbg_rig					1
 #define dbg_song_machine		0
 
 
@@ -37,18 +41,10 @@
 // have three buttons per column, MUTE(cyan/purple) DOWN(red) and UP(green)
 
 #define QUICK_MODE_BUTTON        14
-#define QUICK_COL_MUTE           0
-#define QUICK_COL_VOL_DOWN       1
-#define QUICK_COL_VOL_UP         2
-#define QUICK_CLIP_FIRST_ROW     4
-
+#define QUICK_ROW_MUTE           3
+#define QUICK_ROW_VOL_DOWN       2
+#define QUICK_ROW_VOL_UP         1
 #define QUICK_ROW_ERASE_TRACK    0
-
-int_rect synth_rect;
-int_rect song_title_rect;
-int_rect song_state_rect;
-int_rect song_msg_rect[2];
-
 
 
 
@@ -62,7 +58,7 @@ int_rect song_msg_rect[2];
 #define NUM_PATCHES_PER_BANK (NUM_PATCH_COLS * NUM_PATCH_ROWS)
 
 // static
-int rigNew::patch_to_button(int patch_num)
+int rigLooper::patch_to_button(int patch_num)
 {
 	patch_num %= NUM_PATCHES_PER_BANK;
 	int col = patch_num / NUM_PATCH_ROWS;
@@ -74,7 +70,7 @@ int rigNew::patch_to_button(int patch_num)
 }
 
 // static
-int rigNew::bank_button_to_patch(int bank, int button_num)
+int rigLooper::bank_button_to_patch(int bank, int button_num)
 	// returns -1 if the button is not a patch button
 {
 	int patch = -1;
@@ -83,7 +79,7 @@ int rigNew::bank_button_to_patch(int bank, int button_num)
 	if (row<NUM_PATCH_ROWS && col<NUM_PATCH_COLS)
 	{
 		row = 2 - row;
-		patch = bank * RIGNEW_NUM_SYNTH_PATCHES + col * NUM_PATCH_ROWS + row;
+		patch = bank * RIGLOOPER_NUM_SYNTH_PATCHES + col * NUM_PATCH_ROWS + row;
 	}
 
 	display(dbg_patch_buttons,"bank_button_to_patch(%d,%d)=%d",bank,button_num,patch);
@@ -91,8 +87,8 @@ int rigNew::bank_button_to_patch(int bank, int button_num)
 
 }
 
-synthPatch_t rigNew::synth_patch[RIGNEW_NUM_SYNTH_BANKS * RIGNEW_NUM_SYNTH_PATCHES] = {
-
+synthPatch_t rigLooper::synth_patch[RIGLOOPER_NUM_SYNTH_BANKS * RIGLOOPER_NUM_SYNTH_PATCHES] =
+{
 	// bank 0, starting with highest priorty bass sounds
 	// The program number sent is MULTI_OFFSET + the program number from the left column
 
@@ -133,39 +129,18 @@ synthPatch_t rigNew::synth_patch[RIGNEW_NUM_SYNTH_BANKS * RIGNEW_NUM_SYNTH_PATCH
 };
 
 
-
-// static
-int rigNew::findPatchByName(const char *patch_name)
-{
-	char buf1[80];
-	strcpy(buf1,patch_name);
-	songMachine::uc(buf1);
-
-	for (int i=0; i<RIGNEW_NUM_SYNTH_BANKS * RIGNEW_NUM_SYNTH_PATCHES; i++)
-	{
-		char buf2[80];
-		strcpy(buf2,synth_patch[i].short_name);
-		songMachine::uc(buf2);
-
-		if (!strcmp(buf1,buf2))
-			return i;
-	}
-	return -1;
-}
-
-
 //----------------
 // toneStack
 //----------------
 
-int rigNew::guitar_effect_ccs[RIGNEW_NUM_GUITAR_EFFECTS] = {
+int rigLooper::guitar_effect_ccs[RIGLOOPER_NUM_GUITAR_EFFECTS] = {
     GUITAR_DISTORTION_EFFECT_CC,
     GUITAR_WAH_EFFECT_CC,
     GUITAR_CHORUS_EFFECT_CC,
     GUITAR_ECHO_EFFECT_CC,
 };
 
-const char *rigNew::guitar_effect_name[RIGNEW_NUM_GUITAR_EFFECTS] = {
+const char *rigLooper::guitar_effect_name[RIGLOOPER_NUM_GUITAR_EFFECTS] = {
 	"DIST",
 	"WAH ",
 	"CHOR",
@@ -173,69 +148,46 @@ const char *rigNew::guitar_effect_name[RIGNEW_NUM_GUITAR_EFFECTS] = {
 };
 
 
+//--------------------
+// quantiloop
+//--------------------
 
-
-//====================================================================
-// rigNew
-//====================================================================
-
-rigNew *theNewRig = 0;
-const char *pending_open_song = 0;
-
-
-rigNew::rigNew() :
-	expWindow(WIN_FLAG_SHOW_PEDALS)
+int quantiloop_ccs[NUM_BUTTON_COLS] =
 {
-	theNewRig = this;
+    LOOP_CONTROL_TRACK1,
+    LOOP_CONTROL_TRACK2,
+    LOOP_CONTROL_TRACK3,
+    LOOP_CONTROL_TRACK4,
+    LOOP_STOP_START_IMMEDIATE,
+};
 
+
+
+
+//====================================================================
+// rigLooper
+//====================================================================
+
+
+
+rigLooper::rigLooper() :
+	rigBase()
+{
+    m_quick_mode = false;
+	m_quantiloop_mode = 0;
 	m_cur_bank_num = 0;
 	m_cur_patch_num = -1;    // 0..15
 	m_last_set_poly_mode = -1;
+	m_pending_open_song = 0;
 
 	resetDisplay();
 	clearGuitarEffects(true);
 	clearLooper(true);
-
-    m_quick_mode = false;
-
-	#define SYNTH_RECT_HEIGHT 70
-	#define SONG_STATE_WIDTH  100
-	#define SONG_MSG1_WIDTH   120
-
-	synth_rect.assign(
-		client_rect.xs,
-		client_rect.ys,
-		client_rect.xe,
-		client_rect.ys + SYNTH_RECT_HEIGHT-1);
-
-	song_title_rect.assign(
-		client_rect.xs,
-		synth_rect.ye,
-		client_rect.xe - SONG_STATE_WIDTH,
-		synth_rect.ye + 35);
-
-	song_state_rect.assign(
-		song_title_rect.xe,
-		synth_rect.ye,
-		client_rect.xe,
-		song_title_rect.ye);
-
-	song_msg_rect[0].assign(
-		client_rect.xs,
-		song_title_rect.ye + 10,
-		client_rect.xs + SONG_MSG1_WIDTH - 1,
-		client_rect.ye);
-
-	song_msg_rect[1].assign(
-		song_msg_rect[0].xe,
-		song_title_rect.ye + 10,
-		client_rect.xe,
-		client_rect.ye);
 }
 
 
 
-void rigNew::resetDisplay()
+void rigLooper::resetDisplay()
 {
 	m_full_redraw = 1;
 	m_last_displayed_poly_mode = -1;
@@ -243,7 +195,7 @@ void rigNew::resetDisplay()
 	m_last_patch_num = -1;
 	m_last_song_state = -1;
 
-	for (int i=0; i<RIGNEW_NUM_GUITAR_EFFECTS; i++)
+	for (int i=0; i<RIGLOOPER_NUM_GUITAR_EFFECTS; i++)
 	{
 		m_last_guitar_state[i] = 0;
 	}
@@ -256,7 +208,7 @@ void rigNew::resetDisplay()
 	}
 
 	m_last_quick_mode = -1;
-	for (int i=0; i<TRACKS_TIMES_CLIPS; i++)
+	for (int i=0; i<LOOPER_NUM_TRACKS_TIMES_LAYERS; i++)
 	{
         m_last_clip_mute[i] = -1;
         m_last_clip_vol[i] = -1;
@@ -267,147 +219,6 @@ void rigNew::resetDisplay()
 }
 
 
-//-----------------------------------
-// setters to support songMachine
-//-----------------------------------
-
-void rigNew::selectTrack(int num)
-{
-	display(dbg_song_machine,"rigNew::selectTrack(%d)",num);
-	m_selected_track_num = num;
-	int value = m_selected_track_num + LOOP_COMMAND_TRACK_BASE;
-	sendSerialControlChange(LOOP_COMMAND_CC,value,"rigNew::selectTrack()");
-}
-
-void rigNew::setClipMute(int layer_num, bool mute_on)
-{
-	if (m_selected_track_num >= 0)
-	{
-		int clip_num = m_selected_track_num * LOOPER_NUM_LAYERS + layer_num;
-		display(dbg_song_machine,"rigNew::setClipMute(%d,%d) clip_num=%d",layer_num,mute_on,clip_num);
-		sendSerialControlChange(CLIP_MUTE_BASE_CC+clip_num,mute_on,"rigNew::setClipMute()");
-		m_clip_mute[clip_num] = mute_on;
-	}
-	else
-	{
-		display(0,"WARNING: setClipMute(%d,%d) called with no selected track",layer_num,mute_on);
-	}
-}
-
-void rigNew::setClipVolume(int layer_num, int val)
-{
-	if (m_selected_track_num >= 0)
-	{
-		int clip_num = m_selected_track_num * LOOPER_NUM_LAYERS + layer_num;
-		display(dbg_rignew,"rigNew::setClipVolume(%d,%d) clip_num=%d",layer_num,val,clip_num);
-		if (val < 0) val = 0;
-		if (val > 127) val = 127;
-		m_clip_vol[clip_num] = val;
-		sendSerialControlChange(CLIP_VOL_BASE_CC+clip_num,val,"rigNew::setClipVolume()");
-	}
-	else
-	{
-		display(0,"WARNING: setClipVolume(%d,%d) called with no selected track",layer_num,val);
-	}
-}
-
-
-void rigNew::setPatchNumber(int patch_number)
-{
-	if (m_cur_patch_num != -1)
-	{
-		int button_num = patch_to_button(m_cur_patch_num);
-		setLED(button_num,0);
-	}
-
-	m_cur_patch_num = patch_number;
-
-	if (patch_number == -1)
-	{
-		m_cur_bank_num = 0;
-	}
-	else
-	{
-		m_cur_bank_num = patch_number / RIGNEW_NUM_SYNTH_PATCHES;
-	}
-
-	if (m_cur_patch_num != -1)
-	{
-		int prog_num = MULTI_OFFSET + synth_patch[m_cur_patch_num].prog_num;
-		mySendDeviceProgramChange(prog_num, SYNTH_PROGRAM_CHANNEL);
-
-		// send the mono/poly ftp mode command if needed
-
-		bool use_poly_mode = !synth_patch[m_cur_patch_num].mono_mode;
-		if (((bool)m_last_set_poly_mode) != use_poly_mode)
-		{
-			m_last_set_poly_mode = use_poly_mode;
-			sendFTPCommandAndValue(FTP_CMD_POLY_MODE,m_last_set_poly_mode);
-		}
-	}
-}
-
-
-
-void rigNew::setGuitarEffect(int effect_num, bool on)
-{
-	m_guitar_state[effect_num] = on;
-	m_last_guitar_state[effect_num] = -1;
-
-	int value = on ? 0x7f : 0;
-	mySendDeviceControlChange(
-		guitar_effect_ccs[effect_num],
-		value,
-		GUITAR_EFFECTS_CHANNEL);
-}
-
-
-
-void rigNew::clearGuitarEffects(bool display_only /* = false */)
-{
-	for (int i=0; i<RIGNEW_NUM_GUITAR_EFFECTS; i++)
-	{
-		m_guitar_state[i] = 0;
-		m_last_guitar_state[i] = -1;
-		if (!display_only)
-		{
-            mySendDeviceControlChange(
-                guitar_effect_ccs[i],
-                0x00,
-                GUITAR_EFFECTS_CHANNEL);
-		}
-	}
-}
-
-
-void rigNew::clearLooper(bool display_only)
-{
-	m_dub_mode = 0;
-	m_track_flash = 0;
-	m_track_flash_time = 0;
-	m_selected_track_num = -1;
-    m_stop_button_cmd = 0;
-    m_last_stop_button_cmd = -1;
-
-	for (int i=0; i<LOOPER_NUM_TRACKS; i++)
-	{
-		m_track_state[i] = 0;
-		m_last_track_state[i] = -1;
-		m_last_erase_state[i] = -1;
-	}
-
-	for (int i=0; i<TRACKS_TIMES_CLIPS; i++)
-	{
-        m_clip_mute[i] = 0;
-        m_last_clip_mute[i] = -1;
-        m_clip_vol[i] = 100;	// magic init value
-        m_last_clip_vol[i] = -1;
-	}
-
-	if (!display_only)
-		sendSerialControlChange(LOOP_COMMAND_CC,LOOP_COMMAND_CLEAR_ALL,"LOOP BUTTON long click");
-}
-
 
 
 //============================================
@@ -416,15 +227,17 @@ void rigNew::clearLooper(bool display_only)
 
 
 // virtual
-void rigNew::begin(bool warm)
+void rigLooper::begin(bool warm)
 {
     expWindow::begin(warm);
 
-	thePedals.setLoopPedalRelativeVolumeMode(false);
-		// 2020-09-22 - vestigial
+	int pedal_mode = getPrefPedalMode(PEDAL_LOOP);
+	m_quantiloop_mode = !(pedal_mode & PEDAL_MODE_SERIAL);
+	thePedals.setLoopPedalRelativeVolumeMode(m_quantiloop_mode);
 
 	if (!theSongMachine)
 		new songMachine();
+	theSongMachine->setBaseRig(this);
 
 	resetDisplay();
 
@@ -437,7 +250,7 @@ void rigNew::begin(bool warm)
 		// the upper right hand button is the bank select button.
 		// it is blue for bank 0 and cyan for bank 1
 
-		theButtons.setButtonType(THE_SYSTEM_BUTTON,	BUTTON_TYPE_CLICK | BUTTON_MASK_USER_DRAW, 0);
+		theButtons.setButtonType(THE_SYSTEM_BUTTON,	BUTTON_TYPE_LONG_CLICK | BUTTON_TYPE_CLICK | BUTTON_MASK_USER_DRAW, 0);
 
 		// 3rd from top right is the quick mode button
 
@@ -461,10 +274,16 @@ void rigNew::begin(bool warm)
 
 		// loop control buttons
 
+		int ud = m_quantiloop_mode ? 0 : BUTTON_MASK_USER_DRAW;
+		int color = m_quantiloop_mode ? LED_YELLOW : 0;
+
 		for (int i=0; i<LOOPER_NUM_TRACKS; i++)
-			theButtons.setButtonType(LOOP_FIRST_TRACK_BUTTON+i,BUTTON_EVENT_PRESS | BUTTON_MASK_USER_DRAW, 0);
-		theButtons.setButtonType(LOOP_STOP_BUTTON,BUTTON_EVENT_CLICK | BUTTON_EVENT_LONG_CLICK  | BUTTON_MASK_USER_DRAW, 0);
-		theButtons.setButtonType(LOOP_DUB_BUTTON,BUTTON_EVENT_CLICK | BUTTON_EVENT_LONG_CLICK | BUTTON_MASK_USER_DRAW, 0);
+		{
+			theButtons.setButtonType(LOOP_FIRST_TRACK_BUTTON+i,BUTTON_EVENT_PRESS | ud, color);
+		}
+
+		theButtons.setButtonType(LOOP_STOP_BUTTON,BUTTON_EVENT_CLICK | BUTTON_EVENT_LONG_CLICK | ud, color);
+		theButtons.setButtonType(LOOP_DUB_BUTTON,BUTTON_EVENT_CLICK | BUTTON_EVENT_LONG_CLICK | ud, color);
 
 		// songMachine button
 
@@ -489,41 +308,248 @@ void rigNew::begin(bool warm)
 // quick mode
 //------------------------------------
 
-void rigNew::startQuickMode()
+void rigLooper::startQuickMode()
 {
 	resetDisplay();
 
 	theButtons.clear();
    	theButtons.setButtonType(QUICK_MODE_BUTTON,	BUTTON_TYPE_CLICK, LED_ORANGE);
-	theButtons.getButton(0,THE_SYSTEM_BUTTON)->m_event_mask |= BUTTON_EVENT_LONG_CLICK;
+	theButtons.setButtonType(THE_SYSTEM_BUTTON, BUTTON_TYPE_CLICK | BUTTON_TYPE_LONG_CLICK, LED_PURPLE);
 
 	for (int layer=0; layer<LOOPER_NUM_LAYERS; layer++)
 	{
-		int row = QUICK_CLIP_FIRST_ROW-layer;					// from bottom up
-		int num = row * NUM_BUTTON_COLS;	// 0th element in row
-		theButtons.setButtonType(num+QUICK_COL_MUTE,		BUTTON_EVENT_PRESS | BUTTON_MASK_USER_DRAW);
-		theButtons.setButtonType(num+QUICK_COL_VOL_DOWN,	BUTTON_EVENT_PRESS | BUTTON_MASK_REPEAT, LED_RED);
-		theButtons.setButtonType(num+QUICK_COL_VOL_UP,		BUTTON_EVENT_PRESS | BUTTON_MASK_REPEAT, LED_GREEN);
+		theButtons.setButtonType(layer + NUM_BUTTON_COLS * QUICK_ROW_MUTE,		BUTTON_EVENT_PRESS | BUTTON_MASK_USER_DRAW);
+		theButtons.setButtonType(layer + NUM_BUTTON_COLS * QUICK_ROW_VOL_DOWN,	BUTTON_EVENT_PRESS | BUTTON_MASK_REPEAT, LED_ORANGE);
+		theButtons.setButtonType(layer + NUM_BUTTON_COLS * QUICK_ROW_VOL_UP,	BUTTON_EVENT_PRESS | BUTTON_MASK_REPEAT, LED_GREEN);
 	}
 
-	for (int c=0; c<LOOPER_NUM_TRACKS; c++)
+	for (int track=0; track<LOOPER_NUM_TRACKS; track++)
 	{
-		int num = QUICK_ROW_ERASE_TRACK * NUM_BUTTON_COLS + c;
-		theButtons.setButtonType(num, BUTTON_EVENT_CLICK | BUTTON_MASK_USER_DRAW, 0);
+		bool ud = m_quantiloop_mode ? 0 : BUTTON_MASK_USER_DRAW;
+		int color = m_quantiloop_mode ? LED_RED : 0;
+		theButtons.setButtonType(track + NUM_BUTTON_COLS * QUICK_ROW_ERASE_TRACK, BUTTON_EVENT_CLICK | ud, color);
 	}
+
+	showLEDs();
 }
 
 
-void rigNew::endQuickMode()
+void rigLooper::endQuickMode()
 {
 	m_quick_mode = false;		// may be called from updateUI
 	begin(true);
-
-	// restore the system button after begin() ...
-	// normally done in expSystem::activateRig)()
-
-	theButtons.getButton(0,THE_SYSTEM_BUTTON)->m_event_mask |= BUTTON_EVENT_LONG_CLICK;
 }
+
+
+
+
+//--------------------------------------------------
+// rigBase implementation to support songMachine
+//--------------------------------------------------
+
+// virtual
+int rigLooper::findPatchByName(const char *patch_name)
+{
+	char buf1[80];
+	strcpy(buf1,patch_name);
+	songMachine::uc(buf1);
+
+	for (int i=0; i<RIGLOOPER_NUM_SYNTH_BANKS * RIGLOOPER_NUM_SYNTH_PATCHES; i++)
+	{
+		char buf2[80];
+		strcpy(buf2,synth_patch[i].short_name);
+		songMachine::uc(buf2);
+
+		if (!strcmp(buf1,buf2))
+			return i;
+	}
+	return -1;
+}
+
+
+// virtual
+void rigLooper::selectTrack(int num)
+{
+	display(dbg_song_machine,"rigLooper::selectTrack(%d)",num);
+	m_selected_track_num = num;
+	if (m_quantiloop_mode)
+	{
+		mySendDeviceControlChange(
+			quantiloop_ccs[num],
+			0x7f,
+			LOOP_CONTROL_CHANNEL);
+		mySendDeviceControlChange(
+			quantiloop_ccs[num],
+			0x00,
+			LOOP_CONTROL_CHANNEL);
+	}
+	else
+	{
+		int value = m_selected_track_num + LOOP_COMMAND_TRACK_BASE;
+		sendSerialControlChange(LOOP_COMMAND_CC,value,"rigLooper::selectTrack()");
+	}
+}
+
+// virtual
+void rigLooper::setClipMute(int layer_num, bool mute_on)
+{
+	display(dbg_song_machine,"rigLooper::setClipMute(%d,%d)",layer_num,mute_on);
+	if (m_quantiloop_mode)
+	{
+		thePedals.setRelativeLoopVolume(layer_num,
+			mute_on ? 0 : m_clip_vol[layer_num]);
+		m_clip_mute[layer_num] = mute_on;
+	}
+	else if (m_selected_track_num >= 0)
+	{
+		int clip_num = m_selected_track_num * LOOPER_NUM_LAYERS + layer_num;
+		sendSerialControlChange(CLIP_MUTE_BASE_CC+clip_num,mute_on,"rigLooper::setClipMute()");
+		m_clip_mute[clip_num] = mute_on;
+	}
+	else
+	{
+		display(0,"WARNING: setClipMute(%d,%d) called with no selected track",layer_num,mute_on);
+	}
+}
+
+// virtual
+void rigLooper::setClipVolume(int layer_num, int val)
+{
+	display(dbg_rig,"rigLooper::setClipVolume(%d,%d)",layer_num,val);
+	if (val < 0) val = 0;
+	if (val > 127) val = 127;
+	if (m_quantiloop_mode)
+	{
+		thePedals.setRelativeLoopVolume(layer_num,val);
+		m_clip_vol[layer_num] = val;
+	}
+	else if (m_selected_track_num >= 0)
+	{
+		int clip_num = m_selected_track_num * LOOPER_NUM_LAYERS + layer_num;
+		sendSerialControlChange(CLIP_VOL_BASE_CC+clip_num,val,"rigLooper::setClipVolume()");
+		m_clip_vol[clip_num] = val;
+	}
+	else
+	{
+		display(0,"WARNING: setClipVolume(%d,%d) called with no selected track",layer_num,val);
+	}
+}
+
+
+// virtual
+void rigLooper::setPatchNumber(int patch_number)
+{
+	if (m_cur_patch_num != -1)
+	{
+		int button_num = patch_to_button(m_cur_patch_num);
+		setLED(button_num,0);
+	}
+
+	m_cur_patch_num = patch_number;
+
+	if (patch_number == -1)
+	{
+		m_cur_bank_num = 0;
+	}
+	else
+	{
+		m_cur_bank_num = patch_number / RIGLOOPER_NUM_SYNTH_PATCHES;
+	}
+
+	if (m_cur_patch_num != -1)
+	{
+		int prog_num = MULTI_OFFSET + synth_patch[m_cur_patch_num].prog_num;
+		mySendDeviceProgramChange(prog_num, SYNTH_PROGRAM_CHANNEL);
+
+		// send the mono/poly ftp mode command if needed
+
+		bool use_poly_mode = !synth_patch[m_cur_patch_num].mono_mode;
+		if (((bool)m_last_set_poly_mode) != use_poly_mode)
+		{
+			m_last_set_poly_mode = use_poly_mode;
+			sendFTPCommandAndValue(FTP_CMD_POLY_MODE,m_last_set_poly_mode);
+		}
+	}
+}
+
+
+// virtual
+void rigLooper::setGuitarEffect(int effect_num, bool on)
+{
+	m_guitar_state[effect_num] = on;
+	m_last_guitar_state[effect_num] = -1;
+
+	int value = on ? 0x7f : 0;
+	mySendDeviceControlChange(
+		guitar_effect_ccs[effect_num],
+		value,
+		GUITAR_EFFECTS_CHANNEL);
+}
+
+
+// virtual
+void rigLooper::clearGuitarEffects(bool display_only /* = false */)
+{
+	for (int i=0; i<RIGLOOPER_NUM_GUITAR_EFFECTS; i++)
+	{
+		m_guitar_state[i] = 0;
+		m_last_guitar_state[i] = -1;
+		if (!display_only)
+		{
+            mySendDeviceControlChange(
+                guitar_effect_ccs[i],
+                0x00,
+                GUITAR_EFFECTS_CHANNEL);
+		}
+	}
+}
+
+
+// virtual
+void rigLooper::clearLooper(bool display_only)
+{
+	m_dub_mode = 0;
+	m_track_flash = 0;
+	m_track_flash_time = 0;
+	m_selected_track_num = -1;
+    m_stop_button_cmd = 0;
+    m_last_stop_button_cmd = -1;
+
+	for (int i=0; i<LOOPER_NUM_TRACKS; i++)
+	{
+		m_track_state[i] = 0;
+		m_last_track_state[i] = -1;
+		m_last_erase_state[i] = -1;
+	}
+
+	for (int i=0; i<LOOPER_NUM_TRACKS_TIMES_LAYERS; i++)
+	{
+        m_clip_mute[i] = 0;
+        m_last_clip_mute[i] = -1;
+        m_clip_vol[i] = 100;	// magic init value
+        m_last_clip_vol[i] = -1;
+	}
+
+	if (!display_only)
+	{
+		if (m_quantiloop_mode)
+		{
+			mySendDeviceControlChange(
+				LOOP_CONTROL_CLEAR_ALL,
+				0x7f,
+				LOOP_CONTROL_CHANNEL);
+			mySendDeviceControlChange(
+				LOOP_CONTROL_CLEAR_ALL,
+				0x00,
+				LOOP_CONTROL_CHANNEL);
+		}
+		else
+		{
+			sendSerialControlChange(LOOP_COMMAND_CC,LOOP_COMMAND_CLEAR_ALL,"LOOP BUTTON long click");
+		}
+	}
+}
+
 
 
 //------------------------------------
@@ -532,9 +558,9 @@ void rigNew::endQuickMode()
 // rotary controllers
 
 // virtual
-bool rigNew::onRotaryEvent(int num, int val)
+bool rigLooper::onRotaryEvent(int num, int val)
 {
-	display(dbg_rignew,"rigNew::onRotaryEvent(%d,%d)",num,val);
+	display(dbg_rig,"rigLooper::onRotaryEvent(%d,%d)",num,val);
 
 	// send the value out on CC's 101 thru 105
 	// mapped from rotary controls
@@ -557,7 +583,12 @@ bool rigNew::onRotaryEvent(int num, int val)
 		num == 2 ? RPI_CONTROL_THRU_VOLUME :
 		RPI_CONTROL_MIX_VOLUME;
 
-	sendSerialControlChange(control_num + RPI_CONTROL_NUM_CC_OFFSET,val,"rigNew Rotary Control");
+	if (!m_quantiloop_mode)
+	{
+		// prh - no rotary events for quantiloop - should be relative volumes
+		sendSerialControlChange(control_num + RPI_CONTROL_NUM_CC_OFFSET,val,"rigLooper Rotary Control");
+	}
+
 	return true;
 }
 
@@ -565,15 +596,15 @@ bool rigNew::onRotaryEvent(int num, int val)
 
 
 // virtual
-void rigNew::onSerialMidiEvent(int cc_num, int value)
+void rigLooper::onSerialMidiEvent(int cc_num, int value)
 {
-	display(dbg_serial_midi+1,"rigNew::SerialMidiEvent(0x%02x,0x%02x)",cc_num,value);
+	display(dbg_serial_midi+1,"rigLooper::SerialMidiEvent(0x%02x,0x%02x)",cc_num,value);
 
 	// track state messages
 	if (cc_num >= TRACK_STATE_BASE_CC && cc_num < TRACK_STATE_BASE_CC+4)
 	{
 		int track_num = cc_num - TRACK_STATE_BASE_CC;
-		display(dbg_serial_midi,"rigNew track_state[%d] = 0x%02x",track_num,value);
+		display(dbg_serial_midi,"rigLooper track_state[%d] = 0x%02x",track_num,value);
 		m_track_state[track_num] = value;
 	}
 	else if (cc_num == LOOP_DUB_STATE_CC)
@@ -604,7 +635,7 @@ void rigNew::onSerialMidiEvent(int cc_num, int value)
 //---------------------------------------------------------------------------------
 
 // virtual
-void rigNew::onButtonEvent(int row, int col, int event)
+void rigLooper::onButtonEvent(int row, int col, int event)
 {
 	int num = row * NUM_BUTTON_COLS + col;
 	int song_state = theSongMachine->getMachineState();
@@ -623,31 +654,36 @@ void rigNew::onButtonEvent(int row, int col, int event)
 
 	if (m_quick_mode)
 	{
-		if (row == QUICK_ROW_ERASE_TRACK)
+		if (col<4)
 		{
-			display(dbg_rignew,"rigNew ERASE TRACK(%d)",col);
-			sendSerialControlChange(LOOP_COMMAND_CC,LOOP_COMMAND_ERASE_TRACK_BASE+col,"ERASE_TRACK button click");
-		}
-		else if (row > QUICK_CLIP_FIRST_ROW-LOOPER_NUM_LAYERS)
-		{
-			int layer_num = 4-row;
-			int clip_num = m_selected_track_num * LOOPER_NUM_LAYERS + layer_num;
-			display(dbg_rignew,"quick_mode row(%d) col(%d)  layer=%d  clip_num=%d ",row,col,layer_num,clip_num);
+			int clip_num = m_quantiloop_mode ? col :
+				m_selected_track_num * LOOPER_NUM_LAYERS + col;
 
-			if (col == QUICK_COL_MUTE) 	// mute
+			if (row == QUICK_ROW_ERASE_TRACK)
+			{
+				display(dbg_rig,"rigLooper ERASE TRACK(%d)",col);
+				if (m_quantiloop_mode)
+				{
+					// send the cc command to erase quantiloop track %d
+				}
+				else
+				{
+					sendSerialControlChange(LOOP_COMMAND_CC,LOOP_COMMAND_ERASE_TRACK_BASE+col,"ERASE_TRACK button click");
+				}
+			}
+			else if (row == QUICK_ROW_MUTE)
 			{
 				int mute = m_clip_mute[clip_num];
 				mute = mute ? 0 : 1;
-				setClipMute(layer_num,mute);
+				setClipMute(col,mute);
 			}
-			else if (col == QUICK_COL_VOL_DOWN || col == QUICK_COL_VOL_UP)	// volume up or down
+			else if (row == QUICK_ROW_VOL_DOWN || row == QUICK_ROW_VOL_UP)	// volume up or down
 			{
-				int inc = col == QUICK_COL_VOL_DOWN ? -1 : 1;
+				int inc = row == QUICK_ROW_VOL_DOWN ? -1 : 1;
 				int val = m_clip_vol[clip_num];
 				val += inc;
-				setClipVolume(layer_num,val);
+				setClipVolume(col,val);
 			}
-
 		}
 	}
 
@@ -669,7 +705,7 @@ void rigNew::onButtonEvent(int row, int col, int event)
 	else if (num == THE_SYSTEM_BUTTON &&		// bank select
 		event == BUTTON_EVENT_CLICK)
 	{
-		m_cur_bank_num = (m_cur_bank_num + 1) % RIGNEW_NUM_SYNTH_BANKS;
+		m_cur_bank_num = (m_cur_bank_num + 1) % RIGLOOPER_NUM_SYNTH_BANKS;
 		display(0,"m_cur_bank_num=%d",m_cur_bank_num);
 	}
 
@@ -705,8 +741,17 @@ void rigNew::onButtonEvent(int row, int col, int event)
 		{
 			if (num == LOOP_STOP_BUTTON)
 			{
-				if (m_stop_button_cmd)
+				// in serial looper m_stop_button_cmd is set to NOTHING, STOP or STOP_IMMEDIATE
+				// in quantiloop, the lower right button is always STOP_IMMEDIATE
+
+				if (m_quantiloop_mode)
+				{
+					// prh - send quantiloop STOP_IMMEDIATE command
+				}
+				else if (m_stop_button_cmd)
+				{
 					sendSerialControlChange(LOOP_COMMAND_CC,m_stop_button_cmd,"LOOP STOP BUTTON click");
+				}
 				else
 				{
 					setLED(num,0);
@@ -715,9 +760,16 @@ void rigNew::onButtonEvent(int row, int col, int event)
 			}
 			if (num == LOOP_DUB_BUTTON)
 			{
-				sendSerialControlChange(LOOP_COMMAND_CC,LOOP_COMMAND_DUB_MODE,"LOOP DUB BUTTON click");
-				setLED(num,0);
-				showLEDs();
+				if (m_quantiloop_mode)
+				{
+					// prh - toggle dub mode and send QL command
+				}
+				else
+				{
+					sendSerialControlChange(LOOP_COMMAND_CC,LOOP_COMMAND_DUB_MODE,"LOOP DUB BUTTON click");
+					setLED(num,0);
+					showLEDs();
+				}
 			}
 		}
 
@@ -756,12 +808,12 @@ void rigNew::onButtonEvent(int row, int col, int event)
 
 		else
 		{
-			// in song state empty, the button sends out COMMAND_SET_LOOP start
+			// in song state empty, the button sends out COMMAND_SET_LOOP_START
 
 			setLED(num,0);
 			showLEDs();
 
-			if (!song_state)
+			if (!m_quantiloop_mode && !song_state)
 			{
 				sendSerialControlChange(LOOP_COMMAND_CC,LOOP_COMMAND_SET_LOOP_START,"temp song machine button");
 			}
@@ -792,7 +844,7 @@ void rigNew::onButtonEvent(int row, int col, int event)
 
 
 // virtual
-void rigNew::updateUI()
+void rigLooper::updateUI()
 {
 	// other stuff
 
@@ -828,29 +880,35 @@ void rigNew::updateUI()
 	{
 		// "enable" the erase track buttons if there's a track state
 
-		for (int i=0; i<LOOPER_NUM_TRACKS; i++)
+		if (!m_quantiloop_mode)
 		{
-			if (m_last_erase_state[i] != m_track_state[i])
+			for (int i=0; i<LOOPER_NUM_TRACKS; i++)
 			{
-				m_last_erase_state[i] = m_track_state[i];
-				int color = m_track_state[i] ? LED_PURPLE : 0;
-				setLED(QUICK_ROW_ERASE_TRACK*NUM_BUTTON_COLS+i,color);
-				leds_changed = true;
+				if (m_last_erase_state[i] != m_track_state[i])
+				{
+					m_last_erase_state[i] = m_track_state[i];
+					int color = m_track_state[i] ? LED_RED : 0;
+					setLED(QUICK_ROW_ERASE_TRACK,i,color);
+					leds_changed = true;
+				}
 			}
 		}
 
 		for (int i=0; i<LOOPER_NUM_LAYERS; i++)
 		{
-			if (m_last_clip_mute[i] != m_clip_mute[i])
+			int clip_num = m_quantiloop_mode ? i :
+				m_selected_track_num * LOOPER_NUM_LAYERS + i;
+
+			if (m_last_clip_mute[clip_num] != m_clip_mute[clip_num])
 			{
-				m_last_clip_mute[i] = m_clip_mute[i];
-				setLED(QUICK_CLIP_FIRST_ROW-i,QUICK_COL_MUTE,m_clip_mute[i] ? LED_PURPLE : LED_CYAN);
+				m_last_clip_mute[clip_num] = m_clip_mute[clip_num];
+				setLED(QUICK_ROW_MUTE,i, m_last_clip_mute[clip_num] ? LED_PURPLE : LED_CYAN);
 				leds_changed = true;
 			}
 
-			if (m_last_clip_vol[i] != m_clip_vol[i])
+			if (m_last_clip_vol[clip_num] != m_clip_vol[clip_num])
 			{
-				m_last_clip_vol[i] = m_clip_vol[i];
+				m_last_clip_vol[clip_num] = m_clip_vol[clip_num];
 
 				// each region is 80 wide with 20 on the outside and 40 between
 				// the region starts at y==40 to allow 4 pixels from bar
@@ -871,13 +929,13 @@ void rigNew::updateUI()
 					region_left,
 					REL_VOL_TEXT_Y,
 					REL_VOL_BAR_WIDTH,
-					24,						// font height, more or less
+					32,						// font height, more or less
 					LCD_JUST_CENTER,
 					TFT_YELLOW,
 					TFT_BLACK,
 					true,
 					"%d",
-					m_clip_vol[i]);
+					m_clip_vol[clip_num]);
 
 				float bar_pct = ((float)m_clip_vol[i])/127.00;
 				float bar_height = bar_pct * REL_VOL_BAR_HEIGHT;
@@ -916,7 +974,7 @@ void rigNew::updateUI()
 
 		// LOOPER BUTTONS
 
-		if (m_last_stop_button_cmd != m_stop_button_cmd)
+		if (!m_quantiloop_mode && m_last_stop_button_cmd != m_stop_button_cmd)
 		{
 			m_last_stop_button_cmd = m_stop_button_cmd;
 			int color =
@@ -926,7 +984,7 @@ void rigNew::updateUI()
 			leds_changed = true;
 		}
 
-		if (m_last_dub_mode != m_dub_mode)
+		if (!m_quantiloop_mode && m_last_dub_mode != m_dub_mode)
 		{
 			m_last_dub_mode = m_dub_mode;
 			setLED(LOOP_DUB_BUTTON,m_dub_mode ? LED_ORANGE : 0);
@@ -946,7 +1004,8 @@ void rigNew::updateUI()
 			leds_changed = true;
 		}
 
-		if (!song_state || (song_state & (SONG_STATE_PAUSED | SONG_STATE_FINISHED | SONG_STATE_ERROR)))
+		if (!m_quantiloop_mode && (!song_state ||
+			(song_state & (SONG_STATE_PAUSED | SONG_STATE_FINISHED | SONG_STATE_ERROR))))
 		{
 			for (int i=0; i<LOOPER_NUM_TRACKS; i++)
 			{
@@ -977,7 +1036,7 @@ void rigNew::updateUI()
 
 		// GUITAR BUTTONS
 
-		for (int i=0; i<RIGNEW_NUM_GUITAR_EFFECTS; i++)
+		for (int i=0; i<RIGLOOPER_NUM_GUITAR_EFFECTS; i++)
 		{
 			if (redraw_all || m_last_guitar_state[i] != m_guitar_state[i])
 			{
@@ -1060,10 +1119,10 @@ void rigNew::updateUI()
 	// the song machine takes over the four bottom left buttons
 	// and starts off as running if load() succeeds ...
 
-	if (pending_open_song)
+	if (m_pending_open_song)
 	{
-		theSongMachine->load(pending_open_song);
-		pending_open_song = 0;
+		theSongMachine->load(m_pending_open_song);
+		m_pending_open_song = 0;
 	}
 
 	if (theSongMachine)
@@ -1081,13 +1140,13 @@ void rigNew::updateUI()
 //---------------------------
 
 // virtual
-void rigNew::onEndModal(expWindow *win, uint32_t param)
+void rigLooper::onEndModal(expWindow *win, uint32_t param)
 {
-	display(dbg_song_machine,"rigNew::onEndModal(%08x,%08x)",(uint32_t)win,param);
+	display(dbg_song_machine,"rigLooper::onEndModal(%08x,%08x)",(uint32_t)win,param);
 	if (param)
 	{
 		display(dbg_song_machine,"SELECTED_NAME=%s",winSelectSong::selected_name);
-		pending_open_song = winSelectSong::selected_name;
+		m_pending_open_song = winSelectSong::selected_name;
 	}
 	else
 	{

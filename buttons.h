@@ -4,56 +4,52 @@
 #include "defines.h"
 
 // PRESS and RELEASE are sent out as they happen.
-//      The basic idea is that there are time critical things you want
-//      to do about immediately upon a "PRESS" event, but that the
-//      They only require scan processing when the state of the button
-//      changes (and is debounced). This may include highlighting a button,
-//      and/or sending a midi message.
-//
-// "XXX_CLICK" events are more UI-like and generally not time critical.
-//     It is more or less assumed that you will only register DOUBLE or LONG
-//     if you also register CLICK, though PRESS *could* be used with LONG.
-//
-//     You generally only want ONE of these to happen at a time, even
-//        though you might register for more than one of them. So they
-//        are implemented that way ... you only get ONE of the three for
-//        any given user gesture oh a particular button.
-//
-//     CLICK event, by itself, only requires prodessing when the
-//         state of the button changes. The event is sent right after
-//         RELEASE event ..
-//     LONG_CLICK adds processing while a button is pressed,
-//         so slows the loop down a little bit WHILE the button is
-//         pressed.
-//     there is no DOUBLE_CLICK .. it sucks
+// Buttons with PRESS or RELEASE cannot be
+//     CLICK or LONG_CLICK.
+// CLICK is sent out on the button being released.
+// LONG_CLICK is sent out after the button is pressed for a certain amount of time.
+// You will only get one of PRESS, CLICK or LONG_CLICK.
 
 #define BUTTON_EVENT_PRESS          0x0001
 #define BUTTON_EVENT_RELEASE        0x0002
 #define BUTTON_EVENT_CLICK          0x0010
-#define BUTTON_EVENT_LONG_CLICK     0x0040      //  actually happens while "pressed"
-    // individual event types
+#define BUTTON_EVENT_LONG_CLICK     0x0040
+    // types of events to register on, and which are returned in events
 
-#define BUTTON_MASK_TOGGLE          0x0100
-#define BUTTON_MASK_RADIO           0x0200
+// CLICK buttons are lit up in with their pressed color while they are
+// pressed until they are released.  By default they return to
+// their default/touched/selected color AFTER the user event is called.
+// You may use BUTTON_MASK_USER_DRAW to preent that behavior so that your
+// user event method can set the final button color.
+
+
 #define BUTTON_MASK_REPEAT          0x0400
+    // for use with BUTTON_EVENT_PRESS only
+    // will repeat the user event as long as
+    // button is pressed
+#define BUTTON_MASK_TOGGLE          0x0100
+    // for use with BUTTON_EVENT_CLICK only
+    // button will toggle its selected state and
+    // change color between it's selected color and
+    // it's default/touch color.  Does not
+    // make sense with BUTTON_MASK_USER_DRAW
 #define BUTTON_MASK_TOUCH           0x0800
+    // touch_color will oeveride default
+    // color once it has ever been toucned (touch bit)
+    // since the last clear()
 #define BUTTON_MASK_USER_DRAW       0x1000
+    // User is responsible for setting the final
+    // color(s) in their event methods.  Incompatible
+    // with TOGGLE ..
 
 
-#define BUTTON_GROUP_MASK           0xF000
+#define BUTTON_TYPE_CLICK       (BUTTON_EVENT_CLICK)
+#define BUTTON_TYPE_LONG_CLICK  (BUTTON_EVENT_LONG_CLICK)
+#define BUTTON_TYPE_TOGGLE      (BUTTON_EVENT_CLICK | BUTTON_MASK_TOGGLE)
 
-#define BUTTON_GROUP(n)             ( ((n) & 0x7) << 12 )
-#define BUTTON_GROUP_OF(i)          ( ((i) >> 12) & 0x7 )
 
-
-#define BUTTON_STATE_PRESSED       0x0001
-    // is the button currently pressed
-#define BUTTON_STATE_TOUCHED       0x8000
-    // Has the button been pressed since the last clear() ?
-#define BUTTON_STATE_SELECTED      0x4000
-    // used for buttons that can be toggled on and off
-    // as well as for buttons in radio groups
-
+class buttonArray;
+    // forward
 
 class arrayedButton
 {
@@ -62,27 +58,32 @@ class arrayedButton
         arrayedButton();
         ~arrayedButton() {}
 
+        bool isSelected();
+        bool isPressed();
+        bool hasBeenTouched();
+
+        void addLongClickHandler()  { m_event_mask |= BUTTON_EVENT_LONG_CLICK; }
+
+    private:
+
+        friend class buttonArray;
+
         void initDefaults();
 
         int m_event_mask;
         int m_event_state;
         unsigned m_press_time;
-            // == 0 is used as "event handled"
         unsigned m_debounce_time;
         elapsedMillis m_repeat_time;
 
         int m_default_color;
+        int m_pressed_color;
         int m_selected_color;
         int m_touch_color;
-
-        bool isSelected()       { return m_event_state & BUTTON_STATE_SELECTED; }
 
 };
 
 
-#define BUTTON_TYPE_CLICK       (BUTTON_EVENT_CLICK)
-#define BUTTON_TYPE_TOGGLE      (BUTTON_EVENT_CLICK | BUTTON_MASK_TOGGLE)
-#define BUTTON_TYPE_RADIO(n)    (BUTTON_EVENT_CLICK | BUTTON_MASK_RADIO | BUTTON_GROUP(n))
 
 
 class buttonArray
@@ -90,7 +91,6 @@ class buttonArray
     public:
 
         buttonArray();
-
 
         void init();        // called once
         void clear();       // called on new windows
@@ -100,13 +100,16 @@ class buttonArray
         arrayedButton *getButton(int num)            { return &m_buttons[num / NUM_BUTTON_COLS][num % NUM_BUTTON_COLS]; }
         arrayedButton *getButton(int row, int col)   { return &m_buttons[row][col]; }
 
-        void setButtonType(int num, int mask, int default_color=-1, int selected_color=-1, int touch_color=-1);
-        void setEventState(int num, int state);
+        void setButtonType(
+            int num,
+            int mask,
+            int default_color=-1,
+            int selected_color=-1,
+            int touch_color=-1,
+            int pressed_color=-1);
 
-        void clearRadioGroup(int group);
-        void select(int num, int value);
-            //  -1 == pressed (internal use only)
-            //  0 == deselect, 1 == select
+        void select(int num, int pressed);
+            // 1=pressed, -1=long_click, 0=releaed
 
     private:
 

@@ -1,6 +1,6 @@
 #include "songParser.h"
 #include "songMachine.h"
-#include "rigNew.h"
+#include "rigBase.h"
 #include "myDebug.h"
 #include <SdFat.h>
 
@@ -650,7 +650,7 @@ int songParser::getToken()
 
 
 
-bool songParser::parseSongText()
+bool songParser::parseSongText(rigBase *baseRig)
 {
     display(dbg_parse,"",0);
     init_parse();
@@ -678,7 +678,7 @@ bool songParser::parseSongText()
                 return false;
             }
 
-            int patch_num = theNewRig->findPatchByName(token);
+            int patch_num = baseRig ? baseRig->findPatchByName(token) : -1;
             if (patch_num == -1)
             {
                 parse_error("Could not find patch",token);

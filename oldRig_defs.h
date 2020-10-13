@@ -153,17 +153,6 @@ extern int g_ipad_is_new_rig;
 
 
 
-typedef struct
-    // structure common to New and Old rig patches
-{
-    int prog_num;
-    const char *short_name;         // SHOULD BE 6 CHARS OR LESS
-    const char *long_name;          // NOT USED IN NEW RIG
-    bool mono_mode;                 // NOT USED IN OLD RIG
-}   synthPatch_t;
-
-
-
 //----------------
 // toneStack
 //----------------

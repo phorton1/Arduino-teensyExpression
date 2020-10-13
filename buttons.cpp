@@ -3,8 +3,15 @@
 #include "expSystem.h"
 #include "myLeds.h"
 
-
 #define dbg_btn 1
+
+
+#define BUTTON_STATE_PRESSED       0x0001
+    // is the button currently pressed
+    // long term: has the button been pressed since the last clear() ?
+#define BUTTON_STATE_SELECTED      0x4000
+    // used for buttons that can be toggled on and off
+#define BUTTON_STATE_TOUCHED       0x8000
 
 
 #define LONG_PRESS_TIME    800
@@ -49,10 +56,23 @@ void arrayedButton::initDefaults()
     m_debounce_time = 0;
     m_repeat_time = 0;
     m_default_color = LED_BLUE;
+    m_pressed_color = LED_WHITE;
     m_selected_color = LED_CYAN;
     m_touch_color = LED_YELLOW;
 }
 
+bool arrayedButton::isPressed()
+{
+	return m_event_state & BUTTON_STATE_PRESSED;
+}
+bool arrayedButton::isSelected()
+{
+	return m_event_state & BUTTON_STATE_SELECTED;
+}
+bool arrayedButton::hasBeenTouched()
+{
+	return m_event_state & BUTTON_STATE_TOUCHED;
+}
 
 
 
@@ -83,6 +103,32 @@ void buttonArray::init()
 }
 
 
+void  buttonArray::setButtonType(int num, int mask, int default_color, int selected_color, int touch_color, int pressed_color)
+{
+    arrayedButton *pb = &m_buttons[num / NUM_BUTTON_COLS][num % NUM_BUTTON_COLS];
+    pb->m_event_mask = mask;
+    pb->m_default_color = default_color == -1 ? LED_BLUE : default_color;
+    pb->m_pressed_color = pressed_color == -1 ? LED_WHITE : pressed_color;
+    pb->m_selected_color = selected_color == -1 ? LED_CYAN : selected_color;
+    pb->m_touch_color = touch_color == -1 ? LED_YELLOW : touch_color;
+   	if (!(mask & BUTTON_MASK_USER_DRAW))
+        setLED(num,pb->m_default_color);
+}
+
+
+
+// static
+const char *buttonArray::buttonEventName(int event)
+{
+    if (event == BUTTON_EVENT_PRESS          ) return "PRESS";
+    if (event == BUTTON_EVENT_RELEASE        ) return "RELEASE";
+    if (event == BUTTON_EVENT_CLICK          ) return "CLICK";
+    if (event == BUTTON_EVENT_LONG_CLICK     ) return "LONG_CLICK";
+    return "UNKNOWN BUTTON EVENT";
+}
+
+
+
 void buttonArray::clear()
     // we have to be careful about folks calling back into
     // us to do things from button events.  Like starting
@@ -101,128 +147,54 @@ void buttonArray::clear()
 
 
 
-// static
-const char *buttonArray::buttonEventName(int event)
-{
-    if (event == BUTTON_EVENT_PRESS          ) return "PRESS";
-    if (event == BUTTON_EVENT_RELEASE        ) return "RELEASE";
-    if (event == BUTTON_EVENT_CLICK          ) return "CLICK";
-    if (event == BUTTON_EVENT_LONG_CLICK     ) return "LONG_CLICK";
-    return "UNKNOWN BUTTON EVENT";
-}
-
-
-
-
-
-void buttonArray::setEventState(int num, int state)
-    // retains the state of the pressed bit,
-    // but clears the m_press_time (handled)
-{
-    display(dbg_btn+1,"setEventState num=%d state=%04x",num,state);
-
-    arrayedButton *button = &m_buttons[num / NUM_BUTTON_COLS][num % NUM_BUTTON_COLS];
-    state &= ~BUTTON_STATE_PRESSED;
-    state |= (button->m_event_state & BUTTON_STATE_PRESSED);
-    button->m_event_state = state;
-    button->m_press_time = 0;
-
-    int color =
-        state & BUTTON_STATE_SELECTED ?
-            button->m_selected_color :
-        (button->m_event_mask & BUTTON_MASK_TOUCH) &&
-        (state & BUTTON_STATE_TOUCHED) ?
-            button->m_touch_color :
-            button->m_default_color;
-
-    display(dbg_btn+1,"button_color(%d)=%08x",num,color);
-
-   	if (!(button->m_event_mask & BUTTON_MASK_USER_DRAW))
-        setLED(num,color);
-}
-
-
-
-
-
-void buttonArray::select(int num, int value)
-    // -1 == pressed    (this method is NOT called if m_press_time==0)
-    //  0 == deselect
-    //  1 == select
+void buttonArray::select(int num, int pressed)
+	// Update the state of toggle buttons
+    // pressed  1 == freshly pressed
+    // pressed  0 == released (for CLICK or RELEASE)
+	// pressed -1 == long click reached
 {
     arrayedButton *button = &m_buttons[num / NUM_BUTTON_COLS][num % NUM_BUTTON_COLS];
     int mask = button->m_event_mask;
     int state = button->m_event_state;
+	bool leds_changed = false;
 
-    display(dbg_btn,"select(%d,%d) mask=%04x state=%04x",num,value,mask,state);
+    display(dbg_btn,"select(%d,%d) mask=%04x state=%04x",num,pressed,mask,state);
 
-    // fake the previous selected bit if from a press
-    // and it's a toggle button
+	// set presses to the button's pressed_color except for REPEAT buttons
 
-    bool selected = value;
-    if (value==-1 && (mask & BUTTON_MASK_TOGGLE))
-        selected = !(state & BUTTON_STATE_SELECTED);
+	if (pressed == 1 && !(mask & BUTTON_MASK_REPEAT))
+	{
+		setLED(num,button->m_pressed_color);
+		leds_changed = true;
+	}
 
-    // determine the default, unselected, color
+	// user drawn buttons dont do anything else
 
-    int color = button->m_default_color;
-    if (mask & BUTTON_MASK_TOUCH && state & BUTTON_STATE_TOUCHED)
-        color = button->m_touch_color;
+	if ((pressed != 1) &&
+		!(mask & BUTTON_MASK_USER_DRAW))
+	{
+		int color = button->m_default_color;
+		if (mask & BUTTON_MASK_TOUCH)
+			color = button->m_touch_color;
+		if (pressed == 0 && mask & BUTTON_MASK_TOGGLE)
+		{
+			bool new_selected = !(state & BUTTON_STATE_SELECTED);
+			if (new_selected)
+				button->m_event_state |= BUTTON_STATE_SELECTED;
+			else
+				button->m_event_state &= ~BUTTON_STATE_SELECTED;
+			if (new_selected)
+				color = button->m_selected_color;
+		}
+		setLED(num,color);
+		leds_changed = true;
+	}
 
-    if ((state & BUTTON_STATE_SELECTED) != selected)
-    {
-        if (selected)
-        {
-            if (mask & BUTTON_MASK_TOGGLE)
-            {
-                button->m_event_state |= BUTTON_STATE_SELECTED | BUTTON_STATE_TOUCHED;
-                color = button->m_selected_color;
-            }
-            else if (mask & BUTTON_MASK_RADIO)
-            {
-                int group = BUTTON_GROUP_OF(button->m_event_mask);
-                display(dbg_btn+1,"RADIO BUTTON GROUP=%d",group);
-
-                // clear any other selected button in the group
-
-                for (int r=0; r<NUM_BUTTON_ROWS; r++)
-                {
-                    for (int c=0; c<NUM_BUTTON_COLS; c++)
-                    {
-                        arrayedButton *b = &m_buttons[r][c];
-                        if (b != button &&
-                            BUTTON_GROUP_OF(b->m_event_mask) == group &&
-                            b->isSelected())
-                        {
-                            b->m_event_state &= ~BUTTON_STATE_SELECTED;
-                            int c2 = b->m_default_color;
-                            if (b->m_event_mask & BUTTON_MASK_TOUCH &&
-                                b->m_event_state & BUTTON_STATE_TOUCHED)
-                                c2 = b->m_touch_color;
-                            setLED(r,c,c2);
-                        }
-                    }
-                }
-
-                button->m_event_state |= BUTTON_STATE_SELECTED | BUTTON_STATE_TOUCHED;
-                color = button->m_selected_color;
-            }
-        }
-        else
-        {
-            button->m_event_state &= ~BUTTON_STATE_SELECTED;
-        }
-    }
-
-    // this may be called by the client from a button event handler.
-    // if so, and it effects the current button, then we don't want
-    // the rest of the task() code for that button to run ...
-
-    if (value != -1)
+    if (pressed != 1)
         button->m_press_time = 0;
 
-   	if (!(mask & BUTTON_MASK_USER_DRAW))
-        setLED(num,color);
+   	if (leds_changed)
+        showLEDs();
 }
 
 
@@ -270,21 +242,12 @@ void buttonArray::task()
                 if (is_pressed)     // button pressed
                 {
                     pButton->m_event_state |= BUTTON_STATE_PRESSED | BUTTON_STATE_TOUCHED;
-
+					select(num,1);
                     if (mask & BUTTON_EVENT_PRESS)
                     {
-                        select(num,-1);
-                        showLEDs();
                         display(dbg_btn,"BUTTON_EVENT_PRESS(%d,%d)",row,col);
                         theSystem.buttonEvent(row, col, BUTTON_EVENT_PRESS);
                     }
-                    else
-                    {
-                        display(dbg_btn+1,"----------------> set button(%d,%d) WHITE",row,col);
-                        setLED(row,col,LED_WHITE);
-                        showLEDs();
-                    }
-
                     pButton->m_press_time = time;
                 }
 
@@ -296,11 +259,10 @@ void buttonArray::task()
                 else    // button released
                 {
                     pButton->m_event_state &= ~BUTTON_STATE_PRESSED;
-                    if (pButton->m_press_time)  // && !(mask & BUTTON_EVENT_PRESS))
+                    if (pButton->m_press_time)
                     {
-                        pButton->m_press_time = 0;
-                        select(num,-1);
-                        showLEDs();
+                        select(num,0);
+
                         if (mask & BUTTON_EVENT_RELEASE)
                         {
                             display(dbg_btn,"BUTTON_EVENT_RELEASE(%d,%d)",row,col);
@@ -348,7 +310,7 @@ void buttonArray::task()
                 else if ((mask & BUTTON_EVENT_LONG_CLICK) && dif > LONG_PRESS_TIME)
                 {
                     display(dbg_btn,"BUTTON_EVENT_LONG_CLICK(%d,%d)",row,col);
-                    pButton->m_press_time = 0;
+					select(num,-1);
                     theSystem.buttonEvent(row, col, BUTTON_EVENT_LONG_CLICK);
                 }
 
@@ -358,37 +320,4 @@ void buttonArray::task()
         digitalWrite(row_pins[row],0);
 
     }   // for each row
-}
-
-
-
-void  buttonArray::setButtonType(int num, int mask, int default_color, int selected_color, int touch_color)
-{
-    arrayedButton *pb = &m_buttons[num / NUM_BUTTON_COLS][num % NUM_BUTTON_COLS];
-    pb->m_event_mask = mask;
-    pb->m_default_color = default_color == -1 ? LED_BLUE : default_color;
-    pb->m_selected_color = selected_color == -1 ? LED_CYAN : selected_color;
-    pb->m_touch_color = touch_color == -1 ? LED_YELLOW : touch_color;
-   	if (!(mask & BUTTON_MASK_USER_DRAW))
-        setLED(num,pb->m_default_color);
-}
-
-
-void buttonArray::clearRadioGroup(int group)
-{
-    display(0,"clearRadioGroup(%d)",group);
-    for (int row=0; row<NUM_BUTTON_ROWS; row++)
-    {
-        for (int col=0; col<NUM_BUTTON_COLS; col++)
-        {
-            arrayedButton *button = &m_buttons[row][col];
-            if (group == BUTTON_GROUP_OF(button->m_event_mask))
-            {
-                button->m_event_state &= ~BUTTON_STATE_TOUCHED;
-                    // really clear em ...
-                select(row*NUM_BUTTON_COLS+col,0);
-            }
-        }
-    }
-    showLEDs();
 }

@@ -1,10 +1,10 @@
 #include "songMachine.h"
-#include "rigNew.h"
 #include "myDebug.h"
 #include "myTFT.h"
 #include "myLEDS.h"
 #include "commonDefines.h"
 #include "songParser.h"
+#include "rigBase.h"
 #include "midiQueue.h"  // for sendSerialControlChange
 
 #define dbg_machine   1
@@ -40,6 +40,7 @@ songMachine *theSongMachine = 0;
 
 songMachine::songMachine()
 {
+    m_pBaseRig = 0;
     init();
     theSongMachine = this;
 }
@@ -219,7 +220,7 @@ bool songMachine::load(const char *song_name)
     mylcd.Print_String(song_name,song_title_rect.xs+5,song_title_rect.ys+4);
 
     if (songParser::openSongFile(song_name) &&
-        songParser::parseSongText())
+        songParser::parseSongText(m_pBaseRig))
     {
         if (dbg_machine <= 0)
         {
@@ -394,7 +395,7 @@ void songMachine::updateUI()
 
     // don't update the UI if in quick mode
 
-    if (theNewRig->inQuickMode())
+    if (!m_pBaseRig || !m_pBaseRig->songUIAvailable())
         return;
 
     // invariant flasher
@@ -734,7 +735,8 @@ void songMachine::doSongOp(int op)
         }
 
         case TOKEN_GUITAR_EFFECT_NONE:
-            theNewRig->clearGuitarEffects(false);
+            if (m_pBaseRig)
+                m_pBaseRig->clearGuitarEffects(false);
             break;
 
         case TOKEN_GUITAR_EFFECT_DISTORT:
@@ -744,16 +746,19 @@ void songMachine::doSongOp(int op)
         {
             int effect_num = op - TOKEN_GUITAR_EFFECT_DISTORT;
             int value = songParser::getCode(m_code_ptr++);
-            theNewRig->setGuitarEffect(effect_num, value);
+            if (m_pBaseRig)
+                m_pBaseRig->setGuitarEffect(effect_num, value);
             break;
         }
 
         case TOKEN_SYNTH_PATCH:
-            theNewRig->setPatchNumber(songParser::getCode(m_code_ptr++));
+            if (m_pBaseRig)
+                m_pBaseRig->setPatchNumber(songParser::getCode(m_code_ptr++));
             break;
 
         case TOKEN_CLEAR_LOOPER:
-            theNewRig->clearLooper(false);
+            if (m_pBaseRig)
+                m_pBaseRig->clearLooper(false);
             break;
 
         case TOKEN_LOOPER_STOP:
@@ -776,14 +781,16 @@ void songMachine::doSongOp(int op)
         case TOKEN_LOOPER_TRACK:
         {
 			int track_num = songParser::getCode(m_code_ptr++)-1;
-            theNewRig->selectTrack(track_num);
+            if (m_pBaseRig)
+                m_pBaseRig->selectTrack(track_num);
             break;
         }
         case TOKEN_LOOPER_CLIP:
         {
             int layer_num = songParser::getCode(m_code_ptr++)-1;
             int mute_value = songParser::getCode(m_code_ptr++);
-            theNewRig->setClipMute(layer_num,mute_value);
+            if (m_pBaseRig)
+                m_pBaseRig->setClipMute(layer_num,mute_value);
             break;
         }
 

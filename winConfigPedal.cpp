@@ -359,10 +359,10 @@ void winConfigPedal::showSelectedItem(int item, int selected)
     mylcd.setFont(Arial_16_Bold);
     mylcd.Fill_Rect(x,y,w,h,bc);
     mylcd.printf_justified(
-        x+5,
-        y+7,
-        w-10,
-        h-6,
+        x,	// x+5,
+        y+5,	// y+7,
+        w,	// w-10,
+        h-3,	// h-6,
         LCD_JUST_CENTER,
         fc,
         bc,

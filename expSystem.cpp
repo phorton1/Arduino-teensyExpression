@@ -13,8 +13,9 @@
 #include "midiQueue.h"
 
 #include "configSystem.h"
-#include "rigOld.h"
-#include "rigNew.h"
+#include "rigLooper.h"
+// #include "rigNew.h"
+// #include "rigOld.h"
 #include "rigTest.h"
 #include "rigMidiHost.h"
 
@@ -31,72 +32,6 @@
 #define GET_TEMPO_FROM_CLOCK           	0
 #define BATTERY_CHECK_TIME  			30000
 #define MIDI_ACTIVITY_TIMEOUT 			90
-
-// moved to ftp.cpp::initQueryFTP()
-// #define BATTERY_CHECK_TIME  			30000
-
-
-// Fishman TriplePlay MIDI HOST Spoof Notes
-//
-// This version WORKS as a midi host to the FTP dongle, appears in
-// windows as a "Fishman TriplePlay" with similarly named
-// midi ports, and successfully runs within the Windows FTP Editor,
-// based on an pref setting "SPOOF_FTP"
-//
-// REQUIRES setting MIDI4+SERIAL in Arduino IDE, as I did not want
-// to muck around with Paul's midi.h file where it checks MIDI_NUM_CABLES
-// inline, and IT is compiled with the original usb_desc.h, and it
-// will not work properly as just a MIDI device (which uses SEREMU).
-//
-// Also note that the COM port changes from 3 to 11 when you change
-// the SPOOF_FTP setting.
-//
-// As it stands right now, I am using a modified version of Paul's
-// USBHost_t36.h file that exposes variables on it's MIDIDevice class,
-// and makes a couple of functions (the usb IRQ handlers) virutal,
-// so that I can inherit from it and implement the myMidiHost object,
-// which tightly sends the hosted midi messges directly to the
-// teensyDuino USBMidi, via the low level 'C' calls underlying
-// it's hardwired "usbMIDI" class.
-//
-// HOST    myMidiHost : public USBHost_t36.h MIDIDevice
-//
-//      myMidiHost
-//      Variable Name:  midi_host
-//      Derives from USBHost_t36.h MIDIDevice
-//      Which has been modified to expose protected vars
-//         and make a method rx_data() virtual
-//      Spoof requires setting MIDI4+SERIAL in Arduino IDE
-//      Hooks rx_data(), which is the host usb IRQ handler, to
-//           directly call the low level 'C' routines
-//           usb_midi_write_packed(msg) and usb_midi_flush_output()
-//           upon every received packet.
-//
-// DEVICE (teensyDuino "self") usbMidi
-//      Variable Name: usbMIDI (hardwired)
-//      available based on USB Setting in Arduino IDE
-//      I get it's messages based on calls to low calls to
-//         low levl usb_midi_read_message() 'C' function
-//         in the critical_timer_handler() implementation
-//      which is where they get written TO the hosted device (FTP)
-//         via the exposed USBHost_t36 MIDIDevice myMidiHost
-//         midi_host.write_packed(msg) method
-//
-// IT WAS IMPORTANT AND HARD TO FIND THAT I HAD TO LOWER THE PRIORITY
-// OF THE critical_timer to let the host usb IRQs have priority.
-//
-// THE SYSTEM IS NOT SYMETTRIC.  We read from the host based on direct
-// usb IRQ's, but we read from the device based on a timer loop and the
-// usb_midi_read_message() function.
-//
-// The IRQ is enqueing the 32bit messages (and I also modified USBHost_t36.h
-// to increase the midi rx buffer size from 80 to 2048), which are currently,
-// and messily, then dequeud in the "critical_timer_handler()" method, then
-// printed to buffered text, and finally displayed in the updateUI() method
-// called from loop().   That whole thing could be cleaned up to work with
-// a single queue of 32 bit words, and to decode and show the queued messages
-// separately for display.
-
 
 
 //-------------------------------------
@@ -128,25 +63,60 @@
 //          messags for display.
 //      (d) used variously by other objects to implement key
 //          repeats, etc.
-
+// 1. I have more or less determined that the timers don't start again
+//    until the handler has returned.
+// 2. At some point the timers use so much resources that the rest of
+//    the system is non functional
 
 #define EXP_TIMER_INTERVAL 5000
     // 5000 us = 5 ms == 200 times per second
 #define EXP_TIMER_PRIORITY  240                     // lowest priority
     // compared to default priority of 128
 
-// 1. I have more or less determined that the timers don't start again
-//    until the handler has returned.
-// 2. At some point the timers use so much resources that the rest of
-//    the system is non functional
+
+//--------------------------------
+// global variables
+//--------------------------------
 
 expSystem theSystem;
 const char *rig_names[MAX_EXP_RIGS];
 
+int_rect tft_rect(0,0,479,319);				// full screen
+int_rect title_rect(0,0,479,35);			// not including line
+int_rect full_client_rect(0,37,479,319);	// under line to bottom of screen
+int_rect pedal_rect(0,235,479,319);			// 89 high, starting at 230
+int_rect client_rect(0,37,479,235);			// under line to above pedals
+
+#define SYNTH_RECT_HEIGHT 70
+#define SONG_STATE_WIDTH  100
+#define SONG_MSG1_WIDTH   120
+
+int_rect synth_rect(
+	client_rect.xs,
+	client_rect.ys,
+	client_rect.xe,
+	client_rect.ys + SYNTH_RECT_HEIGHT-1);
+
+int_rect song_title_rect(
+	client_rect.xs,
+	synth_rect.ye,
+	client_rect.xe - SONG_STATE_WIDTH,
+	synth_rect.ye + 35);
+
+int_rect song_state_rect(
+	song_title_rect.xe,
+	synth_rect.ye,
+	client_rect.xe,
+	song_title_rect.ye);
+
+int_rect song_msg_rect[2];
+	// assigned in constructor
+
+
+
 //----------------------------------------
 // expWindow (base class)
 //----------------------------------------
-
 
 // virtual
 void expWindow::begin(bool warm)
@@ -193,6 +163,20 @@ expSystem::expSystem()
 
     for (int i=0; i<MAX_EXP_RIGS; i++)
         m_rigs[i] = 0;
+
+	song_msg_rect[0].assign(
+		client_rect.xs,
+		song_title_rect.ye + 10,
+		client_rect.xs + SONG_MSG1_WIDTH - 1,
+		client_rect.ye);
+
+	song_msg_rect[1].assign(
+		song_msg_rect[0].xe,
+		song_title_rect.ye + 10,
+		client_rect.xe,
+		client_rect.ye);
+
+
 }
 
 
@@ -205,11 +189,25 @@ void expSystem::setTitle(const char *title)
 
 void expSystem::begin()
 {
+
     addRig(new configSystem());
-    addRig(new rigNew());
-    addRig(new rigOld());
-    addRig(new rigTest());
+    addRig(new rigLooper());
+    // addRig(new rigNew());
+    // addRig(new rigOld());
+	addRig(new rigTest());
     addRig(new rigMidiHost());
+
+	song_msg_rect[0].assign(
+		client_rect.xs,
+		song_title_rect.ye + 10,
+		client_rect.xs + SONG_MSG1_WIDTH - 1,
+		client_rect.ye);
+
+	song_msg_rect[1].assign(
+		song_msg_rect[0].xe,
+		song_title_rect.ye + 10,
+		client_rect.xe,
+		client_rect.ye);
 
 	for (int i=0; i<NUM_PORTS; i++)
 	{
@@ -291,6 +289,8 @@ void expSystem::activateRig(int i)
         m_prev_rig_num = m_cur_rig_num;
     }
 
+    theButtons.clear();
+
     m_cur_rig_num = i;
 	expWindow *cur_rig = getCurRig();
 
@@ -313,7 +313,7 @@ void expSystem::activateRig(int i)
 
     // add the system long click handler
 
-	theButtons.getButton(0,THE_SYSTEM_BUTTON)->m_event_mask |= BUTTON_EVENT_LONG_CLICK;
+	theButtons.getButton(0,THE_SYSTEM_BUTTON)->addLongClickHandler();
 }
 
 
@@ -410,7 +410,7 @@ void expSystem::endModal(expWindow *win, uint32_t param)
 	{
 		// returning to a rig window
 		// reset the system button handler
-		theButtons.getButton(0,THE_SYSTEM_BUTTON)->m_event_mask |= BUTTON_EVENT_LONG_CLICK;
+		theButtons.getButton(0,THE_SYSTEM_BUTTON)->addLongClickHandler();
 		draw_pedals = 1;
 	}
 
@@ -425,23 +425,6 @@ void expSystem::endModal(expWindow *win, uint32_t param)
 //-----------------------------------------
 // prh - 2020-08-13:  Getting rid of "pedal events"
 // Pedal behavior henceforth orchestrated from pedals.cpp
-
-// void expSystem::pedalEvent(int num, int value)
-// {
-//     if (!getCurRig()->onPedalEvent(num,value))
-// 	{
-// 		expressionPedal *pedal = thePedals.getPedal(num);
-// 		if (pedal->getCCChannel() && pedal->getCCNum())
-//             mySendDeviceControlChange(
-// 				pedal->getCCNum(),
-// 				value,
-// 				pedal->getCCChannel());
-// 	}
-// }
-//
-
-
-
 
 void expSystem::rotaryEvent(int num, int value)
 {
@@ -479,9 +462,6 @@ void expSystem::buttonEvent(int row, int col, int event)
 		getCurRig()->onButtonEvent(row,col,event);
 	}
 }
-
-
-
 
 
 
@@ -751,14 +731,6 @@ void expSystem::handleSerialData()
 #define INDICATOR_SPACING    	15
 
 #define PEDAL_TEXT_AREA_HEIGHT  30
-
-
-int_rect tft_rect(0,0,479,319);				// full screen
-int_rect title_rect(0,0,479,35);			// not including line
-int_rect full_client_rect(0,37,479,319);	// under line to bottom of screen
-int_rect pedal_rect(0,235,479,319);			// 89 high, starting at 230
-int_rect client_rect(0,37,479,235);			// under line to above pedals
-
 
 
 void expSystem::updateUI()

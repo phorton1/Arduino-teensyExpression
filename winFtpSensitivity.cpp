@@ -86,7 +86,7 @@ void winFtpSensitivity::begin(bool warm)
 	theButtons.setButtonType(24,			BUTTON_TYPE_CLICK,	LED_PURPLE);
 
 	if (!ftp_poly_mode)
-		theButtons.select(20,1);
+		theButtons.select(20,0);
 
 	showLEDs();
 }

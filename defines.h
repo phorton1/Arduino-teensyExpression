@@ -1,7 +1,6 @@
 #ifndef __defines_h__
 #define __defines_h__
 
-
 #define NUM_PORTS           8       // ports defined in midiQueue.h
 #define NUM_PEDALS          4
 #define NUM_BUTTON_COLS     5
@@ -19,6 +18,20 @@
 #define PEDAL_LOOP      1
 #define PEDAL_WAH       2
 #define PEDAL_GUITAR    3
+
+#define LOOPER_NUM_TRACKS_TIMES_LAYERS    (LOOPER_NUM_TRACKS * LOOPER_NUM_LAYERS)
+
+
+
+typedef struct
+    // structure common to New and Old rig patches
+{
+    int prog_num;
+    const char *short_name;         // SHOULD BE 6 CHARS OR LESS
+    const char *long_name;          // NOT USED IN NEW RIG
+    bool mono_mode;                 // NOT USED IN OLD RIG
+}   synthPatch_t;
+
 
 
 //----------------------------------------------------------------------

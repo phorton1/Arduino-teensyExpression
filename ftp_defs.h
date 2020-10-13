@@ -528,5 +528,68 @@ const uint8_t FTP_CODE_PATCH_NAME  = 0x43;  // a 25 byte informative packet with
     // this example gets 0,0
 
 
+// Fishman TriplePlay MIDI HOST Spoof Notes
+//
+// This version WORKS as a midi host to the FTP dongle, appears in
+// windows as a "Fishman TriplePlay" with similarly named
+// midi ports, and successfully runs within the Windows FTP Editor,
+// based on an pref setting "SPOOF_FTP"
+//
+// REQUIRES setting MIDI4+SERIAL in Arduino IDE, as I did not want
+// to muck around with Paul's midi.h file where it checks MIDI_NUM_CABLES
+// inline, and IT is compiled with the original usb_desc.h, and it
+// will not work properly as just a MIDI device (which uses SEREMU).
+//
+// Also note that the COM port changes from 3 to 11 when you change
+// the SPOOF_FTP setting.
+//
+// As it stands right now, I am using a modified version of Paul's
+// USBHost_t36.h file that exposes variables on it's MIDIDevice class,
+// and makes a couple of functions (the usb IRQ handlers) virutal,
+// so that I can inherit from it and implement the myMidiHost object,
+// which tightly sends the hosted midi messges directly to the
+// teensyDuino USBMidi, via the low level 'C' calls underlying
+// it's hardwired "usbMIDI" class.
+//
+// HOST    myMidiHost : public USBHost_t36.h MIDIDevice
+//
+//      myMidiHost
+//      Variable Name:  midi_host
+//      Derives from USBHost_t36.h MIDIDevice
+//      Which has been modified to expose protected vars
+//         and make a method rx_data() virtual
+//      Spoof requires setting MIDI4+SERIAL in Arduino IDE
+//      Hooks rx_data(), which is the host usb IRQ handler, to
+//           directly call the low level 'C' routines
+//           usb_midi_write_packed(msg) and usb_midi_flush_output()
+//           upon every received packet.
+//
+// DEVICE (teensyDuino "self") usbMidi
+//      Variable Name: usbMIDI (hardwired)
+//      available based on USB Setting in Arduino IDE
+//      I get it's messages based on calls to low calls to
+//         low levl usb_midi_read_message() 'C' function
+//         in the critical_timer_handler() implementation
+//      which is where they get written TO the hosted device (FTP)
+//         via the exposed USBHost_t36 MIDIDevice myMidiHost
+//         midi_host.write_packed(msg) method
+//
+// IT WAS IMPORTANT AND HARD TO FIND THAT I HAD TO LOWER THE PRIORITY
+// OF THE critical_timer to let the host usb IRQs have priority.
+//
+// THE SYSTEM IS NOT SYMETTRIC.  We read from the host based on direct
+// usb IRQ's, but we read from the device based on a timer loop and the
+// usb_midi_read_message() function.
+//
+// The IRQ is enqueing the 32bit messages (and I also modified USBHost_t36.h
+// to increase the midi rx buffer size from 80 to 2048), which are currently,
+// and messily, then dequeud in the "critical_timer_handler()" method, then
+// printed to buffered text, and finally displayed in the updateUI() method
+// called from loop().   That whole thing could be cleaned up to work with
+// a single queue of 32 bit words, and to decode and show the queued messages
+// separately for display.
+
+
+
 
 #endif // !_ftp_defs_h_

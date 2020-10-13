@@ -5,6 +5,8 @@
 
 class configOption;
 
+#define MAX_SHOWN_RIGS		5
+
 class configSystem : public expWindow
 {
     public:
@@ -28,6 +30,7 @@ class configSystem : public expWindow
 
         int m_scroll_top;
         configOption *m_last_display_option;
+        int m_last_selected_rig;
 
 };
 

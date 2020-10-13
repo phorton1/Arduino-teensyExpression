@@ -192,6 +192,7 @@ void configSystem::begin(bool warm)
 	display_menu = 0;
 	display_option = 0;
 	m_last_display_option = 0;
+	m_last_selected_rig = -1;
 
     // setup buttons and leds
 
@@ -200,8 +201,8 @@ void configSystem::begin(bool warm)
     theButtons.setButtonType(BUTTON_EXIT_DONE,       BUTTON_EVENT_CLICK | BUTTON_EVENT_LONG_CLICK, LED_PURPLE);
     theButtons.setButtonType(BUTTON_EXIT_CANCEL,     BUTTON_EVENT_CLICK | BUTTON_EVENT_LONG_CLICK, LED_ORANGE);
 
-	theButtons.setButtonType(BUTTON_MOVE_UP,   	BUTTON_EVENT_PRESS);
-	theButtons.setButtonType(BUTTON_MOVE_DOWN,	BUTTON_EVENT_PRESS);
+	theButtons.setButtonType(BUTTON_MOVE_UP,   	BUTTON_EVENT_PRESS | BUTTON_MASK_REPEAT);
+	theButtons.setButtonType(BUTTON_MOVE_DOWN,	BUTTON_EVENT_PRESS | BUTTON_MASK_REPEAT);
 	theButtons.setButtonType(BUTTON_MOVE_LEFT,	BUTTON_EVENT_PRESS);
 	theButtons.setButtonType(BUTTON_MOVE_RIGHT,	BUTTON_EVENT_PRESS);
 	theButtons.setButtonType(BUTTON_SELECT,	    BUTTON_EVENT_CLICK, 	LED_GREEN);
@@ -211,15 +212,7 @@ void configSystem::begin(bool warm)
     int num_show = theSystem.getNumRigs()-1;
     if (num_show >= MAX_SHOWN_RIGS) num_show = MAX_SHOWN_RIGS;
     for (int i=0; i<num_show; i++)
-        theButtons.setButtonType(FIRST_RIG_BUTTON+i,BUTTON_TYPE_RADIO(GROUP_RIG_NUMS));
-
-	int rig_num = getPref8(PREF_RIG_NUM);
-    if (rig_num && rig_num<=MAX_SHOWN_RIGS)
-        theButtons.select(FIRST_RIG_BUTTON+rig_num-1,1);
-
-    // finished
-    // do not call draw() here!
-    // only draw on the main thread ..
+        theButtons.setButtonType(FIRST_RIG_BUTTON+i,BUTTON_TYPE_CLICK | BUTTON_MASK_USER_DRAW);
 
     showLEDs();
 
@@ -379,9 +372,9 @@ void configSystem::onButtonEvent(int row, int col, int event)
 				{
 					int value = getPref8(PREF_RIG_NUM);
 					if (value && value <= MAX_SHOWN_RIGS)
-						theButtons.select(FIRST_RIG_BUTTON+value-1,1);
-					else
-						theButtons.clearRadioGroup(GROUP_RIG_NUMS);
+					// 	theButtons.select(FIRST_RIG_BUTTON+value-1,1);
+					// else
+					// 	theButtons.clearRadioGroup(GROUP_RIG_NUMS);
 					showLEDs();
 				}
 
@@ -438,6 +431,20 @@ void configSystem::onButtonEvent(int row, int col, int event)
 void configSystem::updateUI()
 {
     bool draw_all = false;
+
+	// update the rig button colors
+
+	int rig_num = getPref8(PREF_RIG_NUM);
+	if (rig_num != m_last_selected_rig)
+	{
+		if (m_last_selected_rig>0 && m_last_selected_rig<=MAX_SHOWN_RIGS)
+			setLED(FIRST_RIG_BUTTON+m_last_selected_rig-1,0);
+		if (rig_num>0 && rig_num<=MAX_SHOWN_RIGS)
+			setLED(FIRST_RIG_BUTTON+rig_num-1,LED_BLUE);
+		m_last_selected_rig = rig_num;
+		showLEDs();
+	}
+
 
 	if (cur_option != m_last_display_option)
 	{

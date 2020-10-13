@@ -23,6 +23,12 @@ extern int_rect full_client_rect;
 extern int_rect pedal_rect;
 extern int_rect client_rect;
 
+extern int_rect synth_rect;
+extern int_rect song_title_rect;
+extern int_rect song_state_rect;
+extern int_rect song_msg_rect[2];
+
+
 
 class expWindow
     // base class for rigs, modal windows, and the configSystem

@@ -3,6 +3,7 @@
 
 #include "Arduino.h"
 #include "pedals.h"
+#include "rigBase.h"
 
 
 #define song_error(f,...)        { error_fxn(f,__VA_ARGS__); songMachine::error_msg(f,__VA_ARGS__); }
@@ -38,6 +39,9 @@ class songMachine
 
         songMachine();
         ~songMachine()  {}
+
+        void setBaseRig(rigBase *rig) { m_pBaseRig = rig; }
+            // who will we control?
 
         bool load(const char *name);
             // sets the machine state to EMPTY to begin with,
@@ -102,6 +106,10 @@ class songMachine
                 pedal_volumes[i].last_cmd_time = 0;
             }
         }
+
+        // the base rig to control
+
+        rigBase *m_pBaseRig;
 
         // ui variables
 
