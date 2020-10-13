@@ -10,6 +10,7 @@
 #define SONG_DIR    "/songs"
 
 
+
 //-----------------------------------
 // global variables
 //-----------------------------------
@@ -33,7 +34,10 @@ int songParser::token_len = 0;;
 int songParser::int_token = 0;
 int songParser::parse_line_num = 0;
 int songParser::parse_char_num = 0;
+int songParser::token_line_num = 0;
+int songParser::token_char_num = 0;
 char songParser::token[MAX_SONG_TOKEN+1] = {0};
+bool songParser::in_method = 0;;
 
 int songParser::num_labels = 0;
 label_t songParser::labels[MAX_LABELS];
@@ -41,7 +45,11 @@ label_t songParser::labels[MAX_LABELS];
 int songParser::num_song_names = 0;
 char *songParser::song_names[MAX_SONG_NAMES];
 
+int songParser::num_relocations = 0;
+relocation_t songParser::relocs[MAX_RELOCATIONS];
 
+
+// static methods
 
 const char *songParser::tokenToString(int token_num)
 {
@@ -65,6 +73,7 @@ const char *songParser::tokenToString(int token_num)
     if (token_num == TOKEN_LOOPER_TRACK           ) return "LOOPER_TRACK";
     if (token_num == TOKEN_LOOPER_STOP            ) return "LOOPER_STOP";
     if (token_num == TOKEN_LOOPER_STOP_IMMEDIATE  ) return "LOOPER_STOP_IMMEDIATE";
+    if (token_num == TOKEN_LOOP_IMMEDIATE         ) return "LOOP_IMMEDIATE";
     if (token_num == TOKEN_DUB_MODE               ) return "DUB_MODE";
     if (token_num == TOKEN_SYNTH_PATCH            ) return "SYNTH_PATCH";
     if (token_num == TOKEN_LOOPER_CLIP            ) return "LOOPER_CLIP";
@@ -76,7 +85,11 @@ const char *songParser::tokenToString(int token_num)
     if (token_num == TOKEN_NUMBER                 ) return "NUMBER";
     if (token_num == TOKEN_COMMA                  ) return "COMMA";
     if (token_num == TOKEN_COLON                  ) return "COLON";
+    if (token_num == TOKEN_DELAY                  ) return "DELAY";
     if (token_num == TOKEN_GOTO                   ) return "GOTO";
+    if (token_num == TOKEN_CALL                   ) return "CALL";
+    if (token_num == TOKEN_METHOD                 ) return "METHOD";
+    if (token_num == TOKEN_END_METHOD             ) return "END_METHOD";
     if (token_num == TOKEN_BUTTON_COLOR           ) return "BUTTON_COLOR";
     if (token_num == TOKEN_RED                    ) return "RED";
     if (token_num == TOKEN_GREEN                  ) return "GREEN";
@@ -87,6 +100,7 @@ const char *songParser::tokenToString(int token_num)
     if (token_num == TOKEN_WHITE                  ) return "WHITE";
     if (token_num == TOKEN_CYAN                   ) return "CYAN";
     if (token_num == TOKEN_BLACK                  ) return "BLACK";
+    if (token_num == TOKEN_FLASH                  ) return "FLASH";
     if (token_num == TOKEN_EOF                    ) return "EOF";
     return "UNKNOWN_TOKEN_NUMBER";
 }
@@ -114,13 +128,18 @@ int songParser::stringToToken(const char *buf)
     if (!strcmp(buf,"LOOPER_TRACK"))               return TOKEN_LOOPER_TRACK;
     if (!strcmp(buf,"LOOPER_STOP"))                return TOKEN_LOOPER_STOP;
     if (!strcmp(buf,"LOOPER_STOP_IMMEDIATE"))      return TOKEN_LOOPER_STOP_IMMEDIATE;
+    if (!strcmp(buf,"LOOP_IMMEDIATE"))             return TOKEN_LOOP_IMMEDIATE;
     if (!strcmp(buf,"DUB_MODE"))                   return TOKEN_DUB_MODE;
     if (!strcmp(buf,"SYNTH_PATCH"))                return TOKEN_SYNTH_PATCH;
     if (!strcmp(buf,"LOOPER_CLIP"))                return TOKEN_LOOPER_CLIP;
     if (!strcmp(buf,"MUTE"))                       return TOKEN_MUTE;
     if (!strcmp(buf,"UNMUTE"))                     return TOKEN_UNMUTE;
     if (!strcmp(buf,"LOOPER_SET_START_MARK"))      return TOKEN_LOOPER_SET_START_MARK;
+    if (!strcmp(buf,"DELAY"))                      return TOKEN_DELAY;
     if (!strcmp(buf,"GOTO"))                       return TOKEN_GOTO;
+    if (!strcmp(buf,"CALL"))                       return TOKEN_CALL;
+    if (!strcmp(buf,"METHOD"))                     return TOKEN_METHOD;
+    if (!strcmp(buf,"END_METHOD"))                 return TOKEN_END_METHOD;
     if (!strcmp(buf,"BUTTON_COLOR"))               return TOKEN_BUTTON_COLOR;
     if (!strcmp(buf,"RED"))                        return TOKEN_RED;
     if (!strcmp(buf,"GREEN"))                      return TOKEN_GREEN;
@@ -131,6 +150,7 @@ int songParser::stringToToken(const char *buf)
     if (!strcmp(buf,"WHITE"))                      return TOKEN_WHITE;
     if (!strcmp(buf,"CYAN"))                       return TOKEN_CYAN;
     if (!strcmp(buf,"BLACK"))                      return TOKEN_BLACK;
+    if (!strcmp(buf,"FLASH"))                      return TOKEN_FLASH;
     return -1;  // unknown token
 }
 
@@ -243,7 +263,7 @@ void songParser::token_error(const char *errmsg)
 
 void songParser::parse_error(const char *errmsg,const char *param)
 {
-    song_error("%d:%d %s(%s)",parse_line_num,parse_char_num,errmsg,param);
+    song_error("%d:%d %s(%s)",token_line_num,token_char_num,errmsg,param);
 }
 
 
@@ -272,6 +292,40 @@ bool songParser::addSongCode(uint8_t byte)
 }
 
 
+int songParser::getTokenIf(int matches_token)
+{
+    int save_ptr = song_text_ptr;
+    int save_line = parse_line_num;
+    int save_char = parse_char_num;
+
+    int i = getToken();
+    if (i == -1)
+        return -1;
+
+    if (i == matches_token)
+        return i;
+    song_text_ptr = save_ptr;
+    parse_line_num = save_line;
+    parse_char_num = save_char;
+    return 0;
+}
+
+
+bool songParser::getComma(const char* ttype)
+{
+    int t2 = getToken();
+    if (t2<0)
+        return false;
+    if (t2 != TOKEN_COMMA)
+    {
+        parse_error("expected comma in ",ttype);
+        return false;
+    }
+    return true;
+}
+
+
+
 label_t *songParser::findLabel(const char *id)
 {
 	char buf1[MAX_ID_LEN+1];
@@ -292,6 +346,69 @@ label_t *songParser::findLabel(const char *id)
 }
 
 
+
+
+label_t *songParser::addLabel(const char *ident, int offset)
+{
+    display(dbg_parse+1,"addLabel(%d) %d:%s",num_labels,offset,ident);
+    if (strlen(ident) > MAX_ID_LEN)
+    {
+        parse_error("label too long",ident);
+        return 0;
+    }
+
+    // we are called with -1 for references AFTER seeing if
+    // it already exists ... or with >= 0 for definitions
+    // we are never called with -1 when there is a -1 label
+    // already existing ...
+
+    label_t *label = findLabel(ident);
+    if (label)
+    {
+        if (offset != -1 && label->code_offset != -1)
+        {
+            parse_error("multiply defined label",ident);
+            return 0;
+        }
+        if (label->code_offset == -1 && offset != -1)
+        {
+            display(dbg_parse+1,"    resolving label to %d",offset);
+            label->code_offset = offset;
+        }
+        return label;
+    }
+
+    if (num_labels >= MAX_LABELS)
+    {
+        parse_error("too manu labels",ident);
+        return 0;
+    }
+
+    label = &labels[num_labels++];
+    strcpy(label->name,ident);
+    label->code_offset = offset;
+    return label;
+}
+
+
+
+
+bool songParser::addRelocation(label_t *label, int offset)
+{
+    display(dbg_parse+1,"addRelocation(%s,%d)",label->name,offset);
+
+    if (num_relocations >= MAX_RELOCATIONS)
+    {
+        parse_error("TOO MANY RELOCATIONS",label->name);
+        return false;
+    }
+    relocation_t *rel = &relocs[num_relocations++];
+    rel->label = label;
+    rel->offset = offset;
+    rel->line_num = token_line_num;
+    rel->char_num = token_char_num;
+    return true;
+}
 
 //--------------------------------------
 // getToken
@@ -317,6 +434,11 @@ int songParser::getToken()
     {
         char c = song_text[song_text_ptr++];
         parse_char_num++;
+        if (!token_len)
+        {
+            token_line_num = parse_line_num;
+            token_char_num  = parse_char_num;
+        }
 
         display(dbg_token+1,"%d:%d c=0x%02x '%c' token_len=%d token_type=%d in_comment=%d int_token=%d",
             parse_line_num,
@@ -330,7 +452,8 @@ int songParser::getToken()
 
         if (c == 10)
         {
-            // skip LF
+            // skip LF, though it also resets character number
+            parse_char_num = 0;
         }
         else if (c == '#')
         {
@@ -360,8 +483,12 @@ int songParser::getToken()
                 return -1;
             }
 
-            display(dbg_token,"end_comment",0);
-            in_comment = false;
+            if (in_comment)
+            {
+                display(dbg_token,"end_comment",0);
+                in_comment = false;
+            }
+
             parse_line_num++;
             parse_char_num = 0;
 
@@ -397,6 +524,12 @@ int songParser::getToken()
         }
         else if (token_type == TOKEN_STRING)
         {
+            if (c=='\\' && song_text[song_text_ptr]=='n')
+            {
+                song_text_ptr += 1;
+                parse_char_num++;
+                c = 13;
+            }
             if (!addTokenChar(c))
                 return -1;
         }
@@ -414,7 +547,10 @@ int songParser::getToken()
                     return -1;
             }
             else
+            {
                 song_text_ptr--;        // backup for next time
+                parse_char_num--;
+            }
         }
 
         // white space
@@ -458,11 +594,22 @@ int songParser::getToken()
             }
         }
 
-        else
+        // building possible identifier we only allow letter, underscore, and numbers
+
+        else if (c == '_' ||
+                 (c>='A' && c<='Z') ||
+                 (c>='a' && c<='z') ||
+                 (c>='0' && c<='9'))
         {
             if (!addTokenChar(c))
                 return -1;
         }
+        else
+        {
+            token_error("illegal character");
+            return -1;
+        }
+
     }   // while !(done)
 
     if (!done && !token_len)
@@ -505,19 +652,16 @@ int songParser::getToken()
 
 bool songParser::parseSongText()
 {
-    song_code_len = 0;
-    song_text_ptr = 0;
-    parse_line_num = 1;
-    parse_char_num = 0;
-    num_labels = 0;
-
     display(dbg_parse,"",0);
+    init_parse();
 
     int t = getToken();
     while (t != TOKEN_EOF)
     {
         if (t < 0)
             return false;
+
+        display(dbg_parse+1,"line(%d) char(%d)",token_line_num,token_char_num);
 
         const char *ttype = tokenToString(t);
 
@@ -551,7 +695,30 @@ bool songParser::parseSongText()
 
         else if (t == TOKEN_DISPLAY)
         {
+            // number
+
             int t2 = getToken();
+            if (t2<0)
+                return false;
+            if (t2 != TOKEN_NUMBER || (
+                int_token != 1 && int_token != 2))
+            {
+                parse_error("expected 1 or 2 for",ttype);
+                return false;
+            }
+            int display_num = int_token;
+
+            if (!addSongCode(t))
+                return false;
+            if (!addSongCode(display_num))
+                return false;
+
+            if (!getComma(ttype))
+                return false;
+
+            // string
+
+            t2 = getToken();
             if (t2<0)
                 return false;
             if (t2 != TOKEN_STRING)
@@ -559,10 +726,9 @@ bool songParser::parseSongText()
                 parse_error("expected string following",ttype);
                 return false;
             }
+
+            const char *str_ptr = (const char *) &song_code[song_code_len];
             int len = strlen(token);
-            display(dbg_parse,"%-5d:    %s %d:'%s'",song_code_len,ttype,len,token);
-            if (!addSongCode(t))
-                return false;
             for (int i=0; i<len; i++)
             {
                 if (!addSongCode(token[i]))
@@ -570,11 +736,54 @@ bool songParser::parseSongText()
             }
             if (!addSongCode(0))
                 return false;
+
+            // optional color
+
+            int color = 0;
+            const char *opt_display_comma = "";
+            const char *opt_display_color = "";
+            int got_opt = getTokenIf(TOKEN_COMMA);
+            if (got_opt == -1)
+                return false;
+            if (got_opt)
+            {
+                t2 = getToken();
+                if (t2<0)
+                    return false;
+                if (t2 != TOKEN_RED    &&
+                    t2 != TOKEN_GREEN  &&
+                    t2 != TOKEN_BLUE   &&
+                    t2 != TOKEN_YELLOW &&
+                    t2 != TOKEN_PURPLE &&
+                    t2 != TOKEN_ORANGE &&
+                    t2 != TOKEN_WHITE  &&
+                    t2 != TOKEN_CYAN   &&
+                    t2 != TOKEN_BLACK)
+                {
+                    parse_error("expected a color follwing comma for",ttype);
+                    return false;
+                }
+                color = t2;
+                opt_display_comma = ",";
+                opt_display_color = tokenToString(t2);
+            }
+            if (!addSongCode(color))
+                return false;
+
+            display(dbg_parse,"%-5d:    %s %d,'%s'%s%s",
+                song_code_len,
+                ttype,
+                display_num,
+                str_ptr,
+                opt_display_comma,
+                opt_display_color);
+
         }
 
         // opcodes that take single integer parameters
 
-        else if (t == TOKEN_SYNTH_VOLUME ||
+        else if (t == TOKEN_DELAY ||
+                 t == TOKEN_SYNTH_VOLUME ||
                  t == TOKEN_LOOP_VOLUME ||
                  t == TOKEN_GUITAR_VOLUME ||
                  t == TOKEN_LOOPER_TRACK)
@@ -587,7 +796,7 @@ bool songParser::parseSongText()
                 parse_error("expected integer following",ttype);
                 return false;
             }
-            if (int_token > 127)
+            if (t != TOKEN_DELAY && int_token > 127)
             {
                 parse_error("integer out of range",ttype);
             }
@@ -601,7 +810,6 @@ bool songParser::parseSongText()
                 return false;
             if (!addSongCode(int_token))
                 return false;
-
         }
 
         // opcodes that take ON or OFF
@@ -647,14 +855,8 @@ bool songParser::parseSongText()
             }
             int clip_num = int_token;
 
-            t2 = getToken();
-            if (t2<0)
+            if (!getComma(ttype))
                 return false;
-            if (t2 != TOKEN_COMMA)
-            {
-                parse_error("expected comma follwing integer for",ttype);
-                return false;
-            }
 
             t2 = getToken();
             if (t2<0)
@@ -675,7 +877,7 @@ bool songParser::parseSongText()
                 return false;
         }
 
-        // BUTTON_COLOR takes button number (1..4), comma, color constant
+        // BUTTON_COLOR takes button number (1..4), comma, color constant, opt_comma(FLASH)
 
         else if (t == TOKEN_BUTTON_COLOR)
         {
@@ -693,14 +895,8 @@ bool songParser::parseSongText()
             }
             int button_num = int_token;
 
-            t2 = getToken();
-            if (t2<0)
+            if (!getComma(ttype))
                 return false;
-            if (t2 != TOKEN_COMMA)
-            {
-                parse_error("expected comma follwing integer for",ttype);
-                return false;
-            }
 
             t2 = getToken();
             if (t2<0)
@@ -719,12 +915,36 @@ bool songParser::parseSongText()
                 return false;
             }
 
-            display(dbg_parse,"%-5d:    %s %d,%s",song_code_len,ttype,button_num,tokenToString(t2));
+            int flash = 0;
+            int got_opt = getTokenIf(TOKEN_COMMA);
+            if (got_opt == -1)
+                return false;
+            if (got_opt)
+            {
+                int t3 = getToken();
+                if (t3 != TOKEN_FLASH)
+                {
+                    parse_error("only option is FLASH",ttype);
+                    return false;
+                }
+                flash = 1;
+            }
+
+
+            display(dbg_parse,"%-5d:    %s %d,%s%s",
+                song_code_len,
+                ttype,
+                button_num,
+                tokenToString(t2),
+                flash ? ",FLASH" : "");
+
             if (!addSongCode(t))
                 return false;
             if (!addSongCode(button_num))
                 return false;
             if (!addSongCode(t2))
+                return false;
+            if (!addSongCode(flash))
                 return false;
         }
 
@@ -754,14 +974,26 @@ bool songParser::parseSongText()
 
         // allowed monadic opcodes
 
-        else if (t == TOKEN_GUITAR_EFFECT_NONE ||
+        else if (t == TOKEN_END_METHOD ||
+                 t == TOKEN_GUITAR_EFFECT_NONE ||
                  t == TOKEN_CLEAR_LOOPER ||
                  t == TOKEN_LOOPER_STOP ||
                  t == TOKEN_LOOPER_STOP_IMMEDIATE ||
+                 t == TOKEN_LOOP_IMMEDIATE ||
                  t == TOKEN_DUB_MODE ||
                  t == TOKEN_LOOPER_SET_START_MARK)
         {
             display(dbg_parse,"%-5d:    %s",song_code_len,ttype);
+
+            if (t == TOKEN_END_METHOD)
+            {
+                if (!in_method)
+                {
+                    parse_error("outside of METHOD",ttype);
+                    return false;
+                }
+                in_method = false;
+            }
             if (!addSongCode(t))
                 return false;
         }
@@ -777,57 +1009,103 @@ bool songParser::parseSongText()
                 parse_error("label too long",ttype);
                 return false;
             }
-            if (num_labels >= MAX_LABELS)
-            {
-                parse_error("too manu labels",ttype);
-                return false;
-            }
 
-            label_t *label = &labels[num_labels++];
-            strcpy(label->name,token);
-            label->code_offset = song_code_len;
-            display(dbg_parse+1,"addLabel(%d) %d:%s",num_labels-1,label->code_offset,label->name);
+            if (!addLabel(token,song_code_len))
+                return false;
 
             int t2 = getToken();
             if (t2<0)
                 return false;
             if (t2 != TOKEN_COLON)
             {
-                parse_error("expected integer following label",ttype);
+                parse_error("expected colon following label",ttype);
                 return false;
             }
         }
 
-        else if (t == TOKEN_GOTO)
+        else if (t == TOKEN_GOTO ||
+                 t == TOKEN_CALL)
         {
             int t2 = getToken();
             if (t2<0)
                 return false;
             if (t2 != TOKEN_IDENTIFIER)
             {
-                parse_error("expected integer following ",ttype);
+                parse_error("expected identifier following ",ttype);
                 return false;
             }
+
+            uint16_t offset = 0;
             display(dbg_parse,"%-5d:    %s %s",song_code_len,ttype,token);
             label_t *label = findLabel(token);
-            if (!label)
+
+            bool add_relocation = true;
+
+            if (label)
             {
-                parse_error("could not find label",ttype);
-                return false;
+                display(dbg_parse+1,"foundLabel %d:%s  0x%02x 0x%02x",
+                    label->code_offset,
+                    label->name,
+                    label->code_offset & 0xFF,
+                    (label->code_offset >> 8) & 0xFF);
+
+                if (label->code_offset != -1)        // it's real
+                {
+                    add_relocation = false;
+                    offset = label->code_offset;
+                }
             }
-            display(dbg_parse+1,"foundLabel %d:%s  0x%02x 0x%02x",
-                label->code_offset,
-                label->name,
-                label->code_offset & 0xFF,
-                (label->code_offset >> 8) & 0xFF);
+
+            // add the relocation with an offset 1 after the GOTO
+
+            if (add_relocation)
+            {
+                label = addLabel(token,-1);
+                if (!label)
+                    return false;
+                if (!addRelocation(label, song_code_len + 1))
+                    return false;
+            }
 
             // store the offset as two bytes, LSB first
 
             if (!addSongCode(t))
                 return false;
-            if (!addSongCode(label->code_offset & 0xFF))
+            if (!addSongCode(offset & 0xFF))
                 return false;
-            if (!addSongCode((label->code_offset >> 8) & 0xFF))
+            if (!addSongCode((offset >> 8) & 0xFF))
+                return false;
+        }
+
+        else if (t == TOKEN_METHOD)
+        {
+            display(dbg_parse,"%-5d:    %s %s",song_code_len,ttype,token);
+            if (in_method)
+            {
+                parse_error("illegal nested method",ttype);
+                return false;
+            }
+            in_method = 1;
+
+            int t2 = getToken();
+            if (t2<0)
+                return false;
+            if (t2 != TOKEN_IDENTIFIER)
+            {
+                parse_error("expected identifier following ",ttype);
+                return false;
+            }
+
+            if (token_len > MAX_ID_LEN)
+            {
+                parse_error("label too long",ttype);
+                return false;
+            }
+
+            if (!addLabel(token,song_code_len))
+                return false;
+
+            if (!addSongCode(t))
                 return false;
         }
 
@@ -843,6 +1121,40 @@ bool songParser::parseSongText()
         t = getToken();
     }
 
+    if (in_method)
+    {
+        parse_error("","missing END_METHOD at end of file");
+        return false;
+    }
+
+    // DO RELOCATIONS
+
+    if (num_relocations)
+    {
+        display(dbg_parse,"---------- RELOCATIONS ------------",0);
+        for (int i=0; i<num_relocations; i++)
+        {
+            relocation_t *rel = &relocs[i];
+            label_t *label = rel->label;
+
+            display(dbg_parse,"   rel(%s) code_offset=%d  rel_offset=%d from line(%d) char(%d)",
+                    label->name,label->code_offset,rel->offset,rel->line_num,rel->char_num);
+
+            if (label->code_offset == -1)
+            {
+                song_error("LABEL %s UNDEFINED at line(%d) char(%d)",
+                    label->name,
+                    rel->line_num,
+                    rel->char_num);
+                return false;
+            }
+
+            song_code[rel->offset] = label->code_offset & 0xFF;
+            song_code[rel->offset+1] = (label->code_offset >> 8) & 0xFF;
+        }
+    }
+
+
     display(dbg_parse,"parseSongText() returning true",0);
     return true;
 }
@@ -854,7 +1166,7 @@ bool songParser::parseSongText()
 //--------------------------------------
 
 
-bool songParser::openSongFile(const char *name)
+char *songParser::openSongFile(const char *name)
 {
     song_text_len = 0;
     song_code_len = 0;
@@ -871,14 +1183,14 @@ bool songParser::openSongFile(const char *name)
     if (!the_file)
     {
         song_error("Could not open song file: %s",name_buffer);
-        return false;
+        return 0;
     }
     uint32_t size = the_file.size();
     if (size > MAX_SONG_TEXT)
     {
         song_error("Song(%s) size(%d) exceeds MAX_SONG_TEXT=%d",name,size,MAX_SONG_TEXT);
         the_file.close();
-        return false;
+        return 0;
     }
 
     uint32_t got = the_file.read(song_text,size);
@@ -886,7 +1198,7 @@ bool songParser::openSongFile(const char *name)
     {
         song_error("Reading song(%s) got(%d) size(%d)",name,got,size);
         the_file.close();
-        return false;
+        return 0;
     }
 
     the_file.close();
@@ -894,5 +1206,5 @@ bool songParser::openSongFile(const char *name)
     strcpy(song_name,name);
     display(0,"song file(%s) opened",name);
 
-    return parseSongText();
+    return song_text;
 }

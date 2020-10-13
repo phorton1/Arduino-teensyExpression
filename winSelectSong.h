@@ -27,6 +27,10 @@ class winSelectSong : public expWindow
         // implementation
 
         bool draw_needed;
+        char *show_song_text;
+        int num_text_lines;
+        int top_text_line;
+        int last_top_line;
 
         int num_songs;
         int top_song;

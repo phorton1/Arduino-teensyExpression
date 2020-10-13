@@ -7,7 +7,6 @@
 
 start:
 
-
     LOOP_VOLUME 63
     SYNTH_VOLUME 0
     GUITAR_VOLUME 100
@@ -16,7 +15,8 @@ start:
     CLEAR_LOOPER
     BUTTON_COLOR 4,yellow
     BUTTON_COLOR 1,red
-    DISPLAY "button1 to record guitar"
+    DISPLAY 1,"START"
+    DISPLAY 2,"button1 to record guitar"
 
 #--------------------------
 # INTRO CHORUS
@@ -26,7 +26,8 @@ button1:                        # record guitar behind intro-chorus
     LOOPER_TRACK 1              # start recording track0, clip0
     DUB_MODE                    # set dub mode for next press of TRACK1 button
     BUTTON_COLOR 1,orange
-    DISPLAY "button1 to record bass"
+    DISPLAY 1,"CHORUS0"
+    DISPLAY 2,"button1 to record bass"
 
 #--------------------------
 # 1st VERSE and CHORUS
@@ -37,7 +38,8 @@ button1:                        # record bass behind 1st verse
     LOOPER_TRACK 1              # finish recording guitar, start recording bass
     GUITAR_VOLUME 0             # turn down the guitar!
     BUTTON_COLOR 1,black
-    DISPLAY "recording bass"
+    DISPLAY 1,"VERSE1"
+    DISPLAY 2,"recording bass"
 
     # will record base for 2 times thru
     # the next press is to prepare the guitar
@@ -45,7 +47,9 @@ button1:                        # record bass behind 1st verse
 
 loop:                          # AT/AFTER 1st loop
     LOOPER_TRACK 1             # will start looping guitar*1 and bass*2 at acoustic lead
-    DISPLAY "ready acoustic lead"
+    DISPLAY 1,"CHORUS1"
+    DISPLAY 2,"ready acoustic lead"
+
 
 #----------------------------------
 # 1st (short) ACOUSTIC GUITAR LEAD
@@ -59,7 +63,8 @@ loop:
     GUITAR_VOLUME 105           # turn up the guitar
     GUITAR_EFFECT_ECHO on       # turn on the echo effect
     SYNTH_PATCH Organ1          # select the organ for use later
-    DISPLAY "play acoustic lead, ready verse2"
+    DISPLAY 1,"LEAD1"
+    DISPLAY 2,"play acoustic lead, ready verse2"
 
 # note that we are "backwards with the bass*2 track from here on out ...
 
@@ -72,14 +77,16 @@ loop:
     DUB_MODE
     LOOPER_TRACK 1              # start recording next time through
     GUITAR_VOLUME 0             # turn down the guitar
-    DISPLAY "sing verse2, ready organ"
+    DISPLAY 1,"VERSE2"
+    DISPLAY 2,"sing verse2, ready organ"
 
 loop:
     LOOPER_CLIP 3,mute          # but it will not start playing next time through
     LOOPER_TRACK 1              # start playing next time through
     GUITAR_EFFECT_WAH on        # ready guitar effects
     GUITAR_EFFECT_DISTORT on
-    DISPLAY "sing chorus, record organ"
+    DISPLAY 1,"CHORUS2"
+    DISPLAY 2,"sing chorus, record organ"
 
 
 #----------------------------------
@@ -89,10 +96,12 @@ loop:
 loop:
     SYNTH_VOLUME 0              # turn down the synth
     GUITAR_VOLUME 120           # turn up the guitar
-    DISPLAY "1st half guitar lead"
+    DISPLAY 1,"LEAD2A"
+    DISPLAY 2,"1st half guitar lead"
 
 loop:
-    DISPLAY "2nd half guitar lead"
+    DISPLAY 1,"LEAD2B"
+    DISPLAY 2,"2nd half guitar lead"
 
 #----------------------------------
 # 3nd VERSE and FINAL CHORUS
@@ -106,13 +115,15 @@ loop:
     SYNTH_VOLUME 0              # turn down the organ
     SYNTH_PATCH  Bass1          # select the base
     GUITAR_VOLUME 100           # turn down (from 120) the guitar
-    DISPLAY "final verse, strum guitar"
+    DISPLAY 1,"VERSE3"
+    DISPLAY 2,"final verse, strum guitar"
 
 
 loop:    # at final chorus
     LOOPER_CLIP  1,unmute       # bring back the canned guitar
     BUTTON_COLOR 1,green
-    DISPLAY "final chours - press to repeat"
+    DISPLAY 1,"CHORUS3"
+    DISPLAY 2,"final chours - press to repeat"
 
 
 #----------------------------
@@ -123,16 +134,19 @@ button1:    # press this at repeat point
     LOOP_VOLUME 70
     LOOPER_SET_START_MARK       # set a goto point in the looper
     BUTTON_COLOR 1,black
-    DISPLAY "waiting repeat"
+    DISPLAY 1,"END1"
+    DISPLAY 2,"waiting repeat"
 
 loop:
     LOOP_VOLUME 80
-    DISPLAY "2nd time through"
+    DISPLAY 1,"END2"
+    DISPLAY 2,"2nd time through"
 
 loop:
     LOOP_VOLUME 90
-    DISPLAY "3rd time through, button1=STOP!"
     LOOPER_STOP         # in case button not hit
+    DISPLAY 1,"END3"
+    DISPLAY 2,"3rd time through, button1=STOP!"
 
 loop:       # just in case
     goto AFTER_STOP
@@ -141,7 +155,8 @@ button1:    # will now stop immediate
     LOOPER_STOP_IMMEDIATE
 after_stop:
     BUTTON_COLOR 1,green
-    DISPLAY "end-riff .. button1 on stinger"
+    DISPLAY 1,"RIFF"
+    DISPLAY 2,"end-riff .. button1 on stinger"
 
 # GUITAR RIFF of some kind to fill to end note
 
@@ -152,7 +167,8 @@ after_stop:
 button1:    # press this ON the final end note of riff
     SYNTH_VOLUME 100              # turn up the synth
     BUTTON_COLOR 1,purple
-    DISPLAY "button1=finish button4=start over"
+    DISPLAY 1,"DONE"
+    DISPLAY 2,"button1=finish button4=start over"
 
 button4:
     GOTO start

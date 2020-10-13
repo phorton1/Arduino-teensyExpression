@@ -38,6 +38,7 @@ class rigNew : public expWindow
         void setClipMute(int layer_num, bool on);
         void setClipVolume(int layer_num, int val);
 
+        bool inQuickMode()      { return m_quick_mode; }
 
     private:
 
@@ -68,7 +69,7 @@ class rigNew : public expWindow
         bool m_track_flash;
         elapsedMillis m_track_flash_time;
 
-        int  m_quick_mode;
+        bool m_quick_mode;
         int  m_clip_mute[TRACKS_TIMES_CLIPS];
         int  m_clip_vol[TRACKS_TIMES_CLIPS];
 
@@ -111,8 +112,10 @@ class rigNew : public expWindow
 };
 
 
-extern int_rect song_rect;
-extern int_rect song_msg_rect;
+extern int_rect song_title_rect;
+extern int_rect song_state_rect;
+extern int_rect song_msg_rect[2];
+
 
 extern rigNew *theNewRig;
     // static globals for use by songMachine

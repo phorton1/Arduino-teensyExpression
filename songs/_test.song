@@ -1,0 +1,89 @@
+#----------------------------------------
+# TEST PROGRAM
+#----------------------------------------
+# should start with physical synth pedal at 0
+# don't know if a "start" label is necessary
+# could just start at beginning of file ...
+
+start:
+
+    LOOP_VOLUME 0
+    SYNTH_VOLUME 0
+    GUITAR_VOLUME 0
+    GUITAR_EFFECT_NONE
+    CLEAR_LOOPER
+
+    SYNTH_PATCH Bass1
+
+METHOD method3
+    DISPLAY 1,"method\n3",BLUE
+    DISPLAY 2,"should call method4 in 5 seconds",red
+    DELAY 50
+    CALL method4
+    END_METHOD
+
+redo:
+    BUTTON_COLOR 1,orange,FLASH
+    BUTTON_COLOR 2,green
+    BUTTON_COLOR 3,blue
+    BUTTON_COLOR 4,yellow
+
+    DISPLAY 1,"START"
+    DISPLAY 2,"test program\nversion 1.0"
+
+
+button1:
+    LOOPER_TRACK 1              # start recording track0, clip0
+    DUB_MODE                    # set dub mode for next press of TRACK1 button
+    BUTTON_COLOR 1,red,FLASH
+    DISPLAY 1,"RECORD"
+    DISPLAY 2,"button1 to record another clip"
+button1:
+    BUTTON_COLOR 1,yellow
+    LOOPER_TRACK 1              # start recording track0, clip1
+    DISPLAY 1,"WAIT",BLUE
+    DISPLAY 2,"will record two loops"
+loop:
+    BUTTON_COLOR 1,yellow,FLASH
+    DISPLAY 1,"WAIT",YELLOW
+loop:
+    LOOPER_TRACK 1
+    DISPLAY 1,"READY",GREEN
+    DISPLAY 2,"button1 to test timer"
+    BUTTON_COLOR 1,green,FLASH
+button1:
+    BUTTON_COLOR 1,black
+    DISPLAY 1,"WAIT",BLUE
+    DISPLAY 2,"should continue in 10 seconds"
+    DELAY 100
+    DISPLAY 1,"OK",GREEN
+    DISPLAY 2,"should continue in 10 seconds"
+    goto forward1
+
+button2:
+    CALL method2
+    goto redo
+button3:
+    CALL method3
+    goto redo
+button4:
+    CALL method4
+    goto redo
+
+METHOD method2
+    DISPLAY 1,"method\n2",BLUE
+    DISPLAY 2,"should call method3 in 5 seconds or pretty soon thereafter if it works"
+    DELAY 50
+    CALL method3
+    END_METHOD
+
+METHOD method4
+    DISPLAY 1,"method\n1",GREEN
+    DISPLAY 2,"press button1 to return"
+button1:
+    END_METHOD
+
+
+forward1:
+    DISPLAY 1,"at end"
+    DISPLAY 2,"I hope this all worked"

@@ -8,6 +8,29 @@
 #include "songParser.h"
 #include "midiQueue.h"  // for sendSerialControlChange
 
+#define dbg_machine   1
+
+//
+//   VOLUMES and loop transition
+//
+//     don't send incremental volume changes more rapidly than 10ms
+//
+//    the usual thing is to turn the guitar down and synth up or vice versa
+//    at a loop or button point ...
+//
+//    especially due to crossfades, it is impossible to get this correct
+//    new typical:
+//
+//        GUITAR_VOLUME 0,1     // fade guitar in 1/10 second
+//        DELAY 1               // wait for that to complete
+//        SYNTH_VOLUME 70,1     // turn up the synth
+//
+//    expSystem::updateUI() is called directly from loop()
+//       so may happen more than 30 times a second
+//    to avoid jamming serial commands, allow at least
+//       10ms (1/100th of a second) between them
+
+
 songMachine *theSongMachine = 0;
 
 
@@ -41,7 +64,8 @@ void songMachine::error_msg(const char *format, ...)
     va_list var;
     va_start(var, format);
     vsprintf(error_display_buffer,format,var);
-    theSongMachine->m_show_msg = error_display_buffer;
+    theSongMachine->m_show_msg[1] = error_display_buffer;
+    theSongMachine->m_show_color[1] = TFT_ORANGE;
     theSongMachine->m_state |= SONG_STATE_ERROR;
 }
 
@@ -67,15 +91,24 @@ void songMachine::dumpCode()
 
         if (ttype == TOKEN_DISPLAY)
         {
+            int display_num = songParser::getCode(song_ptr++);
             const char *pstr = songParser::getCodeString(song_ptr);
             while (songParser::getCode(song_ptr)) song_ptr++; // skip to zero
             song_ptr++;     // skip the zero
-            display(0,"%-5d:   %s '%s'",start_offset,tname,pstr);
+            int color = songParser::getCode(song_ptr++);
+
+            display(0,"%-5d:   %s %d,'%s',%s",
+                start_offset,
+                tname,
+                display_num,
+                pstr,
+                color ? songParser::tokenToString(color) : "0");
         }
 
         // those with long integer params
 
-        else if (ttype == TOKEN_GOTO)
+        else if (ttype == TOKEN_GOTO ||
+                 ttype == TOKEN_CALL)
         {
             int offset = songParser::getCodeInteger(song_ptr);
             song_ptr += 2;
@@ -92,7 +125,8 @@ void songMachine::dumpCode()
                  ttype == TOKEN_GUITAR_EFFECT_CHORUS  ||
                  ttype == TOKEN_GUITAR_EFFECT_ECHO    ||
                  ttype == TOKEN_LOOPER_TRACK          ||
-                 ttype == TOKEN_SYNTH_PATCH)
+                 ttype == TOKEN_SYNTH_PATCH           ||
+                 ttype == TOKEN_DELAY)
         {
             int val = songParser::getCode(song_ptr++);
             display(0,"%-5d:   %s %d",start_offset,tname,val);
@@ -110,12 +144,19 @@ void songMachine::dumpCode()
         {
             int button_num = songParser::getCode(song_ptr++);
             int color = songParser::getCode(song_ptr++);
-            display(0,"%-5d:   %s %d,%s",start_offset,tname,button_num,songParser::tokenToString(color));
+            int flash = songParser::getCode(song_ptr++);
+            display(0,"%-5d:   %s %d,%s%s",
+                start_offset,
+                tname,
+                button_num,
+                songParser::tokenToString(color),
+                flash ? ",FLASH" : "");
         }
 
         // monadic outdented
 
-        else if (ttype == TOKEN_BUTTON1 ||
+        else if (ttype == TOKEN_METHOD ||
+                 ttype == TOKEN_BUTTON1 ||
                  ttype == TOKEN_BUTTON2 ||
                  ttype == TOKEN_BUTTON3 ||
                  ttype == TOKEN_BUTTON4 ||
@@ -124,12 +165,13 @@ void songMachine::dumpCode()
             display(0,"%-5d: %s:",start_offset,tname);
         }
 
-        //  other monadic
 
-        else if (ttype == TOKEN_GUITAR_EFFECT_NONE ||
+        else if (ttype == TOKEN_END_METHOD ||
+                 ttype == TOKEN_GUITAR_EFFECT_NONE ||
                  ttype == TOKEN_CLEAR_LOOPER ||
                  ttype == TOKEN_LOOPER_STOP ||
                  ttype == TOKEN_LOOPER_STOP_IMMEDIATE  ||
+                 ttype == TOKEN_LOOP_IMMEDIATE  ||
                  ttype == TOKEN_DUB_MODE ||
                  ttype == TOKEN_LOOPER_SET_START_MARK)
         {
@@ -162,19 +204,21 @@ bool songMachine::load(const char *song_name)
     // load the test song, parse it, and prepare machine to run
     // will eventually have a UI for filenames and load any given song file
 {
-    display(0,"songMachine::load()",0);
+    display(dbg_machine,"songMachine::load()",0);
 
     init();
 
     mylcd.setFont(Arial_18_Bold);
     mylcd.Set_Text_colour(TFT_CYAN);
-    mylcd.Print_String(song_name,song_rect.xs+5,song_rect.ys+4);
+    mylcd.Print_String(song_name,song_title_rect.xs+5,song_title_rect.ys+4);
 
-    if (songParser::openSongFile(song_name))
+    if (songParser::openSongFile(song_name) &&
+        songParser::parseSongText())
     {
-        #if 1
+        if (dbg_machine <= 0)
+        {
             dumpCode();
-        #endif
+        }
 
         setMachineState(SONG_STATE_RUNNING);
         return true;
@@ -186,7 +230,7 @@ bool songMachine::load(const char *song_name)
 void songMachine::setMachineState(int state)
 {
     m_state = state;
-    display(0,"songMachine::setMachineState(%d)",state);
+    display(dbg_machine,"songMachine::setMachineState(%d)",state);
     if (m_state == SONG_STATE_EMPTY)
     {
         songParser::clear();
@@ -207,7 +251,7 @@ void songMachine::setMachineState(int state)
 void songMachine::notifyPress(int button_num)
     // one based
 {
-    display(0,"songMachine::notifyPress(%d)",button_num);
+    display(dbg_machine,"songMachine::notifyPress(%d)",button_num);
 
     // Find the next occurance of the button, if any
     // give an warning message if not found
@@ -218,9 +262,15 @@ void songMachine::notifyPress(int button_num)
     int code_len = songParser::codeLen();
     while (find_ptr < code_len)
     {
-        if (songParser::getCode(find_ptr) == find_op)
+        int c = songParser::getCode(find_ptr);
+        if (c == find_op)
         {
             found_offset = find_ptr;
+            break;
+        }
+        else if (c == TOKEN_METHOD || c == TOKEN_END_METHOD)
+        {
+            // no given buttons in scope
             break;
         }
         find_ptr++;
@@ -233,14 +283,15 @@ void songMachine::notifyPress(int button_num)
     }
     else
     {
-        m_show_msg = "warning: could not find button";
+        m_show_msg[1] = "warning: could not find button";
+        m_show_color[1] = TFT_RED;
     }
 }
 
 
 void songMachine::notifyLoop()
 {
-    display(0,"songMachine::notifyLoop()",0);
+    display(dbg_machine,"songMachine::notifyLoop()",0);
     if (m_state & SONG_STATE_WAITING_LOOP)
     {
         if (songParser::getCode(m_code_ptr) == TOKEN_LOOP)
@@ -262,6 +313,9 @@ void songMachine::notifyLoop()
 // updateUI
 //------------------------------------------
 
+#define BUTTON_FLASH_TIME   300
+
+
 void songMachine::updateUI()
     // called approx 30 times per second from rigNew::updateUI()
 {
@@ -271,16 +325,41 @@ void songMachine::updateUI()
     // run the machine
 
     if (m_state && !(m_state & (SONG_STATE_FINISHED | SONG_STATE_ERROR)))
-        runMachine();
+    {
+        // delay is in 10's of a second
+        int tenths = m_delay_time/100;
+        if (!m_delay || tenths > m_delay)
+        {
+            m_delay = 0;
+            runMachine();
+        }
+    }
+
+    // but don't update the UI if in quick mode
+
+    if (theNewRig->inQuickMode())
+        return;
+
+    // invariant flasher
+
+
+    bool flash_changed = false;
+    if (button_flash_time > BUTTON_FLASH_TIME)
+    {
+        flash_changed = true;
+        button_flash_state = !button_flash_state;
+        button_flash_time = 0;
+    }
+
 
     // song name
 
     if (redraw)
     {
-        fillRect(song_rect,TFT_BLACK);
+        fillRect(song_title_rect,TFT_BLACK);
         mylcd.setFont(Arial_18_Bold);
         mylcd.Set_Text_colour(TFT_CYAN);
-        mylcd.Print_String(songParser::getTheSongName(),song_rect.xs+5,song_rect.ys+4);
+        mylcd.Print_String(songParser::getTheSongName(),song_title_rect.xs+5,song_title_rect.ys+4);
     }
 
     // state
@@ -294,50 +373,87 @@ void songMachine::updateUI()
             TFT_RED :
             TFT_YELLOW;
 
-        mylcd.Set_Text_colour(color);
-        mylcd.Fill_Rect(
-            song_rect.xe-105,
-            song_rect.ys+5,
-            100,25,0);
-        mylcd.Print_String(
-            m_state & SONG_STATE_ERROR ? "ERROR" :
-            m_state & SONG_STATE_FINISHED ? "DONE" :
+        const char *msg =
+            m_state & SONG_STATE_ERROR ? "error" :
+            m_state & SONG_STATE_FINISHED ? "done" :
             m_state & SONG_STATE_PAUSED ? "paused" :
             m_state & SONG_STATE_WAITING_BUTTON ? "button" :
             m_state & SONG_STATE_WAITING_LOOP   ? "looping" :
-            m_state & SONG_STATE_RUNNING ? "running" : "",
-            song_rect.xe-105,
-            song_rect.ys+5);
+            m_state & SONG_STATE_RUNNING ? "running" : "";
+
+        #if 1
+            mylcd.print_justified(
+                song_state_rect.xs,
+                song_state_rect.ys,
+                song_state_rect.width()-5,
+                song_state_rect.height(),
+                LCD_JUST_RIGHT,
+                color,
+                TFT_BLACK,
+                true,
+                (char *)msg);
+        #else
+            mylcd.Set_Text_colour(color);
+            fillRect(song_state_rect,TFT_BLACK);
+            mylcd.Print_String(
+                msg,
+                song_state_rect.xs,
+                song_state_rect.ys+4);
+        #endif
     }
 
-    // message
+    // messages
 
-    if (redraw || m_last_show_msg != m_show_msg)
+    for (int i=0; i<2; i++)
     {
-        m_last_show_msg = m_show_msg;
+        if (redraw ||
+            m_last_show_msg[i] != m_show_msg[i] ||
+            m_last_show_color[i] != m_show_color[i])
+        {
+            m_last_show_msg[i] = m_show_msg[i];
+            m_last_show_color[i] = m_show_color[i];
 
-        int color = m_state & SONG_STATE_ERROR ?
-            TFT_ORANGE : TFT_WHITE;
-
-        mylcd.setFont(Arial_16);
-        mylcd.Set_Text_colour(color);
-        fillRect(song_msg_rect,TFT_BLACK);
-        mylcd.Print_String(m_last_show_msg?m_last_show_msg:"",song_msg_rect.xs,song_msg_rect.ys);
+            mylcd.setFont(i?Arial_24:Arial_20_Bold);
+            #if 1
+                const char *msg = m_last_show_msg[i] ? m_last_show_msg[i] : "";
+                mylcd.print_justified(
+                    song_msg_rect[i].xs+5,
+                    song_msg_rect[i].ys,
+                    song_msg_rect[i].width()-5,
+                    song_msg_rect[i].height()-5,
+                    i ? LCD_JUST_CENTER : LCD_JUST_LEFT,
+                    m_last_show_color[i],
+                    TFT_BLACK,
+                    true,
+                    (char *) msg);
+            #else
+                mylcd.Set_Text_colour(m_last_show_color[i]);
+                fillRect(song_msg_rect[i],TFT_BLACK);
+                mylcd.Print_String(
+                    m_last_show_msg[i] ? m_last_show_msg[i] : "",
+                    song_msg_rect[i].xs+5,
+                    song_msg_rect[i].ys+5);
+            #endif
+        }
     }
 
     // buttons
 
-    if (m_last_state == SONG_STATE_RUNNING)
+    if (m_last_state && !(m_last_state & SONG_STATE_PAUSED))
     {
         bool show_leds = false;
         for (int i=0; i<NUM_SONG_BUTTONS; i++)
         {
             if (redraw ||
-                m_last_button_color[i] != m_button_color[i])
+                m_last_button_color[i] != m_button_color[i] ||
+                (flash_changed && m_button_flash[i]))
             {
-                show_leds = true;
-                setLED(20+i,m_button_color[i]);
+                int color = m_button_flash[i] && !button_flash_state ?
+                    0 : m_button_color[i];
+
+                setLED(20+i,color);
                 m_last_button_color[i] = m_button_color[i];
+                show_leds = true;
             }
         }
         if (show_leds)
@@ -382,7 +498,7 @@ void songMachine::runMachine()
 
 
 
-int songMachine::tokenToColor(int ttype)
+int songMachine::tokenToLEDColor(int ttype)
 {
     if (ttype == TOKEN_RED    ) return LED_RED;
     if (ttype == TOKEN_GREEN  ) return LED_GREEN;
@@ -394,7 +510,27 @@ int songMachine::tokenToColor(int ttype)
     if (ttype == TOKEN_CYAN   ) return LED_CYAN;
     if (ttype == TOKEN_BLACK  ) return 0;
 
-    song_error("unexpected color token 0x%02x %s at offset %d",
+    song_error("unexpected led color token 0x%02x %s at offset %d",
+        ttype,
+        songParser::tokenToString(ttype),
+        m_code_ptr);
+
+    return 0;
+}
+
+int songMachine::tokenToTFTColor(int ttype)
+{
+    if (ttype == TOKEN_RED    ) return TFT_RED;
+    if (ttype == TOKEN_GREEN  ) return TFT_GREEN;
+    if (ttype == TOKEN_BLUE   ) return TFT_BLUE;
+    if (ttype == TOKEN_YELLOW ) return TFT_YELLOW;
+    if (ttype == TOKEN_PURPLE ) return TFT_PURPLE;
+    if (ttype == TOKEN_ORANGE ) return TFT_ORANGE;
+    if (ttype == TOKEN_WHITE  ) return TFT_WHITE;
+    if (ttype == TOKEN_CYAN   ) return TFT_CYAN;
+    if (ttype == TOKEN_BLACK  ) return 0;
+
+    song_error("unexpected tft color token 0x%02x %s at offset %d",
         ttype,
         songParser::tokenToString(ttype),
         m_code_ptr);
@@ -407,26 +543,97 @@ int songMachine::tokenToColor(int ttype)
 
 
 
-
 void songMachine::doSongOp(int op)
 {
     switch (op)
     {
         case TOKEN_DISPLAY:
-            m_show_msg = songParser::getCodeString(m_code_ptr);
+        {
+            int display_num = songParser::getCode(m_code_ptr++);
+            m_show_msg[display_num-1] = songParser::getCodeString(m_code_ptr);
             while (songParser::getCode(m_code_ptr)) m_code_ptr++;   // skip to zero
             m_code_ptr++;   // skip the zero
+            int color = songParser::getCode(m_code_ptr++);
+            if (color == 0)
+            {
+                if (display_num == 1)
+                    color = TFT_GREEN;
+                else // if (display_num == 2)
+                    color = TFT_WHITE;
+            }
+            else
+            {
+                color = tokenToTFTColor(color);
+            }
+            m_show_color[display_num-1] = color;
             break;
+        }
 
         case TOKEN_BUTTON_COLOR:
         {
             int button_num = songParser::getCode(m_code_ptr++) - 1;
-            m_button_color[button_num] = tokenToColor(songParser::getCode(m_code_ptr++));
+            m_button_color[button_num] = tokenToLEDColor(songParser::getCode(m_code_ptr++));
+            m_button_flash[button_num] = songParser::getCode(m_code_ptr++);
             break;
         }
 
+        case TOKEN_DELAY:
+            m_delay = songParser::getCode(m_code_ptr++);
+            m_delay_time = 0;
+            break;
+
         case TOKEN_GOTO:
             m_code_ptr = songParser::getCodeInteger(m_code_ptr);
+            break;
+        case TOKEN_CALL:
+            if (m_num_calls >= MAX_CALL_STACK)
+            {
+                song_error("too many nested CALLS at offset &d",m_code_ptr);
+            }
+            else
+            {
+                // jump to AFTER the TOKEN_METHOD
+                int to_ptr = songParser::getCodeInteger(m_code_ptr) + 1;
+                m_code_ptr += 2;
+
+                m_call_stack[m_num_calls++] = m_code_ptr;
+                display(dbg_machine,"call(%d) from %d to %d",m_num_calls,m_code_ptr,to_ptr);
+                m_code_ptr = to_ptr;
+            }
+            break;
+
+        case TOKEN_METHOD:
+        {
+            // skip inline methods in execution
+
+            display(dbg_machine,"skipping method at offset %d",m_code_ptr);
+            int start_offset = m_code_ptr;
+            int len = songParser::codeLen();
+            while (m_code_ptr<len && op != TOKEN_END_METHOD)
+                op = songParser::getCode(m_code_ptr++);
+            if (m_code_ptr >= len)
+            {
+                song_error("Could not find END_METHOD after offset %d",start_offset);
+            }
+            else
+            {
+                display(dbg_machine,"    resuming at offset %d",m_code_ptr);
+            }
+            break;
+        }
+
+        case TOKEN_END_METHOD:
+            if (!m_num_calls)
+            {
+                song_error("call stack underflow for END_METHOD at offset %d",m_code_ptr);
+            }
+            else
+            {
+                int ret_loc = m_call_stack[m_num_calls-1];
+                display(dbg_machine,"end_method(%d) returning to location %d",m_num_calls,ret_loc);
+                m_code_ptr = ret_loc;
+                m_num_calls--;
+            }
             break;
 
         case TOKEN_LOOP_VOLUME:
@@ -471,6 +678,9 @@ void songMachine::doSongOp(int op)
             break;
         case TOKEN_LOOPER_STOP_IMMEDIATE:
 			sendSerialControlChange(LOOP_COMMAND_CC,LOOP_COMMAND_STOP_IMMEDIATE,"songMachine STOP_IMMEDIATE");
+            break;
+        case TOKEN_LOOP_IMMEDIATE:
+			sendSerialControlChange(LOOP_COMMAND_CC,LOOP_COMMAND_LOOP_IMMEDIATE,"songMachine LOOP_IMMEDIATE");
             break;
         case TOKEN_DUB_MODE:
 			sendSerialControlChange(LOOP_COMMAND_CC,LOOP_COMMAND_DUB_MODE,"songMachine DUB");

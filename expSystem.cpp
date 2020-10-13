@@ -756,8 +756,8 @@ void expSystem::handleSerialData()
 int_rect tft_rect(0,0,479,319);				// full screen
 int_rect title_rect(0,0,479,35);			// not including line
 int_rect full_client_rect(0,37,479,319);	// under line to bottom of screen
-int_rect pedal_rect(0,230,479,319);			// 89 high, starting at 230
-int_rect client_rect(0,37,479,229);			// under line to above pedals
+int_rect pedal_rect(0,235,479,319);			// 89 high, starting at 230
+int_rect client_rect(0,37,479,235);			// under line to above pedals
 
 
 
@@ -839,9 +839,9 @@ void expSystem::updateUI()
 
 				mylcd.printf_justified(
 					12+i*pedal_width,
-					pedal_rect.ys + PEDAL_TEXT_AREA_HEIGHT + 14,
+					pedal_rect.ys + PEDAL_TEXT_AREA_HEIGHT + 7,
 					100,
-					pedal_rect.height() - PEDAL_TEXT_AREA_HEIGHT - 14,
+					pedal_rect.height() - PEDAL_TEXT_AREA_HEIGHT + 20,
 					LCD_JUST_CENTER,
 					TFT_WHITE,
 					TFT_BLACK,
@@ -861,6 +861,7 @@ void expSystem::updateUI()
 	if (draw_title)
 	{
 		draw_title = false;
+		fillRect(title_rect,TFT_BLACK);
 
 		// title text
 

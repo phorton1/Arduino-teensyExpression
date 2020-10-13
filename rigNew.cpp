@@ -45,16 +45,10 @@
 #define QUICK_ROW_ERASE_TRACK    0
 
 int_rect synth_rect;
-int_rect guitar_rect;
-int_rect song_rect;
-int_rect song_msg_rect;
+int_rect song_title_rect;
+int_rect song_state_rect;
+int_rect song_msg_rect[2];
 
-#define LEFT_MARGIN    80
-	// room for the "rectangle labels
-#define SYNTH_RECT_HEIGHT 70
-#define GUITAR_RECT_HEIGHT 40
-	// the client rect is 229 high
-	// everything else goes to the "song rect"
 
 
 
@@ -204,24 +198,37 @@ rigNew::rigNew() :
 
     m_quick_mode = false;
 
+	#define SYNTH_RECT_HEIGHT 70
+	#define SONG_STATE_WIDTH  100
+	#define SONG_MSG1_WIDTH   120
+
 	synth_rect.assign(
-		client_rect.xs + LEFT_MARGIN,
+		client_rect.xs,
 		client_rect.ys,
 		client_rect.xe,
 		client_rect.ys + SYNTH_RECT_HEIGHT-1);
-	guitar_rect.assign(
-		client_rect.xs + LEFT_MARGIN,
-		synth_rect.ye + 1,
-		client_rect.xe,
-		synth_rect.ye + GUITAR_RECT_HEIGHT);
-	song_rect.assign(
-		client_rect.xs + LEFT_MARGIN,
-		guitar_rect.ye + 1,
-		client_rect.xe,
-		guitar_rect.ye + 35);
-	song_msg_rect.assign(
+
+	song_title_rect.assign(
 		client_rect.xs,
-		song_rect.ye + 1,
+		synth_rect.ye,
+		client_rect.xe - SONG_STATE_WIDTH,
+		synth_rect.ye + 35);
+
+	song_state_rect.assign(
+		song_title_rect.xe,
+		synth_rect.ye,
+		client_rect.xe,
+		song_title_rect.ye);
+
+	song_msg_rect[0].assign(
+		client_rect.xs,
+		song_title_rect.ye + 10,
+		client_rect.xs + SONG_MSG1_WIDTH - 1,
+		client_rect.ye);
+
+	song_msg_rect[1].assign(
+		song_msg_rect[0].xe,
+		song_title_rect.ye + 10,
 		client_rect.xe,
 		client_rect.ye);
 }
@@ -700,10 +707,17 @@ void rigNew::onButtonEvent(int row, int col, int event)
 			{
 				if (m_stop_button_cmd)
 					sendSerialControlChange(LOOP_COMMAND_CC,m_stop_button_cmd,"LOOP STOP BUTTON click");
+				else
+				{
+					setLED(num,0);
+					showLEDs();
+				}
 			}
 			if (num == LOOP_DUB_BUTTON)
 			{
 				sendSerialControlChange(LOOP_COMMAND_CC,LOOP_COMMAND_DUB_MODE,"LOOP DUB BUTTON click");
+				setLED(num,0);
+				showLEDs();
 			}
 		}
 
@@ -743,6 +757,9 @@ void rigNew::onButtonEvent(int row, int col, int event)
 		else
 		{
 			// in song state empty, the button sends out COMMAND_SET_LOOP start
+
+			setLED(num,0);
+			showLEDs();
 
 			if (!song_state)
 			{
@@ -804,7 +821,6 @@ void rigNew::updateUI()
 	{
 		m_last_quick_mode = m_quick_mode;
 		fillRect(client_rect,TFT_BLACK);
-        // mylcd.Fill_Rect(0,37,480,194,TFT_BLACK);
 	}
 
 
@@ -822,7 +838,6 @@ void rigNew::updateUI()
 				leds_changed = true;
 			}
 		}
-
 
 		for (int i=0; i<LOOPER_NUM_LAYERS; i++)
 		{
@@ -897,18 +912,7 @@ void rigNew::updateUI()
 
 	else		// !m_quick_mode
 	{
-		// rectangle labels
-
 		mylcd.Set_Text_Back_colour(TFT_BLACK);
-		if (redraw_all)
-		{
-	        mylcd.setFont(Arial_16);
-			mylcd.Set_Text_colour(TFT_YELLOW);
-
-			mylcd.Print_String("Synth:",5,synth_rect.ys+5);
-			mylcd.Print_String("Guitar:",5,guitar_rect.ys+5);
-			mylcd.Print_String("Song:",5,song_rect.ys+5);
-		}
 
 		// LOOPER BUTTONS
 
@@ -973,40 +977,16 @@ void rigNew::updateUI()
 
 		// GUITAR BUTTONS
 
-		bool guitar_changed = false;
 		for (int i=0; i<NUM_GUITAR_EFFECTS; i++)
 		{
 			if (redraw_all || m_last_guitar_state[i] != m_guitar_state[i])
 			{
-				guitar_changed = true;
 				m_last_guitar_state[i] = m_guitar_state[i];
 				int color = m_guitar_state[i] ? LED_GREEN : 0;
 				setLED(FIRST_EFFECT_BUTTON+i,color);
 				leds_changed = true;
 			}
 		}
-
-		if (redraw_all || guitar_changed)
-		{
-			if (!redraw_all)
-				fillRect(guitar_rect,TFT_BLACK);
-	        mylcd.setFont(Arial_18_Bold);
-			mylcd.Set_Text_colour(TFT_WHITE);
-
-			char guitar_buf[32];
-			guitar_buf[0] = 0;
-			for (int i=0; i<NUM_GUITAR_EFFECTS; i++)
-			{
-				if (m_guitar_state[i])
-				{
-					if (guitar_buf[0])
-						strcat(guitar_buf,",");
-					strcat(guitar_buf,guitar_effect_name[i]);
-				}
-			}
-			mylcd.Print_String(guitar_buf,guitar_rect.xs+5,guitar_rect.ys+4);
-		}
-
 
 		// BANK LED
 
@@ -1040,29 +1020,19 @@ void rigNew::updateUI()
 			if (!redraw_all)
 				fillRect(synth_rect,TFT_BLACK);
 
-			char buf[24];
-	        mylcd.setFont(Arial_16);
-			mylcd.Set_Text_colour(TFT_WHITE);
-			sprintf(buf,"bank(%d)",
-				m_cur_patch_num/NUM_SYNTH_PATCHES + 1);
-			mylcd.Print_String(buf,synth_rect.xs+5,synth_rect.ys+5);
-			sprintf(buf,"patch(%d)",
-				m_cur_patch_num%NUM_SYNTH_PATCHES + 1);
-			mylcd.Print_String(buf,synth_rect.xs+5,synth_rect.ys+25);
-
 			mylcd.setFont(Arial_32_Bold);
 			mylcd.Set_Text_colour(TFT_CYAN);
 			mylcd.Print_String(
 				synth_patch[m_cur_patch_num].short_name,
-				synth_rect.xs+110,
+				synth_rect.xs+5,
 				synth_rect.ys+5);
 
 			mylcd.setFont(Arial_18_Bold);
 			mylcd.Set_Text_colour(TFT_MAGENTA);
 			mylcd.Print_String(
 				synth_patch[m_cur_patch_num].long_name,
-				synth_rect.xs+110,
-				synth_rect.ys+40);
+				synth_rect.xs+5,
+				synth_rect.ys+43);
 		}
 
 		// POLY MODE INDICATOR

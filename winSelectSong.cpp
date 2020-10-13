@@ -11,6 +11,8 @@
 #define NUM_PER_WINDOW  8
 #define LINE_HEIGHT     33
 
+#define NUM_TEXT_LINES     15
+#define TEXT_LINE_HEIGHT   18
 
 #define KEYPAD_UP      7
 #define KEYPAD_DOWN    17
@@ -21,6 +23,8 @@
 
 char winSelectSong::selected_name[80] = {0};
 
+#define MAX_SONG_LINES  5000
+int line_map[MAX_SONG_LINES];
 
 //------------------------------------------------------------
 // life cycle
@@ -38,6 +42,12 @@ winSelectSong::winSelectSong(const char *sel_name) :
 void winSelectSong::init()
 {
 	draw_needed = 1;
+	show_song_text = 0;
+	num_text_lines = 0;
+	top_text_line = 0;
+	last_top_line = -1;
+
+
 	top_song = 0;
 	num_songs = 0;
 	selected_song = -1;
@@ -55,8 +65,8 @@ void winSelectSong::begin(bool warm)
 
 	theButtons.setButtonType(KEYPAD_UP,   	BUTTON_TYPE_CLICK | BUTTON_MASK_REPEAT);
 	theButtons.setButtonType(KEYPAD_DOWN,	BUTTON_TYPE_CLICK | BUTTON_MASK_REPEAT);
-	// theButtons.setButtonType(KEYPAD_LEFT,	BUTTON_TYPE_CLICK);
-	// theButtons.setButtonType(KEYPAD_RIGHT,	BUTTON_TYPE_CLICK);
+	theButtons.setButtonType(KEYPAD_LEFT,	BUTTON_TYPE_CLICK);
+	theButtons.setButtonType(KEYPAD_RIGHT,	BUTTON_TYPE_CLICK);
 	theButtons.setButtonType(KEYPAD_SELECT,	BUTTON_TYPE_CLICK, 	LED_GREEN);
 
 	theButtons.setButtonType(THE_SYSTEM_BUTTON,	BUTTON_TYPE_CLICK, 	LED_GREEN);
@@ -95,13 +105,58 @@ void winSelectSong::onButtonEvent(int row, int col, int event)
 
 	if (num == KEYPAD_UP || num == KEYPAD_DOWN)
 	{
-		if (num_songs)
+		if (show_song_text)
+		{
+			top_text_line += (num == KEYPAD_DOWN)? 1 : -1;
+			if (top_text_line + NUM_TEXT_LINES > num_text_lines)
+				top_text_line = num_text_lines - NUM_TEXT_LINES;
+			if (top_text_line < 0)  top_text_line = 0;
+		}
+		else if (num_songs)
 		{
 			selected_song += (num == KEYPAD_DOWN)? 1 : -1;
 			if (selected_song < 0) selected_song = 0;	// num_songs-1;
 			if (selected_song >= num_songs) selected_song = num_songs-1;	// 0;
 		}
 	}
+	else if (num == KEYPAD_RIGHT)
+	{
+		if (num_songs)
+		{
+			last_top_line = -1;
+			top_text_line = 0;
+			num_text_lines = 0;
+
+			const char *sname = songParser::getSongName(selected_song);
+			show_song_text = songParser::openSongFile(sname);
+
+			if (show_song_text)
+			{
+				int text_len = songParser::textLen();
+				show_song_text[text_len] = 0;
+				theSystem.setTitle(sname);
+				for (int i=0; i<text_len; i++)
+				{
+					if (show_song_text[i] == 13)
+					{
+						if (num_text_lines < MAX_SONG_LINES-1)
+						{
+							num_text_lines++;
+							line_map[num_text_lines] = i+2;		// also skip the lf
+						}
+						show_song_text[i] = 0;
+					}
+				}
+			}
+		}
+	}
+	else if (num == KEYPAD_LEFT)
+	{
+		draw_needed = 1;
+		show_song_text = 0;
+		theSystem.setTitle("Select Song");
+	}
+
 	else if (num == KEYPAD_CANCEL)
 	{
 		songParser::releaseSongNames();
@@ -127,11 +182,39 @@ void winSelectSong::onButtonEvent(int row, int col, int event)
 // virtual
 void winSelectSong::updateUI()	// draw
 {
-	int top = top_song;
-	int selected = selected_song;
+
+	if (show_song_text && last_top_line != top_text_line)
+	{
+		last_top_line = top_text_line;
+		fillRect(full_client_rect,TFT_BLACK);
+
+		int i = 0;
+		mylcd.setDefaultFont();
+		mylcd.Set_Text_Size(2);
+
+		mylcd.Set_Text_colour(TFT_WHITE);
+
+		while (i<NUM_TEXT_LINES && last_top_line+i < num_text_lines)
+		{
+			char *line = &show_song_text[line_map[last_top_line+i]];
+			mylcd.Print_String(line,0,client_rect.ys + 5 + i * TEXT_LINE_HEIGHT);
+			i++;
+		}
+		return;
+	}
+
+	// normal draw
+
 	bool full_draw = draw_needed;
 	draw_needed = 0;
 
+	int top = top_song;
+	int selected = selected_song;
+
+	if (full_draw)
+	{
+		fillRect(full_client_rect,TFT_BLACK);
+	}
 
 	// bring it into view if needed
 
@@ -146,10 +229,6 @@ void winSelectSong::updateUI()	// draw
 		full_draw = 1;
 	}
 
-	if (draw_needed)
-	{
-		fillRect(client_rect,TFT_BLACK);
-	}
 
 	mylcd.setFont(Arial_20);
 
