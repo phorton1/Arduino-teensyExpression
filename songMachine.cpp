@@ -3,12 +3,13 @@
 #include "myDebug.h"
 #include "myTFT.h"
 #include "myLEDS.h"
-#include "pedals.h"
 #include "commonDefines.h"
 #include "songParser.h"
 #include "midiQueue.h"  // for sendSerialControlChange
 
 #define dbg_machine   1
+#define dbg_vols   1
+
 
 //
 //   VOLUMES and loop transition
@@ -29,6 +30,9 @@
 //       so may happen more than 30 times a second
 //    to avoid jamming serial commands, allow at least
 //       10ms (1/100th of a second) between them
+
+#define MIN_TIME_TWEEN_VOL_CMD_MILLIS    40         // at least 3 buffers on the looper
+
 
 
 songMachine *theSongMachine = 0;
@@ -117,10 +121,7 @@ void songMachine::dumpCode()
 
         // those with single integer params
 
-        else if (ttype == TOKEN_LOOP_VOLUME ||
-                 ttype == TOKEN_SYNTH_VOLUME ||
-                 ttype == TOKEN_GUITAR_VOLUME ||
-                 ttype == TOKEN_GUITAR_EFFECT_DISTORT ||
+        else if (ttype == TOKEN_GUITAR_EFFECT_DISTORT ||
                  ttype == TOKEN_GUITAR_EFFECT_WAH     ||
                  ttype == TOKEN_GUITAR_EFFECT_CHORUS  ||
                  ttype == TOKEN_GUITAR_EFFECT_ECHO    ||
@@ -132,14 +133,20 @@ void songMachine::dumpCode()
             display(0,"%-5d:   %s %d",start_offset,tname,val);
         }
 
-        // multiple parameters
+        // two integer params
 
-        else if (ttype == TOKEN_LOOPER_CLIP)
+        else if (ttype == TOKEN_LOOP_VOLUME ||
+                 ttype == TOKEN_SYNTH_VOLUME ||
+                 ttype == TOKEN_GUITAR_VOLUME ||
+                 ttype == TOKEN_LOOPER_CLIP)
         {
-            int clip_num = songParser::getCode(song_ptr++);
-            int mute = songParser::getCode(song_ptr++);
-            display(0,"%-5d:   %s %d,%d",start_offset,tname,clip_num,mute);
+            int p1 = songParser::getCode(song_ptr++);
+            int p2 = songParser::getCode(song_ptr++);
+            display(0,"%-5d:   %s %d,%d",start_offset,tname,p1,p2);
         }
+
+        // others
+
         else if (ttype == TOKEN_BUTTON_COLOR)
         {
             int button_num = songParser::getCode(song_ptr++);
@@ -182,7 +189,6 @@ void songMachine::dumpCode()
             my_error("unexpected token at code_len(%d): %s",song_ptr-1,tname);
         }
 
-        // prh GOTO
     }
 
     if (song_ptr != songParser::codeLen())
@@ -280,6 +286,7 @@ void songMachine::notifyPress(int button_num)
     {
         m_code_ptr = found_offset+1;            // skip the opcode
         m_state &= ~SONG_STATE_WAITING_BUTTON;  // clear the wait state
+        m_delay = 0;        // loop or button clears any current delay
     }
     else
     {
@@ -296,6 +303,7 @@ void songMachine::notifyLoop()
     {
         if (songParser::getCode(m_code_ptr) == TOKEN_LOOP)
         {
+            m_delay = 0;        // loop or button clears any current delay
             m_state &= ~SONG_STATE_WAITING_LOOP;
             m_code_ptr++;
         }
@@ -326,7 +334,56 @@ void songMachine::updateUI()
 
     if (m_state && !(m_state & (SONG_STATE_FINISHED | SONG_STATE_ERROR)))
     {
+        // handle any pedal automations
+
+        for (int pedal=0; pedal<NUM_PEDALS; pedal++)
+        {
+            if (pedal == PEDAL_WAH) continue;       // not in songMachine
+
+            pedal_volume_t *pv = &pedal_volumes[pedal];
+
+            if (pv->last_val != pv->to_val)
+            {
+                uint32_t now = millis();
+                if (now >= pv->last_cmd_time +
+                    MIN_TIME_TWEEN_VOL_CMD_MILLIS)
+                {
+                    int32_t elapsed = now - pv->event_time;
+                    int32_t delay_millis = pv->delay_tenths * 100;
+                    int32_t range = pv->to_val - pv->from_val;
+                    int32_t inc = (range * elapsed) / delay_millis;
+                    int32_t new_val = pv->from_val + inc;
+
+                    if (range > 0 && new_val > pv->to_val)
+                        new_val = pv->to_val;
+                    if (range < 0 && new_val < pv->to_val)
+                        new_val = pv->to_val;
+
+                    if (new_val < 0) new_val = 0;
+                    if (new_val > 127) new_val = 127;
+
+                    if (new_val != pv->last_val)
+                    {
+                        display(dbg_vols,"updating pedal(%d) new_val=%d  elapsed=%d dmillis=%d range=%d inc=%d",
+                            pedal,
+                            new_val,
+                            elapsed,
+                            delay_millis,
+                            range,
+                            inc);
+
+                        thePedals.getPedal(pedal)->setDisplayValue(new_val);
+                        thePedals.pedalEvent(pedal,new_val);
+                        pedal_volumes[pedal].last_val = new_val;
+                        pedal_volumes[pedal].last_cmd_time = millis();
+                    }
+                }
+            }
+        }
+
+        // USER PROGRAMMED DELAY STOPS OPCODES
         // delay is in 10's of a second
+
         int tenths = m_delay_time/100;
         if (!m_delay || tenths > m_delay)
         {
@@ -335,7 +392,7 @@ void songMachine::updateUI()
         }
     }
 
-    // but don't update the UI if in quick mode
+    // don't update the UI if in quick mode
 
     if (theNewRig->inQuickMode())
         return;
@@ -645,8 +702,34 @@ void songMachine::doSongOp(int op)
                 op == TOKEN_SYNTH_VOLUME ? PEDAL_SYNTH :
                 PEDAL_GUITAR;
             int value = songParser::getCode(m_code_ptr++);
-            thePedals.getPedal(pedal)->setDisplayValue(value);
-            thePedals.pedalEvent(pedal,value);
+            int delay_tenths = songParser::getCode(m_code_ptr++);
+
+            // issue first increment command
+
+            expressionPedal *the_pedal = thePedals.getPedal(pedal);
+            int cur_val = the_pedal->getDisplayValue();
+
+            if (!delay_tenths)
+            {
+                display(dbg_vols,"IMMEDIATE TOKEN_VOLUME[%d] new_value=%d  cur_val=%d  delay=%d tenths",pedal,value,cur_val,delay_tenths);
+                if (cur_val != value)
+                {
+                    the_pedal->setDisplayValue(value);
+                    thePedals.pedalEvent(pedal,value);
+                }
+                pedal_volumes[pedal].last_val = value;
+            }
+            else
+            {
+                display(dbg_vols,"TOKEN_VOLUME[%d] new_value=%d  cur_val=%d  delay=%d tenths",pedal,value,cur_val,delay_tenths);
+                pedal_volumes[pedal].last_val = cur_val;
+            }
+
+            pedal_volumes[pedal].from_val = cur_val;
+            pedal_volumes[pedal].to_val = value;
+            pedal_volumes[pedal].delay_tenths = delay_tenths;
+            pedal_volumes[pedal].event_time = millis();
+            pedal_volumes[pedal].last_cmd_time = 0;
             break;
         }
 

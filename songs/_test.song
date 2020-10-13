@@ -5,11 +5,21 @@
 # don't know if a "start" label is necessary
 # could just start at beginning of file ...
 
+    DISPLAY 1,"init",BLUE
+    DISPLAY 2,"all volumes zero"
+    LOOP_VOLUME 0,0
+    SYNTH_VOLUME 0,0
+    GUITAR_VOLUME 0,0
+
+button1:
 start:
 
-    LOOP_VOLUME 0
-    SYNTH_VOLUME 0
-    GUITAR_VOLUME 0
+    DISPLAY 1,"one",BLUE
+    DISPLAY 2,"loop 30,255 synth 100,100 guitar 63"
+    LOOP_VOLUME 30,255
+    SYNTH_VOLUME 100,100    # over 10 seonds
+    GUITAR_VOLUME 63        # default
+
     GUITAR_EFFECT_NONE
     CLEAR_LOOPER
 
@@ -22,22 +32,29 @@ METHOD method3
     CALL method4
     END_METHOD
 
+
 redo:
     BUTTON_COLOR 1,orange,FLASH
     BUTTON_COLOR 2,green
     BUTTON_COLOR 3,blue
     BUTTON_COLOR 4,yellow
 
-    DISPLAY 1,"START"
-    DISPLAY 2,"test program\nversion 1.0"
+    # DISPLAY 1,"START"
+    # DISPLAY 2,"test program\nversion 1.0"
 
 
 button1:
+
+    DISPLAY 1,"two",BLUE
+    DISPLAY 2,"loop 127,0 guitar 0,255"
+
+    LOOP_VOLUME 127,0
+    GUITAR_VOLUME 0,255         # default
+
     LOOPER_TRACK 1              # start recording track0, clip0
     DUB_MODE                    # set dub mode for next press of TRACK1 button
     BUTTON_COLOR 1,red,FLASH
-    DISPLAY 1,"RECORD"
-    DISPLAY 2,"button1 to record another clip"
+
 button1:
     BUTTON_COLOR 1,yellow
     LOOPER_TRACK 1              # start recording track0, clip1

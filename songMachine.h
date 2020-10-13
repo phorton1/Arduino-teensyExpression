@@ -2,6 +2,7 @@
 #define __songMachine_h__
 
 #include "Arduino.h"
+#include "pedals.h"
 
 
 #define song_error(f,...)        { error_fxn(f,__VA_ARGS__); songMachine::error_msg(f,__VA_ARGS__); }
@@ -18,6 +19,17 @@
 #define NUM_SONG_BUTTONS            4
 
 #define MAX_CALL_STACK              10
+
+
+typedef struct
+{
+    int from_val;               // where did the volume change start at
+    int to_val;                 // what is the target value
+    int last_val;               // the last value sent
+    int delay_tenths;           // tenths of a second for fade
+    uint32_t event_time;        // the start time
+    uint32_t last_cmd_time;     // when did we send the last command
+} pedal_volume_t;
 
 
 class songMachine
@@ -80,6 +92,15 @@ class songMachine
                 m_show_color[i] = 0;
                 m_last_show_color[i] = 0;
             }
+            for (int i=0; i<NUM_PEDALS; i++)
+            {
+                pedal_volumes[i].from_val = 0;
+                pedal_volumes[i].to_val = 0;
+                pedal_volumes[i].last_val = 0;
+                pedal_volumes[i].delay_tenths = 0;
+                pedal_volumes[i].event_time = 0;
+                pedal_volumes[i].last_cmd_time = 0;
+            }
         }
 
         // ui variables
@@ -108,6 +129,10 @@ class songMachine
         elapsedMillis m_delay_time;
         int m_num_calls;
         int m_call_stack[MAX_CALL_STACK];
+
+        pedal_volume_t pedal_volumes[NUM_PEDALS];
+
+        // private methods
 
         void runMachine();
         void doSongOp(int op);

@@ -783,9 +783,6 @@ bool songParser::parseSongText()
         // opcodes that take single integer parameters
 
         else if (t == TOKEN_DELAY ||
-                 t == TOKEN_SYNTH_VOLUME ||
-                 t == TOKEN_LOOP_VOLUME ||
-                 t == TOKEN_GUITAR_VOLUME ||
                  t == TOKEN_LOOPER_TRACK)
         {
             int t2 = getToken();
@@ -796,19 +793,79 @@ bool songParser::parseSongText()
                 parse_error("expected integer following",ttype);
                 return false;
             }
-            if (t != TOKEN_DELAY && int_token > 127)
-            {
-                parse_error("integer out of range",ttype);
-            }
             if (t == TOKEN_LOOPER_TRACK && (int_token==0 || int_token>4))
             {
                 parse_error("track number out of range",ttype);
+                return false;
+            }
+            if (t == TOKEN_LOOPER_TRACK && int_token > 255)
+            {
+                parse_error("delay integer out of range",ttype);
+                return false;
             }
 
             display(dbg_parse,"%-5d:    %s %d",song_code_len,ttype,int_token);
             if (!addSongCode(t))
                 return false;
             if (!addSongCode(int_token))
+                return false;
+        }
+
+        // opcodes that take opt comma numbers
+
+        else if (t == TOKEN_SYNTH_VOLUME ||
+                 t == TOKEN_LOOP_VOLUME ||
+                 t == TOKEN_GUITAR_VOLUME)
+        {
+            int t2 = getToken();
+            if (t2<0)
+                return false;
+            if (t2 != TOKEN_NUMBER)
+            {
+                parse_error("expected integer following",ttype);
+                return false;
+            }
+            if (int_token > 127)
+            {
+                parse_error("volume integer out of range",ttype);
+                return false;
+            }
+
+            #define DEFAULT_VOLUME_DELAY_10THS 2
+                // by default we will go 200 milliseconds for testing
+                // which means that upto 20 commands can be sent
+                // by default ...
+
+            int value = int_token;
+            int delay = DEFAULT_VOLUME_DELAY_10THS;
+
+            int got_opt = getTokenIf(TOKEN_COMMA);
+            if (got_opt == -1)
+                return false;
+            if (got_opt)
+            {
+                int t2 = getToken();
+                if (t2<0)
+                    return false;
+                if (t2 != TOKEN_NUMBER)
+                {
+                    parse_error("expected delay number after value for ",ttype);
+                    return false;
+                }
+                if (int_token > 255)
+                {
+                    parse_error("delay integer out of range",ttype);
+                    return false;
+                }
+                delay = int_token;
+            }
+
+            display(dbg_parse,"%-5d:    %s %d,%d",song_code_len,ttype,value,delay);
+            if (!addSongCode(t))
+                return false;
+            if (!addSongCode(value))
+                return false;
+            if (!addSongCode(delay))
                 return false;
         }
 
