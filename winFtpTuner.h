@@ -9,7 +9,7 @@ class winFtpTuner : public expWindow
 {
     public:
 
-        winFtpTuner();
+        winFtpTuner(bool swap_modal = false);
 
     private:
 
@@ -21,6 +21,7 @@ class winFtpTuner : public expWindow
 
         // implementation
 
+        bool m_swap_modal;
         bool draw_needed;
         int last_string_pressed[6];
         int last_tuner_note;

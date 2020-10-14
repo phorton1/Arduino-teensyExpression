@@ -6,17 +6,23 @@
 #include "buttons.h"
 #include "ftp.h"
 #include "ftp_defs.h"
+#include "winFtpSensitivity.h"
 
+#define TUNER_LED_BASE 11
+#define BUTTON_END_MODAL_WINDOW 24
 
 
 //------------------------------------------------------------
 // life cycle
 //------------------------------------------------------------
 
-winFtpTuner::winFtpTuner()
+winFtpTuner::winFtpTuner(bool swap_modal)
+	: expWindow(WIN_FLAG_DELETE_ON_END)
 {
 	init();
+	m_swap_modal = swap_modal;
 }
+
 
 void winFtpTuner::init()
 {
@@ -37,7 +43,15 @@ void winFtpTuner::begin(bool warm)
 
 	init();
 	expWindow::begin(warm);
-	theButtons.setButtonType(THE_SYSTEM_BUTTON,BUTTON_EVENT_CLICK,LED_GREEN);
+	if (m_swap_modal)
+	{
+		theButtons.setButtonType(THE_SYSTEM_BUTTON, BUTTON_TYPE_CLICK,	LED_PURPLE);
+		theButtons.setButtonType(BUTTON_END_MODAL_WINDOW, BUTTON_TYPE_CLICK, LED_GREEN);
+	}
+	else
+	{
+		theButtons.setButtonType(THE_SYSTEM_BUTTON,BUTTON_EVENT_CLICK,LED_GREEN);
+	}
 	showLEDs();
 }
 
@@ -46,8 +60,14 @@ void winFtpTuner::begin(bool warm)
 void winFtpTuner::onButtonEvent(int row, int col, int event)
 {
 	int num = row * NUM_BUTTON_ROWS + col;
-	if (num == THE_SYSTEM_BUTTON)
+	if (num == THE_SYSTEM_BUTTON && m_swap_modal)
+	{
+		theSystem.swapModal(new winFtpSensitivity(true),0);
+	}
+	else
+	{
 		endModal(0);
+	}
 }
 
 
@@ -94,14 +114,6 @@ void winFtpTuner::onButtonEvent(int row, int col, int event)
 #define TUNER_VALUE_X(v)	(TUNER_FRAME_X + TUNER_FRAME_MARGIN + ((float)(((float)(v) + 64)/128.0) * TUNER_RANGE))
 
 #define TUNER_DISABLED_COLOR  TFT_RGB_COLOR(0x50,0x50,0x50)
-
-
-//#define TUNER_BOX_OFFSET    ((TUNER_FRAME_WIDTH-TUNER_FRAME_MARGIN*2)/5)
-//#define TUNER_BOX_WIDTH     (TUNER_BOX_OFFSET - TUNER_FRAME_MARGIN)
-//#define TUNER_BOX_HEIGHT    (TUNER_FRAME_HEIGHT-2*TUNER_FRAME_MARGIN)
-//#define UNUSED_BOX_COLOR    TFT_BLUE
-
-
 
 
 void winFtpTuner::fretsToInts(int *ints)
@@ -361,8 +373,6 @@ void winFtpTuner::updateUI()	// draw
 		last_tuner_value_x = tuner_value_x;
 
 		// TUNER LEDS
-
-		#define TUNER_LED_BASE 16
 
 		float pct;
 		#define BRIGHT_PCT(p)   (((unsigned)(255.0*(p))) & 0xff)

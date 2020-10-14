@@ -1,15 +1,14 @@
-// TODO:
-//
-//     1. quick mode erase button should abort recording if recording (fuck-up button)
-//        requires LOOP_COMMAND_ABORT_RECORD
-//        for now I can just mute it and move on ...
-//
-//     2. long click quick mode button takes you to FTP tuner, which can toggle to sensitivity and back
-//
 // POSSIBLE
 //
-//      the looper mute row could have sub modes
-//          by long click, for example, on the left most one
+//     - quick mode button toggles to purple?
+//          or off - already have another example of button
+//              that can be pressed that has no color:
+//          songMachine - blank if no song
+//              and long click==load, short click==set mark point
+//     - rename "quick_mode" to looper_mode
+//
+//     - the looper mute row could have sub modes
+//       by long click, for example, on the left most one
 //
 //			LOOP_IMMEDIATE
 //          PAUSE
@@ -31,6 +30,7 @@
 #include "songMachine.h"
 #include "songParser.h"
 #include "winSelectSong.h"
+#include "winFTPTuner.h"
 
 // The difference between using Quantiloop and using the looper pedal can be detected using
 // the setting on Pedal(1).  If the loop pedal is serial, we are working with the Looper.
@@ -39,7 +39,7 @@
 #define dbg_patch_buttons    	1
 #define dbg_serial_midi         1
 #define dbg_rig					1
-#define dbg_song_machine		0
+#define dbg_song_machine		1
 
 
 #define SONG_MACHINE_BUTTON     9
@@ -262,57 +262,47 @@ void rigLooper::begin(bool warm)
 		new songMachine();
 	theSongMachine->setBaseRig(this);
 
-	resetDisplay();
+	// the upper right hand button is the bank select button.
+	// it is blue for bank 0 and cyan for bank 1
 
-	if (m_quick_mode)
+	theButtons.setButtonType(THE_SYSTEM_BUTTON,	BUTTON_TYPE_LONG_CLICK | BUTTON_TYPE_CLICK | BUTTON_MASK_USER_DRAW, 0);
+
+	// 3rd from top right is the quick mode button
+
+	theButtons.setButtonType(QUICK_MODE_BUTTON,	BUTTON_TYPE_CLICK | BUTTON_EVENT_LONG_CLICK, LED_ORANGE);
+
+	// system boots up in bank 0 with no patch selected
+
+	for (int r=0; r<NUM_PATCH_ROWS; r++)
 	{
-		startQuickMode();
+		for (int c=0; c<NUM_PATCH_COLS; c++)
+		{
+			theButtons.setButtonType(r * NUM_BUTTON_COLS + c, BUTTON_TYPE_CLICK | BUTTON_MASK_USER_DRAW, 0);
+		}
 	}
-	else	// normal button settings
+
+	// guitar effect buttons
+
+	for (int i=FIRST_EFFECT_BUTTON; i<=LAST_EFFECT_BUTTON; i++)
+		theButtons.setButtonType(i,	BUTTON_TYPE_CLICK, 0);
+	theButtons.setButtonType(LAST_EFFECT_BUTTON, BUTTON_TYPE_CLICK | BUTTON_EVENT_LONG_CLICK | BUTTON_MASK_USER_DRAW, 0);
+
+	// loop control buttons
+
+	int ud = m_quantiloop_mode ? 0 : BUTTON_MASK_USER_DRAW;
+	int color = m_quantiloop_mode ? LED_YELLOW : 0;
+
+	for (int i=0; i<LOOPER_NUM_TRACKS; i++)
 	{
-		// the upper right hand button is the bank select button.
-		// it is blue for bank 0 and cyan for bank 1
+		theButtons.setButtonType(LOOP_FIRST_TRACK_BUTTON+i,BUTTON_EVENT_PRESS | ud, color);
+	}
 
-		theButtons.setButtonType(THE_SYSTEM_BUTTON,	BUTTON_TYPE_LONG_CLICK | BUTTON_TYPE_CLICK | BUTTON_MASK_USER_DRAW, 0);
+	theButtons.setButtonType(LOOP_STOP_BUTTON,BUTTON_EVENT_CLICK | BUTTON_EVENT_LONG_CLICK | ud, color);
+	theButtons.setButtonType(LOOP_DUB_BUTTON,BUTTON_EVENT_CLICK | BUTTON_EVENT_LONG_CLICK | ud, color);
 
-		// 3rd from top right is the quick mode button
+	// songMachine button
 
-		theButtons.setButtonType(QUICK_MODE_BUTTON,	BUTTON_TYPE_CLICK, LED_ORANGE);
-
-		// system boots up in bank 0 with no patch selected
-
-		for (int r=0; r<NUM_PATCH_ROWS; r++)
-		{
-			for (int c=0; c<NUM_PATCH_COLS; c++)
-			{
-				theButtons.setButtonType(r * NUM_BUTTON_COLS + c, BUTTON_TYPE_CLICK | BUTTON_MASK_USER_DRAW, 0);
-			}
-		}
-
-		// guitar effect buttons
-
-		for (int i=FIRST_EFFECT_BUTTON; i<=LAST_EFFECT_BUTTON; i++)
-			theButtons.setButtonType(i,	BUTTON_TYPE_CLICK, 0);
-		theButtons.setButtonType(LAST_EFFECT_BUTTON, BUTTON_TYPE_CLICK | BUTTON_EVENT_LONG_CLICK | BUTTON_MASK_USER_DRAW, 0);
-
-		// loop control buttons
-
-		int ud = m_quantiloop_mode ? 0 : BUTTON_MASK_USER_DRAW;
-		int color = m_quantiloop_mode ? LED_YELLOW : 0;
-
-		for (int i=0; i<LOOPER_NUM_TRACKS; i++)
-		{
-			theButtons.setButtonType(LOOP_FIRST_TRACK_BUTTON+i,BUTTON_EVENT_PRESS | ud, color);
-		}
-
-		theButtons.setButtonType(LOOP_STOP_BUTTON,BUTTON_EVENT_CLICK | BUTTON_EVENT_LONG_CLICK | ud, color);
-		theButtons.setButtonType(LOOP_DUB_BUTTON,BUTTON_EVENT_CLICK | BUTTON_EVENT_LONG_CLICK | ud, color);
-
-		// songMachine button
-
-		theButtons.setButtonType(SONG_MACHINE_BUTTON,BUTTON_EVENT_CLICK | BUTTON_EVENT_LONG_CLICK | BUTTON_MASK_USER_DRAW, 0);
-
-	}	// normal (not quick mode) buttons and leds
+	theButtons.setButtonType(SONG_MACHINE_BUTTON,BUTTON_EVENT_CLICK | BUTTON_EVENT_LONG_CLICK | BUTTON_MASK_USER_DRAW, 0);
 
 	// If poly_mode was changed (in OldRig) reset it here
 
@@ -323,6 +313,16 @@ void rigLooper::begin(bool warm)
 		m_last_set_poly_mode = use_poly_mode;
 		sendFTPCommandAndValue(FTP_CMD_POLY_MODE,m_last_set_poly_mode);
 	}
+
+	// switch to quick mode after all the buttons are set
+
+	resetDisplay();
+
+	if (m_quick_mode)
+	{
+		startQuickMode();
+	}
+
 }
 
 
@@ -361,7 +361,7 @@ void rigLooper::startQuickMode()
 	{
 		bool ud = m_quantiloop_mode ? 0 : BUTTON_MASK_USER_DRAW;
 		int color = m_quantiloop_mode ? LED_RED : 0;
-		theButtons.setButtonType(track + NUM_BUTTON_COLS * QUICK_ROW_ERASE_TRACK, BUTTON_EVENT_CLICK | ud, color);
+		theButtons.setButtonType(track + NUM_BUTTON_COLS * QUICK_ROW_ERASE_TRACK, BUTTON_EVENT_CLICK | BUTTON_EVENT_LONG_CLICK, ud, color);
 	}
 
 	showLEDs();
@@ -473,19 +473,15 @@ void rigLooper::clearGuitarEffects(bool display_only /* = false */)
 // virtual
 void rigLooper::clearLooper(bool display_only)
 {
+	display(dbg_song_machine,"rigLooper::clearLooper(%d)",display_only);
+
 	m_dub_mode = 0;
 	m_track_flash = 0;
 	m_track_flash_time = 0;
 	m_selected_track_num = -1;
     m_stop_button_cmd = 0;
     m_last_stop_button_cmd = -1;
-
-	for (int i=0; i<LOOPER_NUM_TRACKS; i++)
-	{
-		m_track_state[i] = 0;
-		m_last_track_state[i] = -1;
-		m_last_erase_state[i] = -1;
-	}
+	m_last_dub_mode = -1;
 
 	for (int i=0; i<LOOPER_NUM_TRACKS_TIMES_LAYERS; i++)
 	{
@@ -493,6 +489,14 @@ void rigLooper::clearLooper(bool display_only)
         m_last_clip_mute[i] = -1;
         m_clip_vol[i] = 100;	// magic init value
         m_last_clip_vol[i] = -1;
+	}
+
+	for (int i=0; i<LOOPER_NUM_TRACKS; i++)
+	{
+		m_track_state[i] = 0;
+		m_last_track_state[i] = -1;
+		m_last_erase_state[i] = -1;
+		display(1,"rigLooper::clearLooper last_track_state(%d) = %d",i,m_last_track_state[i]);
 	}
 
 	if (!display_only)
@@ -690,6 +694,9 @@ void rigLooper::setClipVolume(int layer_num, int val)
 		display(0,"WARNING: setClipVolume(%d,%d) called with no selected track",layer_num,val);
 	}
 }
+
+
+
 //------------------------------------
 // Events
 //------------------------------------
@@ -742,7 +749,7 @@ void rigLooper::onSerialMidiEvent(int cc_num, int value)
 	if (cc_num >= TRACK_STATE_BASE_CC && cc_num < TRACK_STATE_BASE_CC+4)
 	{
 		int track_num = cc_num - TRACK_STATE_BASE_CC;
-		display(dbg_serial_midi,"rigLooper track_state[%d] = 0x%02x",track_num,value);
+		display(dbg_serial_midi,"rigLooper serial_midi track_state[%d] = 0x%02x",track_num,value);
 		m_track_state[track_num] = value;
 	}
 	else if (cc_num == LOOP_DUB_STATE_CC)
@@ -780,14 +787,20 @@ void rigLooper::onButtonEvent(int row, int col, int event)
 
 	// QUICK MODE
 
-	if (num == QUICK_MODE_BUTTON &&
-		event == BUTTON_EVENT_CLICK)
+	if (num == QUICK_MODE_BUTTON)
 	{
-		m_quick_mode = !m_quick_mode;
-		if (!m_quick_mode)
-			endQuickMode();
+		if (event == BUTTON_EVENT_LONG_CLICK)
+		{
+			theSystem.startModal(new winFtpTuner(true));
+		}
 		else
-			startQuickMode();
+		{
+			m_quick_mode = !m_quick_mode;
+			if (!m_quick_mode)
+				endQuickMode();
+			else
+				startQuickMode();
+		}
 	}
 
 	if (m_quick_mode &&
@@ -804,10 +817,16 @@ void rigLooper::onButtonEvent(int row, int col, int event)
 			{
 				// prh - send the cc command to erase quantiloop track %d
 			}
-			else
+			else if (event == BUTTON_EVENT_LONG_CLICK)
 			{
 				sendSerialControlChange(LOOP_COMMAND_CC,LOOP_COMMAND_ERASE_TRACK_BASE+col,"ERASE_TRACK button click");
 			}
+			else if (m_track_state[col] & TRACK_STATE_RECORDING)
+			{
+				sendSerialControlChange(LOOP_COMMAND_CC,LOOP_COMMAND_ABORT_RECORDING,"ABORT_RECORDING button click");
+			}
+			m_last_erase_state[col] = -1;
+				// because we are uer_drawn ... in case it's a short click on non-reording track
 		}
 		else if (row == QUICK_ROW_MUTE)
 		{
@@ -1014,7 +1033,9 @@ void rigLooper::updateUI()
 				if (m_last_erase_state[i] != m_track_state[i])
 				{
 					m_last_erase_state[i] = m_track_state[i];
-					int color = m_track_state[i] ? LED_RED : 0;
+					int color =
+						(m_track_state[i] & TRACK_STATE_RECORDING) ? LED_ORANGE :
+						m_track_state[i] ? LED_RED : 0;
 					setLED(QUICK_ROW_ERASE_TRACK,i,color);
 					leds_changed = true;
 				}
@@ -1181,12 +1202,28 @@ void rigLooper::updateUI()
 
 	}	// Normal redraw (!m_quick_mode)
 
+
 	//----------------------------
 	// EITHER MODE
 	//----------------------------
 	// show the rest of the stuff subject only to songMachine state
 
 	mylcd.Set_Text_Back_colour(TFT_BLACK);
+
+	// SONG BUTTON
+
+	int song_state = theSongMachine->getMachineState();
+	if (m_last_song_state != song_state)
+	{
+		m_last_song_state = song_state;
+		int color =
+			song_state & SONG_STATE_ERROR ? LED_RED :
+			song_state & SONG_STATE_FINISHED ? 0 :
+			song_state & SONG_STATE_PAUSED ?  LED_YELLOW:
+			song_state & SONG_STATE_RUNNING ? LED_PURPLE : 0;
+		setLED(SONG_MACHINE_BUTTON,color);
+		leds_changed = true;
+	}
 
 	// LOOPER BUTTONS
 
@@ -1207,31 +1244,37 @@ void rigLooper::updateUI()
 		leds_changed = true;
 	}
 
-	int song_state = theSongMachine->getMachineState();
-	if (m_last_song_state != song_state)
-	{
-		m_last_song_state = song_state;
-		int color =
-			song_state & SONG_STATE_ERROR ? LED_RED :
-			song_state & SONG_STATE_FINISHED ? 0 :
-			song_state & SONG_STATE_PAUSED ?  LED_YELLOW:
-			song_state & SONG_STATE_RUNNING ? LED_PURPLE : 0;
-		setLED(SONG_MACHINE_BUTTON,color);
-		leds_changed = true;
-	}
-
+	// TRACK BUTTONS
 	// the song machine takes over the four bottom left buttons
 
-	if (!m_quantiloop_mode && (!song_state ||
-		(song_state & (SONG_STATE_PAUSED | SONG_STATE_FINISHED | SONG_STATE_ERROR))))
+	bool song_machine_inactive = !song_state ||
+		(song_state & (SONG_STATE_PAUSED | SONG_STATE_FINISHED | SONG_STATE_ERROR));
+
+	if (song_machine_inactive && !m_quantiloop_mode)
 	{
 		for (int i=0; i<LOOPER_NUM_TRACKS; i++)
 		{
-			int state = m_track_state[i] ;
-			if ((state != m_last_track_state[i]) ||
-				((last_track_flash != m_track_flash) && (state & TRACK_STATE_PENDING)))
+			// there's a weirdness ...
+			//
+			// fresh boot ... quick_mode ... record track1 ... clearl looper
+			//    did not clear buttons
+			//
+			// set to -1 in clearLooper()
+			// this code does not execute reliably
+			// started working when I added debugging in clearLooper()
+
+			__disable_irq();
+			volatile int state = m_track_state[i];
+			volatile int last_state = m_last_track_state[i];
+			volatile bool state_changed = state != last_state;
+			m_last_track_state[i] = state;
+
+			bool flash_it = (state & TRACK_STATE_PENDING) && (last_track_flash != m_track_flash);
+			__enable_irq();
+
+			if (state_changed || flash_it)
 			{
-				m_last_track_state[i] = state;
+				display(1,"set last_track_state[%d] from %d to %d",i,last_state,state);
 
 				int color = 0;			// EMPTY
 				if (state & (TRACK_STATE_RECORDING | TRACK_STATE_PENDING_RECORD))
@@ -1281,13 +1324,16 @@ void rigLooper::updateUI()
 void rigLooper::onEndModal(expWindow *win, uint32_t param)
 {
 	display(dbg_song_machine,"rigLooper::onEndModal(%08x,%08x)",(uint32_t)win,param);
-	if (param)
+	if (!strcmp(win->name(),"Select Song"))
 	{
-		display(dbg_song_machine,"SELECTED_NAME=%s",winSelectSong::selected_name);
-		m_pending_open_song = winSelectSong::selected_name;
-	}
-	else
-	{
-		theSongMachine->setMachineState(SONG_STATE_EMPTY);
+		if (param)
+		{
+			display(dbg_song_machine,"SELECTED_NAME=%s",winSelectSong::selected_name);
+			m_pending_open_song = winSelectSong::selected_name;
+		}
+		else
+		{
+			theSongMachine->setMachineState(SONG_STATE_EMPTY);
+		}
 	}
 }

@@ -26,6 +26,7 @@
 #define LOOP_COMMAND_STOP_IMMEDIATE     0x02      // stop the looper immediately
 #define LOOP_COMMAND_STOP               0x03      // stop at next cycle point
 #define LOOP_COMMAND_DUB_MODE           0x04      // the dub mode is handled by rPi and modeled here
+#define LOOP_COMMAND_ABORT_RECORDING    0x06      // abort the current recording if any
 #define LOOP_COMMAND_LOOP_IMMEDIATE     0x08      // immediatly loop back to all clip starts ...
 #define LOOP_COMMAND_SET_LOOP_START     0x09      // immediatly set the "restart point" for the clips in the track
 #define LOOP_COMMAND_CLEAR_LOOP_START   0x0A      // immediatly set the "restart point" for the clips in the track

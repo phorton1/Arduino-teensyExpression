@@ -98,9 +98,9 @@ protected:
         int m_last_dub_mode;
         int m_last_stop_button_cmd;
         int m_last_track_state[LOOPER_NUM_TRACKS];
-        int m_last_clip_mute[LOOPER_NUM_TRACKS_TIMES_LAYERS];
-        int m_last_clip_vol[LOOPER_NUM_TRACKS_TIMES_LAYERS];
         int m_last_erase_state[LOOPER_NUM_TRACKS];
+        int m_last_clip_vol[LOOPER_NUM_TRACKS_TIMES_LAYERS];
+        int m_last_clip_mute[LOOPER_NUM_TRACKS_TIMES_LAYERS];
 
         // static data
 

@@ -10,7 +10,7 @@ class winFtpSensitivity : public expWindow
 {
     public:
 
-        winFtpSensitivity();
+        winFtpSensitivity(bool with_swap_modal=false);
 
     private:
 
@@ -23,6 +23,7 @@ class winFtpSensitivity : public expWindow
 
         // implementation
 
+        bool m_swap_modal;
         bool draw_needed;
         int last_vel[6];
         int last_velocity[6];
@@ -35,10 +36,6 @@ class winFtpSensitivity : public expWindow
         void vel2ToInts(int *vel2, int *velocity);
         void drawBox(int string, int box32, int vel16);
 
-        // readback values moved to globals in ftp.h/cpp
-        // int ftp_dynamic_range;
-        // int ftp_dynamic_offset;
-        // int ftp_touch_sensitivity;
 };
 
 

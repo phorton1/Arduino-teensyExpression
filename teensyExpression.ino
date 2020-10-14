@@ -86,7 +86,7 @@ void setup()
     mylcd.Set_Text_colour(TFT_WHITE);
     mylcd.setFont(Arial_16);
     mylcd.Set_Text_Cursor(5,5);
-    mylcd.print("teensyExpression started ... ");
+    mylcd.println("teensyExpression started ... ");
 
     int do_delay = 0;
 

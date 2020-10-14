@@ -345,11 +345,13 @@ void expSystem::swapModal(expWindow *win, uint32_t param)
 	expWindow *old = getTopModalWindow();
 	old->end();
 
+	m_modal_stack[m_num_modals-1] = win;
 	startWindow(win,true);
 
-	m_modal_stack[m_num_modals-1] = win;
-	m_num_modals++;
-	endModal(old,param);
+	// old->onEndModal(old,param);
+	if (old->m_flags & WIN_FLAG_DELETE_ON_END)
+		delete old;
+
 }
 
 

@@ -7,6 +7,7 @@
 #include "ftp.h"
 #include "ftp_defs.h"
 #include "myMidiHost.h"
+#include "winFtpTuner.h"
 
 
 #define KEYPAD_UP      7
@@ -14,6 +15,9 @@
 #define KEYPAD_LEFT    11
 #define KEYPAD_RIGHT   13
 #define KEYPAD_SELECT  12
+
+#define BUTTON_END_MODAL_WINDOW 24
+
 
 #define ITEM_DYNAMIC_RANGE     6
 #define ITEM_DYNAMIC_OFFSET    7
@@ -25,13 +29,11 @@
 // life cycle
 //------------------------------------------------------------
 
-winFtpSensitivity::winFtpSensitivity()
+winFtpSensitivity::winFtpSensitivity(bool swap_modal)
+	: expWindow(WIN_FLAG_DELETE_ON_END)
 {
 	init();
-	// moved to ftp.cpp
-	// ftp_dynamic_range = 20;
-	// ftp_dynamic_offset = 10;
-	// ftp_touch_sensitivity = 4;
+	m_swap_modal = swap_modal;
 }
 
 
@@ -56,21 +58,6 @@ void winFtpSensitivity::init()
 // virtual
 void winFtpSensitivity::begin(bool warm)
 {
-	// update the string sensitivity values
-	// moved to ftp.cpp::initQueryFTP.cpp
-
-    //  for (int i=0; i<NUM_STRINGS; i++)
-    //  {
-	//      sendFTPCommandAndValue(FTP_CMD_GET_SENSITIVITY, i);
-    //  }
-    //
-	//  sendFTPCommandAndValue(FTP_CMD_SPLIT_NUMBER,0x01);
-	//  sendFTPCommandAndValue(FTP_CMD_DYNAMICS_SENSITIVITY,ftp_dynamic_range);
-	//  sendFTPCommandAndValue(FTP_CMD_DYNAMICS_OFFSET,ftp_dynamic_offset);
-	//  sendFTPCommandAndValue(FTP_CMD_TOUCH_SENSITIVITY,ftp_touch_sensitivity);
-
-	// normal initialization
-
 	init();
 	expWindow::begin(warm);
 
@@ -80,13 +67,15 @@ void winFtpSensitivity::begin(bool warm)
 	theButtons.setButtonType(KEYPAD_RIGHT,	BUTTON_TYPE_CLICK);
 	theButtons.setButtonType(KEYPAD_SELECT,	BUTTON_TYPE_CLICK, 	LED_GREEN);
 
-	theButtons.setButtonType(THE_SYSTEM_BUTTON,	BUTTON_TYPE_CLICK, 	LED_GREEN);
-
-	// theButtons.setButtonType(20,			BUTTON_TYPE_TOGGLE, LED_CYAN, LED_ORANGE);
-	theButtons.setButtonType(24,			BUTTON_TYPE_CLICK,	LED_PURPLE);
-
-	if (!ftp_poly_mode)
-		theButtons.select(20,0);
+	if (m_swap_modal)
+	{
+		theButtons.setButtonType(THE_SYSTEM_BUTTON, BUTTON_TYPE_CLICK,	LED_PURPLE);
+		theButtons.setButtonType(BUTTON_END_MODAL_WINDOW, BUTTON_TYPE_CLICK, LED_GREEN);
+	}
+	else
+	{
+		theButtons.setButtonType(THE_SYSTEM_BUTTON,BUTTON_EVENT_CLICK,LED_GREEN);
+	}
 
 	showLEDs();
 }
@@ -148,22 +137,19 @@ void winFtpSensitivity::onButtonEvent(int row, int col, int event)
 			}
 		}
 	}
-	else if (num == THE_SYSTEM_BUTTON ||
-			 num == KEYPAD_SELECT)
+	else if (num == KEYPAD_SELECT ||
+			 num == BUTTON_END_MODAL_WINDOW)
 	{
-		endModal(237);
+		endModal(0);
 	}
+	else if (num == THE_SYSTEM_BUTTON)
+	{
+		if (m_swap_modal)
+			theSystem.swapModal(new winFtpTuner(true),0);
+		else
+			endModal(0);
 
-
-	// now done automatically as part of ftp.cpp::initQueryFTP()
-    //
-	// else if (num == 24)
-	// {
-	// 	for (int i=0; i<NUM_STRINGS; i++)
-	// 	{
-	// 		sendFTPCommandAndValue(FTP_CMD_GET_SENSITIVITY, i);
-	// 	}
-	// }
+	}
 }
 
 
