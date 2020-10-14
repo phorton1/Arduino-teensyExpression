@@ -1,5 +1,5 @@
 // teensyExpression.ino
-// 2020-10-03 - test change
+
 
 #include <myDebug.h>
 #include "prefs.h"
@@ -15,12 +15,6 @@
 
 
 #define TOUCH_DRAW_TEST  0
-
-
-
-
-
-
 
 
 //-----------------------------------------------------------
@@ -130,11 +124,6 @@ void setup()
     initLEDs();
     clearLEDs();
     showLEDs();
-
-    // give a little time to see start up messages
-    // before we erase the screen and start the system
-
-    theSystem.begin();
     display(0,"system running ...",0);
 
 }   // setup()
@@ -149,8 +138,7 @@ void setup()
 void loop()
 {
     theSystem.updateUI();
-        // midiHostConfig is only person who calls myUSB.Task(),
-        // midi1.read(), and usbMIDI.read() at this time.
+        // see expSystem.cpp
 
     #if TOUCH_DRAW_TEST
 

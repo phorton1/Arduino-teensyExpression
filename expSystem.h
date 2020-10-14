@@ -4,7 +4,7 @@
 #include "defines.h"
 #include <Arduino.h>        // for intevalTimer
 
-#define MAX_EXP_RIGS     10
+#define MAX_EXP_RIGS        10
 #define MAX_MODAL_STACK     10
 
 
@@ -17,16 +17,21 @@ class expSystem;
 #define WIN_FLAG_SHOW_PEDALS        0x00002000
     // window calls theSystem.setTitle() itself
 
-extern int_rect tft_rect;
-extern int_rect title_rect;
-extern int_rect full_client_rect;
-extern int_rect pedal_rect;
-extern int_rect client_rect;
+// globally defined screen regions
 
-extern int_rect synth_rect;
-extern int_rect song_title_rect;
-extern int_rect song_state_rect;
-extern int_rect song_msg_rect[2];
+extern int_rect tft_rect;                   // the full screen
+extern int_rect title_rect;                 // title area not incuding line
+extern int_rect full_client_rect;           // from under line to end of screen - available to windows
+extern int_rect pedal_rect;                 // the area containing the pedals - shown in rigs
+extern int_rect client_rect;                // area available to rigs - under title to top of pedals
+
+// screen regions for "standard" rigs (derived from rigBase)
+// that also work with the songMachine ...
+
+extern int_rect synth_rect;                 // top part of the client area
+extern int_rect song_title_rect;            // shows the current song title
+extern int_rect song_state_rect;            // shows the current songmachine state
+extern int_rect song_msg_rect[2];           // the two regions for user defined DISPLAY messages
 
 
 
@@ -42,7 +47,7 @@ class expWindow
         virtual const char *name() = 0;
             // used for titles
         virtual const char *short_name() { return ""; };
-            // only used for rigs in the config window
+            // only used for enumerated rigs in the config window
         virtual uint32_t getId()    { return 0; }
 
 
@@ -50,12 +55,9 @@ class expWindow
 
         friend class expSystem;
 
-        virtual void begin(bool warm);
+        virtual void begin(bool warm)  {}
             // warm means that we are coming down the modal window stack
-            // as opposed to being invoked as a new window
-
-            // derived classes should call base class method FIRST
-            // base class clears all button registrations.
+            // as opposed to being invoked as a new window.
         virtual void end()  {}
             // called when the window is taken out of focus, they
             // don't generally need to worry about buttons and LEDs,
@@ -65,7 +67,6 @@ class expWindow
         // virtual bool onPedalEvent(int num, int val)   { return false; }
         virtual void onButtonEvent(int row, int col, int event) {}
         virtual void onSerialMidiEvent(int cc_num, int value) {}
-
 
         virtual void updateUI() {}
         virtual void timer_handler()  {}
@@ -123,44 +124,39 @@ class expSystem
 
     private:
 
-        int m_num_rigs;
-        int m_cur_rig_num;
-        int m_prev_rig_num;
-
         void addRig(expWindow *pRig);
-
-        volatile int m_num_modals;
-        expWindow *m_modal_stack[MAX_MODAL_STACK];
-
-        expWindow *m_rigs[MAX_EXP_RIGS + 1];
-            // 1 extra for rig #0 which is overloaded
-            // as the configSystem window.
+        void startWindow(expWindow *win, bool warm);
+        void handleSerialData();
+        static void timer_handler();
+        static void critical_timer_handler();
 
         IntervalTimer m_timer;
         IntervalTimer m_critical_timer;
 
-        static void timer_handler();
-        static void critical_timer_handler();
+        int m_num_rigs;
+        int m_cur_rig_num;
+        int m_prev_rig_num;
+        expWindow *m_rigs[MAX_EXP_RIGS + 1];
+            // 1 extra for rig #0 which is overloaded
+            // as the configSystem window.
 
-        int last_battery_level;
+        volatile int m_num_modals;
+        expWindow *m_modal_stack[MAX_MODAL_STACK];
 
-        const char *m_title;
-        bool draw_pedals;
         bool draw_title;
-            // state for redraw
+        bool draw_pedals;
+        const char *m_title;
+        int last_battery_level;
 
         unsigned midi_activity[NUM_PORTS];
         bool last_midi_activity[NUM_PORTS];
 
         int m_tempo;
-
-        void handleSerialData();
-
 };
 
 
 extern expSystem theSystem;
-    // in teensyExpression.ino
+    // in expSystem.cpp
 
 
 #endif // !__exp_system_h__

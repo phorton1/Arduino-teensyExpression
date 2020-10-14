@@ -34,9 +34,9 @@ button1:                        # record guitar behind intro-chorus
 #--------------------------
 
 button1:                        # record bass behind 1st verse
-    SYNTH_VOLUME 100            # turn up the synth
+    GUITAR_VOLUME 0,1            # turn down the guitar!
     LOOPER_TRACK 1              # finish recording guitar, start recording bass
-    GUITAR_VOLUME 0             # turn down the guitar!
+    SYNTH_VOLUME 100,4            # turn up the synth
     BUTTON_COLOR 1,black
     DISPLAY 1,"VERSE1"
     DISPLAY 2,"recording bass"

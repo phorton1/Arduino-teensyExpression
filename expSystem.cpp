@@ -11,19 +11,13 @@
 #include "ftp_defs.h"
 #include "myMidiHost.h"
 #include "midiQueue.h"
-
+#include "fileSystem.h"
 #include "configSystem.h"
+
 #include "rigLooper.h"
-// #include "rigNew.h"
-// #include "rigOld.h"
 #include "rigTest.h"
 #include "rigMidiHost.h"
 
-#define WITH_FILE_SYSTEM    1
-
-#if WITH_FILE_SYSTEM
-    #include "fileSystem.h"
-#endif
 
 #define dbg_exp   2
 	// 1 still shows midi messages
@@ -63,10 +57,11 @@
 //          messags for display.
 //      (d) used variously by other objects to implement key
 //          repeats, etc.
-// 1. I have more or less determined that the timers don't start again
+// I have more or less determined that the timers don't start again
 //    until the handler has returned.
-// 2. At some point the timers use so much resources that the rest of
-//    the system is non functional
+// At some point the timers use so much resources that the rest of
+//    the system can become non functional.  The following values
+//    work.
 
 #define EXP_TIMER_INTERVAL 5000
     // 5000 us = 5 ms == 200 times per second
@@ -110,21 +105,13 @@ int_rect song_state_rect(
 	song_title_rect.ye);
 
 int_rect song_msg_rect[2];
-	// assigned in constructor
+	// assigned in begin()
 
 
 
 //----------------------------------------
 // expWindow (base class)
 //----------------------------------------
-
-// virtual
-void expWindow::begin(bool warm)
-    // derived classes should call base class method FIRST
-    // base class clears all button registrations.
-{
-    theButtons.clear();
-}
 
 
 // virtual
@@ -281,10 +268,6 @@ void expSystem::activateRig(int new_rig_num)
         return;
     }
 
-    // clearLEDs();
-	// theButtons.clear();
-	// showLEDs();
-
     // deactivate previous rig
 
     if (m_cur_rig_num >= 0)
@@ -298,9 +281,11 @@ void expSystem::activateRig(int new_rig_num)
 
     // clear the TFT and show the rig (window) title
 
+	theButtons.clear();
+    mylcd.Fill_Screen(0);
+    new_rig->begin(false);
     if (new_rig_num)
     {
-        mylcd.Fill_Screen(0);
 		if (new_rig->m_flags & WIN_FLAG_SHOW_PEDALS)
 			draw_pedals = 1;
 		if (!(new_rig->m_flags & WIN_FLAG_OWNER_TITLE))
@@ -311,7 +296,6 @@ void expSystem::activateRig(int new_rig_num)
 
     // start the rig (window) running
 
-    new_rig->begin(false);
 
     // add the system long click handler
 
@@ -320,8 +304,22 @@ void expSystem::activateRig(int new_rig_num)
 
 
 //----------------------------------------
-// modal windows
+// window management
 //----------------------------------------
+
+void expSystem::startWindow(expWindow *win, bool warm)
+{
+	theButtons.clear();
+	mylcd.Fill_Screen(0);
+	if (!(win->m_flags & WIN_FLAG_OWNER_TITLE))
+		setTitle(win->name());
+	else
+		draw_title = 1;
+	if (win->m_flags & WIN_FLAG_SHOW_PEDALS)
+		draw_pedals = 1;
+	win->begin(warm);
+}
+
 
 void expSystem::startModal(expWindow *win)
 {
@@ -336,24 +334,9 @@ void expSystem::startModal(expWindow *win)
 	if (!m_num_modals)
 		getCurRig()->end();
 
-	// ok, so the modal windows should start with a clean slate of
-	// no buttons, but how does the client restore them?
-	// by changing all the calls to expWindow::begin() to have
-	// a "warm" option that means they were called coming down
-	// the stack
-
 	m_modal_stack[m_num_modals++] = win;
 
-	theButtons.clear();
-	mylcd.Fill_Screen(0);
-	if (!(win->m_flags & WIN_FLAG_OWNER_TITLE))
-		setTitle(win->name());
-	else
-		draw_title = 1;
-	if (win->m_flags & WIN_FLAG_SHOW_PEDALS)
-		draw_pedals = 1;
-
-	win->begin(false);
+	startWindow(win,false);
 }
 
 
@@ -366,15 +349,11 @@ void expSystem::swapModal(expWindow *win, uint32_t param)
 		return;
 	}
 
-	// ok, so the modal windows should start with a clean slate of
-	// no buttons, but how does the client restore them?
-	// by changing all the calls to expWindow::begin() to have
-	// a "warm" option that means they were called coming down
-	// the stack
-
 	expWindow *old = getTopModalWindow();
 	old->end();
-	win->begin(1);
+
+	startWindow(win,true);
+
 	m_modal_stack[m_num_modals-1] = win;
 	m_num_modals++;
 	endModal(old,param);
@@ -401,16 +380,9 @@ void expSystem::endModal(expWindow *win, uint32_t param)
 		getTopModalWindow() :
 		getCurRig();
 
-	mylcd.Fill_Screen(0);
-	if (!(new_win->m_flags & WIN_FLAG_OWNER_TITLE))
-		setTitle(new_win->name());
-	else
-		draw_title = 1;
-	new_win->begin(true);
-
+	startWindow(new_win,true);
 	if (!m_num_modals && m_cur_rig_num)
 	{
-		// returning to a rig window
 		// reset the system button handler
 		theButtons.getButton(0,THE_SYSTEM_BUTTON)->addLongClickHandler();
 		draw_pedals = 1;
@@ -422,11 +394,11 @@ void expSystem::endModal(expWindow *win, uint32_t param)
 }
 
 
+
 //-----------------------------------------
 // events
 //-----------------------------------------
-// prh - 2020-08-13:  Getting rid of "pedal events"
-// Pedal behavior henceforth orchestrated from pedals.cpp
+// Pedal behavior is orchestrated in pedals.cpp
 
 void expSystem::rotaryEvent(int num, int value)
 {
@@ -440,14 +412,18 @@ void expSystem::rotaryEvent(int num, int value)
 
 void expSystem::buttonEvent(int row, int col, int event)
 {
-    // handle THE_SYSTEM_BUTTON
 
 	int num = row * NUM_BUTTON_COLS + col;
 
-	if (m_num_modals)
-		getTopModalWindow()->onButtonEvent(row,col,event);
+	// modal windows get the event directly
 
-	// handle the system button globally
+	if (m_num_modals)
+	{
+		getTopModalWindow()->onButtonEvent(row,col,event);
+	}
+
+    // intercept long click on THE_SYSTEM_BUTTON
+	// from rigs to go to the configSystem ...
 
 	else if (num == THE_SYSTEM_BUTTON &&
  			 m_cur_rig_num &&
@@ -457,7 +433,7 @@ void expSystem::buttonEvent(int row, int col, int event)
 		activateRig(0);
 	}
 
-	// else let the window have it
+	// else let the current rig have it
 
 	else
 	{
@@ -485,6 +461,10 @@ void expSystem::critical_timer_handler()
 			// PORT_INDEX_DUINO_INPUT0 or PORT_INDEX_DUINO_INPUT1
 
 		// MIDI CLOCK MESSAGES
+		// This experimental code is very processor intensive to
+		// get the MIDI tempo from incoming midi clock messages.
+		// It is defined out in my current 'production' code.
+
 		#if GET_TEMPO_FROM_CLOCK
 			if (((msg >> 8) & 0xff) == 0xF8)
 			{
@@ -510,7 +490,7 @@ void expSystem::critical_timer_handler()
 		#endif 	// GET_TEMPO_FROM_CLOCK
 
 
-		// we only write it to the midi host if we are spoofing
+		// we only write through to the midi host if we are spoofing
 
 	    bool is_spoof = getPref8(PREF_SPOOF_FTP);
 		if (is_spoof)
@@ -522,8 +502,7 @@ void expSystem::critical_timer_handler()
 		}
 
         // enqueue it for processing (display from device)
-		// if we are monitoring the input port, or its the remote FTP
-
+		// if we are monitoring the input port, or it is the remote FTP
 
 		if (getPref8(PREF_MONITOR_PORT0 + pindex) || (  		// if monitoring the port, OR
 			(getPref8(PREF_FTP_PORT) == FTP_PORT_REMOTE) &&     // if this is the PREF_FTP_PORT==2==Remote, AND
@@ -555,8 +534,6 @@ void expSystem::timer_handler()
     dequeueProcess();
 
 	// call window handler
-	// for time being, modal windows absorb everything
-	// except for the above call to dequeueProcess()
 
 	if (theSystem.m_num_modals)
 		theSystem.getTopModalWindow()->timer_handler();
@@ -571,8 +548,8 @@ void expSystem::timer_handler()
 // Serial Port Handler
 //--------------------------------------------------------
 // Polls Serial and Serial3 for data.
-// Data on Serial3 *may* be midi data (4 byte packet starting with 0x0b)
-// Data on either *may* be "file_command:.*"
+// Handles incoming serial midi that starts with 0x0B and/or
+// fileSystem command lines that start with "file_command:.*"
 // Note that this implementation does not care about setting
 // of PREF_FILE_SYSTEM_PORT ... it will accept file commands
 // from either port.
@@ -596,7 +573,7 @@ volatile int fu = 0;
 void expSystem::handleSerialData()
 {
 	// The main USB Serial is only expected to contain lines of text
-	// Serial3 may contain either.
+	// Serial3 may contain either text or serial midi data
 
 	int buf_ptr = 0;
 	bool is_midi = false;
@@ -747,7 +724,7 @@ void expSystem::updateUI()
 	//----------------------------------
 	// PEDALS
 	//----------------------------------
-	// draw the pedal frame if needed
+	// draw the pedal frame and titles if needed
 
 	if (win->m_flags & WIN_FLAG_SHOW_PEDALS)
 	{
@@ -793,12 +770,7 @@ void expSystem::updateUI()
 			}
 		}
 
-		// and draw the pedal numbers if they've changed
-		// 2020-10-08 - the exp system just draws the display values
-		// and the songMachine is free to changes them, and call
-		// pedal[i].setDisplayValue() AND
-		// thePedals.pedalEvent(int num, int value) separately
-		// to change the display and send out the CCs
+		// draw the pedal numbers if they've changed
 
 		for (int i=0; i<NUM_PEDALS; i++)
 		{
@@ -827,7 +799,7 @@ void expSystem::updateUI()
 	}
 
 	//---------------------------
-	// Title and "frame"
+	// Top Title Frame
 	//---------------------------
 
 	bool draw_title_frame = draw_title;
@@ -862,9 +834,9 @@ void expSystem::updateUI()
 		}
 	}
 
-	//------------------------------
+	//----------------------------------------
 	// battery indicator frame and value
-	//------------------------------
+	//----------------------------------------
 
 	if (draw_title_frame ||
 		last_battery_level != ftp_battery_level)
@@ -983,10 +955,11 @@ void expSystem::updateUI()
 		}
 	#endif
 
-    // getCurRig()->updateUI();   // ??
+	// call the current window's updateUI method
+
 	win->updateUI();
 
-}
+}	// expSystem::updateUI()
 
 
 

@@ -1,3 +1,31 @@
+// TODO:
+//
+//     0. LOOP_COMMAND_LOOP_IMMEDIATE
+//
+//     1. quantiloop relative volumes must also call the pedal::setValue() thing to send the new relative volume to quantiloop
+//
+//     2. quick_mode to only use top left 4x4 buttons ... other buttons (looper, song machine, config, etc) to remain in effect
+//
+//     3. long click quick mode button takes you to FTP tuner, which can toggle to sensitivity and back
+//
+//     4. short click quantiloop song machine button with no song active changes between sequential and parallel in quantilloop
+//
+// POSSIBLE
+//
+//      remove MUTES from quick mode and make them "permanent" buttons
+//      - move guitars up one row
+//      - change to 3 banks of 8 synths
+//
+//      the looper mute row could have sub modes
+//          by long click, for example, on the left most one
+//
+//			LOOP_IMMEDIATE
+//          PAUSE
+//          RESTART
+//			SET_MARK_POINT - instead of weird place it is now only available if !song from songMachine button
+//
+//      these would then also become songMachine verbs
+
 #include "rigLooper.h"
 #include <myDebug.h>
 #include "oldRig_defs.h"
