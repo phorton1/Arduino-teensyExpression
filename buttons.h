@@ -58,6 +58,8 @@ class arrayedButton
         arrayedButton();
         ~arrayedButton() {}
 
+        void initDefaults();
+
         bool isSelected();
         bool isPressed();
         bool hasBeenTouched();
@@ -67,8 +69,6 @@ class arrayedButton
     private:
 
         friend class buttonArray;
-
-        void initDefaults();
 
         int m_event_mask;
         int m_event_state;

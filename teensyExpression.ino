@@ -124,6 +124,8 @@ void setup()
     initLEDs();
     clearLEDs();
     showLEDs();
+    theSystem.begin();
+
     display(0,"system running ...",0);
 
 }   // setup()

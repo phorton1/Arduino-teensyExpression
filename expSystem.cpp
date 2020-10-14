@@ -19,7 +19,7 @@
 #include "rigMidiHost.h"
 
 
-#define dbg_exp   2
+#define dbg_exp   0
 	// 1 still shows midi messages
 	// 0 shows Serial3 issues
 
@@ -176,6 +176,7 @@ void expSystem::setTitle(const char *title)
 
 void expSystem::begin()
 {
+	display(dbg_exp,"expSystem::begin()",0);
 
     addRig(new configSystem());
     addRig(new rigLooper());
@@ -242,6 +243,8 @@ void expSystem::begin()
         mylcd.println("expSystem: COULD NOT START FILE SYSTEM!!");
 		delay(10000);
 	}
+
+	display(dbg_exp,"returning from expSystem::begin()",0);
 }
 
 
@@ -262,6 +265,8 @@ void expSystem::addRig(expWindow *pRig)
 
 void expSystem::activateRig(int new_rig_num)
 {
+	display(dbg_exp,"activateRig(%d)",new_rig_num);
+
     if (new_rig_num >= m_num_rigs)
     {
         my_error("attempt to activate illegal rig number %d",new_rig_num);
@@ -276,26 +281,10 @@ void expSystem::activateRig(int new_rig_num)
         m_prev_rig_num = m_cur_rig_num;
     }
 
+	// start the new rig
+
     m_cur_rig_num = new_rig_num;
-	expWindow *new_rig = m_rigs[new_rig_num];
-
-    // clear the TFT and show the rig (window) title
-
-	theButtons.clear();
-    mylcd.Fill_Screen(0);
-    new_rig->begin(false);
-    if (new_rig_num)
-    {
-		if (new_rig->m_flags & WIN_FLAG_SHOW_PEDALS)
-			draw_pedals = 1;
-		if (!(new_rig->m_flags & WIN_FLAG_OWNER_TITLE))
-			setTitle(new_rig->name());
-    	else
-			draw_title = 1;
-	}
-
-    // start the rig (window) running
-
+	startWindow(getCurRig(),false);
 
     // add the system long click handler
 
@@ -309,6 +298,8 @@ void expSystem::activateRig(int new_rig_num)
 
 void expSystem::startWindow(expWindow *win, bool warm)
 {
+	display(dbg_exp,"startWindow(%d,%s)",warm,win->name());
+
 	theButtons.clear();
 	mylcd.Fill_Screen(0);
 	if (!(win->m_flags & WIN_FLAG_OWNER_TITLE))
@@ -343,6 +334,8 @@ void expSystem::startModal(expWindow *win)
 
 void expSystem::swapModal(expWindow *win, uint32_t param)
 {
+	display(dbg_exp,"swapModal(%s,0x%08x)",win->name(),param);
+
 	if (!m_num_modals)
 	{
 		startModal(win);
@@ -375,6 +368,8 @@ void expSystem::endModal(expWindow *win, uint32_t param)
 	// api allows for closing a window in the middle,
 	// though it will not work at this time.
 {
+	display(dbg_exp,"expSystem::endModal(%s,0x%08x)",win->name(),param);
+
 	m_num_modals--;
 	expWindow *new_win = m_num_modals ?
 		getTopModalWindow() :
