@@ -5,34 +5,11 @@
 #include "commonDefines.h"
 #include "songParser.h"
 #include "rigBase.h"
-#include "midiQueue.h"  // for sendSerialControlChange
 
 #define dbg_machine   1
 #define dbg_vols   1
 
-
-//
-//   VOLUMES and loop transition
-//
-//     don't send incremental volume changes more rapidly than 10ms
-//
-//    the usual thing is to turn the guitar down and synth up or vice versa
-//    at a loop or button point ...
-//
-//    especially due to crossfades, it is impossible to get this correct
-//    new typical:
-//
-//        GUITAR_VOLUME 0,1     // fade guitar in 1/10 second
-//        DELAY 1               // wait for that to complete
-//        SYNTH_VOLUME 70,1     // turn up the synth
-//
-//    expSystem::updateUI() is called directly from loop()
-//       so may happen more than 30 times a second
-//    to avoid jamming serial commands, allow at least
-//       10ms (1/100th of a second) between them
-
 #define MIN_TIME_TWEEN_VOL_CMD_MILLIS    40         // at least 3 buffers on the looper
-
 
 
 songMachine *theSongMachine = 0;
@@ -762,20 +739,24 @@ void songMachine::doSongOp(int op)
             break;
 
         case TOKEN_LOOPER_STOP:
-			sendSerialControlChange(LOOP_COMMAND_CC,LOOP_COMMAND_STOP,"songMachine STOP");
+            if (m_pBaseRig)
+                m_pBaseRig->stopLooper();
             break;
         case TOKEN_LOOPER_STOP_IMMEDIATE:
-			sendSerialControlChange(LOOP_COMMAND_CC,LOOP_COMMAND_STOP_IMMEDIATE,"songMachine STOP_IMMEDIATE");
+            if (m_pBaseRig)
+                m_pBaseRig->stopLooperImmediate();
             break;
         case TOKEN_LOOP_IMMEDIATE:
-			sendSerialControlChange(LOOP_COMMAND_CC,LOOP_COMMAND_LOOP_IMMEDIATE,"songMachine LOOP_IMMEDIATE");
+            if (m_pBaseRig)
+                m_pBaseRig->loopImmediate();
             break;
         case TOKEN_DUB_MODE:
-			sendSerialControlChange(LOOP_COMMAND_CC,LOOP_COMMAND_DUB_MODE,"songMachine DUB");
+            if (m_pBaseRig)
+                m_pBaseRig->toggleDubMode();
             break;
-
         case TOKEN_LOOPER_SET_START_MARK:
-			sendSerialControlChange(LOOP_COMMAND_CC,LOOP_COMMAND_SET_LOOP_START,"temp song machine button");
+            if (m_pBaseRig)
+                m_pBaseRig->setStartMark();
             break;
 
         case TOKEN_LOOPER_TRACK:

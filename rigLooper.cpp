@@ -1,8 +1,6 @@
 // TODO:
 //
-//     0. LOOP_COMMAND_LOOP_IMMEDIATE
-//
-//     1. quantiloop relative volumes must also call the pedal::setValue() thing to send the new relative volume to quantiloop
+//     0. complete API for songMachine control (no direct sendSerial data in songMachine)
 //
 //     2. quick_mode to only use top left 4x4 buttons ... other buttons (looper, song machine, config, etc) to remain in effect
 //
@@ -15,6 +13,8 @@
 //      remove MUTES from quick mode and make them "permanent" buttons
 //      - move guitars up one row
 //      - change to 3 banks of 8 synths
+//
+//      THIS COULD ALSO BE BUILT INTO QUICK MODE
 //
 //      the looper mute row could have sub modes
 //          by long click, for example, on the left most one
@@ -394,76 +394,6 @@ int rigLooper::findPatchByName(const char *patch_name)
 	return -1;
 }
 
-
-// virtual
-void rigLooper::selectTrack(int num)
-{
-	display(dbg_song_machine,"rigLooper::selectTrack(%d)",num);
-	m_selected_track_num = num;
-	if (m_quantiloop_mode)
-	{
-		mySendDeviceControlChange(
-			quantiloop_track_ccs[num],
-			0x7f,
-			QUANTILOOP_CHANNEL);
-		mySendDeviceControlChange(
-			quantiloop_track_ccs[num],
-			0x00,
-			QUANTILOOP_CHANNEL);
-	}
-	else
-	{
-		int value = m_selected_track_num + LOOP_COMMAND_TRACK_BASE;
-		sendSerialControlChange(LOOP_COMMAND_CC,value,"rigLooper::selectTrack()");
-	}
-}
-
-// virtual
-void rigLooper::setClipMute(int layer_num, bool mute_on)
-{
-	display(dbg_song_machine,"rigLooper::setClipMute(%d,%d)",layer_num,mute_on);
-	if (m_quantiloop_mode)
-	{
-		thePedals.setRelativeLoopVolume(layer_num,
-			mute_on ? 0 : m_clip_vol[layer_num]);
-		m_clip_mute[layer_num] = mute_on;
-	}
-	else if (m_selected_track_num >= 0)
-	{
-		int clip_num = m_selected_track_num * LOOPER_NUM_LAYERS + layer_num;
-		sendSerialControlChange(CLIP_MUTE_BASE_CC+clip_num,mute_on,"rigLooper::setClipMute()");
-		m_clip_mute[clip_num] = mute_on;
-	}
-	else
-	{
-		display(0,"WARNING: setClipMute(%d,%d) called with no selected track",layer_num,mute_on);
-	}
-}
-
-// virtual
-void rigLooper::setClipVolume(int layer_num, int val)
-{
-	display(dbg_rig,"rigLooper::setClipVolume(%d,%d)",layer_num,val);
-	if (val < 0) val = 0;
-	if (val > 127) val = 127;
-	if (m_quantiloop_mode)
-	{
-		thePedals.setRelativeLoopVolume(layer_num,val);
-		m_clip_vol[layer_num] = val;
-	}
-	else if (m_selected_track_num >= 0)
-	{
-		int clip_num = m_selected_track_num * LOOPER_NUM_LAYERS + layer_num;
-		sendSerialControlChange(CLIP_VOL_BASE_CC+clip_num,val,"rigLooper::setClipVolume()");
-		m_clip_vol[clip_num] = val;
-	}
-	else
-	{
-		display(0,"WARNING: setClipVolume(%d,%d) called with no selected track",layer_num,val);
-	}
-}
-
-
 // virtual
 void rigLooper::setPatchNumber(int patch_number)
 {
@@ -580,6 +510,179 @@ void rigLooper::clearLooper(bool display_only)
 
 
 
+// virtual
+void rigLooper::selectTrack(int num)
+{
+	display(dbg_song_machine,"rigLooper::selectTrack(%d)",num);
+	m_selected_track_num = num;
+	if (m_quantiloop_mode)
+	{
+		mySendDeviceControlChange(
+			quantiloop_track_ccs[num],
+			0x7f,
+			QUANTILOOP_CHANNEL);
+		mySendDeviceControlChange(
+			quantiloop_track_ccs[num],
+			0x00,
+			QUANTILOOP_CHANNEL);
+	}
+	else
+	{
+		int value = m_selected_track_num + LOOP_COMMAND_TRACK_BASE;
+		sendSerialControlChange(LOOP_COMMAND_CC,value,"rigLooper::selectTrack()");
+	}
+}
+
+// virtual
+void rigLooper::stopLooper()
+{
+	if (m_quantiloop_mode)
+	{
+		// prh - stopLooper is even weirder than stopImmediate() in QUANTILOOP
+		// I have no idea whether it is playing or not and the semantic of "stop at next loop point"
+		// means that you need to know the state of the looper and press the correct
+		// track key ...
+
+		// for now we are ALSO mapping this to START/STOP immediate
+		// songMachine probably wont work very well if I have to switch back to Quantiloop
+
+		mySendDeviceControlChange(
+			QUANTILOOP_CC_STOP_START_IMMEDIATE,
+			0x7f,
+			QUANTILOOP_CHANNEL);
+		mySendDeviceControlChange(
+			QUANTILOOP_CC_STOP_START_IMMEDIATE,
+			0x00,
+			QUANTILOOP_CHANNEL);
+	}
+	else
+	{
+		sendSerialControlChange(LOOP_COMMAND_CC,LOOP_COMMAND_STOP,"rigLooper::stopLooper()");
+	}
+}
+
+//virtual
+void rigLooper::stopLooperImmediate()
+{
+	if (m_quantiloop_mode)
+	{
+		// prh - QUANTILOOP_CC_STOP_IMMEDIATE does not exist
+		// There is some confusion over how I would like to control quantilloop
+		// the most natural is to just press the STOP/START button, which is
+		// different than the semantic in the song machine.
+
+		mySendDeviceControlChange(
+			QUANTILOOP_CC_STOP_START_IMMEDIATE,
+			0x7f,
+			QUANTILOOP_CHANNEL);
+		mySendDeviceControlChange(
+			QUANTILOOP_CC_STOP_START_IMMEDIATE,
+			0x00,
+			QUANTILOOP_CHANNEL);
+	}
+	else
+	{
+		sendSerialControlChange(LOOP_COMMAND_CC,LOOP_COMMAND_STOP_IMMEDIATE,"rigLooper::stopLooperImmediate()");
+	}
+}
+
+//virtual
+void rigLooper::loopImmediate()
+{
+	if (m_quantiloop_mode)
+	{
+		// prh - loopImmediate() not implemented for quantiloop
+	}
+	else
+	{
+		sendSerialControlChange(LOOP_COMMAND_CC,LOOP_COMMAND_LOOP_IMMEDIATE,"rigLooper::loopImmediate()");
+	}
+}
+
+//virtual
+void rigLooper::toggleDubMode()
+{
+	if (m_quantiloop_mode)
+	{
+		mySendDeviceControlChange(
+			QUANTILOOP_CC_DUB_MODE,
+			0x7f,
+			QUANTILOOP_CHANNEL);
+		mySendDeviceControlChange(
+			QUANTILOOP_CC_DUB_MODE,
+			0x00,
+			QUANTILOOP_CHANNEL);
+	}
+	else
+	{
+		sendSerialControlChange(LOOP_COMMAND_CC,LOOP_COMMAND_DUB_MODE,"rigLooper::toggleDubMode()");
+		setLED(LOOP_DUB_BUTTON,0);
+		showLEDs();
+	}
+}
+
+
+//virtual
+void rigLooper::setStartMark()
+{
+	if (m_quantiloop_mode)
+	{
+		// prh - setStartMark not implemented for quantiloop
+	}
+	else
+	{
+		sendSerialControlChange(LOOP_COMMAND_CC,LOOP_COMMAND_SET_LOOP_START,"temp song machine button");
+	}
+}
+
+
+
+// virtual
+void rigLooper::setClipMute(int layer_num, bool mute_on)
+{
+	display(dbg_song_machine,"rigLooper::setClipMute(%d,%d)",layer_num,mute_on);
+	if (m_quantiloop_mode)
+	{
+		thePedals.setRelativeLoopVolume(layer_num,
+			mute_on ? 0 : m_clip_vol[layer_num]);
+		m_clip_mute[layer_num] = mute_on;
+	}
+	else if (m_selected_track_num >= 0)
+	{
+		int clip_num = m_selected_track_num * LOOPER_NUM_LAYERS + layer_num;
+		sendSerialControlChange(CLIP_MUTE_BASE_CC+clip_num,mute_on,"rigLooper::setClipMute()");
+		m_clip_mute[clip_num] = mute_on;
+	}
+	else
+	{
+		display(0,"WARNING: setClipMute(%d,%d) called with no selected track",layer_num,mute_on);
+	}
+}
+
+// virtual
+void rigLooper::setClipVolume(int layer_num, int val)
+{
+	display(dbg_rig,"rigLooper::setClipVolume(%d,%d)",layer_num,val);
+	if (val < 0) val = 0;
+	if (val > 127) val = 127;
+	if (m_quantiloop_mode)
+	{
+		m_clip_vol[layer_num] = val;
+		thePedals.setRelativeLoopVolume(layer_num,val);
+        int total_val = thePedals.getPedal(PEDAL_LOOP)->getDisplayValue();
+        thePedals.pedalEvent(PEDAL_LOOP,total_val);
+	}
+	else if (m_selected_track_num >= 0)
+	{
+		int clip_num = m_selected_track_num * LOOPER_NUM_LAYERS + layer_num;
+		sendSerialControlChange(CLIP_VOL_BASE_CC+clip_num,val,"rigLooper::setClipVolume()");
+		m_clip_vol[clip_num] = val;
+	}
+	else
+	{
+		display(0,"WARNING: setClipVolume(%d,%d) called with no selected track",layer_num,val);
+	}
+}
 //------------------------------------
 // Events
 //------------------------------------
@@ -692,7 +795,7 @@ void rigLooper::onButtonEvent(int row, int col, int event)
 				display(dbg_rig,"rigLooper ERASE TRACK(%d)",col);
 				if (m_quantiloop_mode)
 				{
-					// send the cc command to erase quantiloop track %d
+					// prh - send the cc command to erase quantiloop track %d
 				}
 				else
 				{
@@ -767,48 +870,26 @@ void rigLooper::onButtonEvent(int row, int col, int event)
 		}
 		else if (event == BUTTON_EVENT_CLICK)
 		{
-			if (num == LOOP_STOP_BUTTON)
-			{
-				// in serial looper m_stop_button_cmd is set to NOTHING, STOP or STOP_IMMEDIATE
-				// in quantiloop, the lower right button is always STOP_IMMEDIATE
-
-				if (m_quantiloop_mode)
-				{
-					mySendDeviceControlChange(
-						QUANTILOOP_CC_STOP_START_IMMEDIATE,
-						0x7f,
-						QUANTILOOP_CHANNEL);
-					mySendDeviceControlChange(
-						QUANTILOOP_CC_STOP_START_IMMEDIATE,
-						0x00,
-						QUANTILOOP_CHANNEL);
-				}
-				else if (m_stop_button_cmd)
-				{
-					sendSerialControlChange(LOOP_COMMAND_CC,m_stop_button_cmd,"LOOP STOP BUTTON click");
-				}
-				else
-				{
-					setLED(num,0);
-					showLEDs();
-				}
-			}
 			if (num == LOOP_DUB_BUTTON)
 			{
+				toggleDubMode();
+			}
+			else if (num == LOOP_STOP_BUTTON)
+			{
 				if (m_quantiloop_mode)
 				{
-					mySendDeviceControlChange(
-						QUANTILOOP_CC_DUB_MODE,
-						0x7f,
-						QUANTILOOP_CHANNEL);
-					mySendDeviceControlChange(
-						QUANTILOOP_CC_DUB_MODE,
-						0x00,
-						QUANTILOOP_CHANNEL);
+					stopLooper();
+				}
+				else if (m_stop_button_cmd == LOOP_COMMAND_STOP)
+				{
+					stopLooper();
+				}
+				else if (m_stop_button_cmd == LOOP_COMMAND_STOP_IMMEDIATE)
+				{
+					stopLooperImmediate();
 				}
 				else
 				{
-					sendSerialControlChange(LOOP_COMMAND_CC,LOOP_COMMAND_DUB_MODE,"LOOP DUB BUTTON click");
 					setLED(num,0);
 					showLEDs();
 				}

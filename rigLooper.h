@@ -30,8 +30,12 @@ protected:
         virtual void setGuitarEffect(int effect_num, bool on);
 
         virtual void clearLooper(bool display_only);
-
         virtual void selectTrack(int num);
+        virtual void stopLooper();
+        virtual void stopLooperImmediate();
+        virtual void loopImmediate();
+        virtual void toggleDubMode();
+        virtual void setStartMark();
         virtual void setClipMute(int layer_num, bool on);
         virtual void setClipVolume(int layer_num, int val);
 
