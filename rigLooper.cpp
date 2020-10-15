@@ -541,6 +541,12 @@ void rigLooper::selectTrack(int num)
 	{
 		int value = m_selected_track_num + LOOP_COMMAND_TRACK_BASE;
 		sendSerialControlChange(LOOP_COMMAND_CC,value,"rigLooper::selectTrack()");
+
+	}
+	for (int i=0; i<LOOPER_NUM_TRACKS_TIMES_LAYERS; i++)
+	{
+        m_last_clip_mute[i] = -1;
+        m_last_clip_vol[i] = -1;
 	}
 }
 
