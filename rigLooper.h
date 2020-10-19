@@ -7,7 +7,7 @@
     // LOOPER_NUM_TRACKS and LAYERS, TRACK_STATES, LOOP_COMMANDS, and common CC's
     // denormalized H file common to circle-Looper and Arduino-teensyExpression projects
 
-#define RIGLOOPER_NUM_SYNTH_BANKS   3
+#define RIGLOOPER_NUM_SYNTH_BANKS   2
 #define RIGLOOPER_NUM_SYNTH_PATCHES 12
 #define RIGLOOPER_NUM_GUITAR_EFFECTS 4
 

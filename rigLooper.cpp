@@ -116,40 +116,43 @@ synthPatch_t rigLooper::synth_patch[RIGLOOPER_NUM_SYNTH_BANKS * RIGLOOPER_NUM_SY
 	// The program number sent is MULTI_OFFSET + the program number from the left column
 
 	{0,			"BASS1",		"MM Bass Finger",	 	0},					// 0
-	{1,			"BASS2",		"Chorus Fretless",		0},					// 1
-	{2,			"BASS-",		"2 String Bass",		1},					// 2
+	{1,			"BASS-F",		"MM Bass Finger",		0},					// 1
+	{2,			"BASS-G",		"MM Bass Finger",		0},					// 2
 
-	{3,			"PIANO1",		"Mellow Grand 2",		0},					// 3
-	{4,			"PIANO2",		"Classical Grand",		0},					// 4
-	{5,			"EMPTY",		"Unassigned",			0},					// 5
+	{3,  		"SFLUTE",		"Psych Flute",			0},			        // 10
+	{4,	 		"SPACE1",       "Whispering Pad",		0},					// 14
+	{5,	    	"SPACE2",       "Mega Motion 3",		0},					// 12
 
 	{6,			"ORGAN1",		"Ballad B Pad",			0},					// 6
 	{7,			"ORGAN2",		"Drawbars Bow",			0},					// 7
 	{8,			"BRASS",	    "Drama Brass",			0},					// 8
 
-	{9,			"FLUTE1",		"Orch Flute",					0},			// 9
-	{10,		"SFLUTE",		"Psych Flute",					0},			// 10
-	{11,		"FL-BASS",	    "Psych Flute + Bass",			1},			// 11
+	{9,			"PIANO1",		"Mellow Grand 2",		0},					// 3
+	{10,		"PIANO2",		"Classical Grand",		0},					// 4
+	{11,		"SPACE3",       "Mega Motion 4",		0},					// 13
 
 	// bank 1, alternative sounds
 
-	{12,		 "SPACE1",      "Mega Motion 3",		0},					// 12
-	{13,		 "SPACE2",      "Mega Motion 4",		0},					// 13
-	{14,		 "SPACE3",      "Whispering Pad",		0},					// 14
+	{12,		"BASS2",		"Chorus Fretless",		0},					// 1
+    {13,        "BASS2-F",     	"Chorus Fretless",		0},								// 18
+    {14,        "EMPTY",     	"",			0},								// 18
 
-    {15,          "VOICES1",     "Vocal Oh",			0},					// 15
-    {16,          "VOICES2",     "Vocal Ahh",			0},					// 16
-    {17,          "FX",          "SFX Collection",		0},					// 17
+	{15,	 		"FLUTE1",		"Orch Flute",			0},					// 9
+	{16,        "VOICES1",      "Vocal Oh",			    0},					// 15
+    {17,        "VOICES2",      "Vocal Ahh",			0},					// 16
 
-    {18,          "EMPTY",     	"",			0},								// 18
-    {19,          "EMPTY",     	"",			0},								// 19
-    {20,          "EMPTY",     	"",			0},								// 20
+	{18,        "STRINGS1",    	"Violin",		 		0},								// 19
+    {19,        "STRING2",     	"String Orch2",			0},								// 19
+    {20,        "BANJO",     	"Banjo",	  		    0},								// 19
 
-    {21,          "EMPTY",     	"",			0},								// 21
-    {22,          "EMPTY",     	"",			0},								// 22
-    {23,          "EMPTY",     	"",			0},								// 23
+    {21,        "CHIME",     	"Vibes+Octave",			0},								// 19
+	{22,        "MARIMNA",     	"Marimba",  			0},					// 19
+	{23,        "FX",          "SFX Collection",		0},					// 17
 
-};
+	};
+
+//	{24,		"BASS-",		"2 String Bass",		0},					// 2    FTP POLYMODE CRASHES SAMPLETANK
+//	{25,		"FL-BASS",	    "Psych Flute + Bass",	1},			        // 11	FTP POLYMODE CRASHES SAMPLETANK
 
 
 //----------------
