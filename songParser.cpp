@@ -596,7 +596,7 @@ int songParser::getToken()
 
         // building possible identifier we only allow letter, underscore, and numbers
 
-        else if (c == '_' ||
+        else if (c == '_' || c == '-' || c == '.' ||
                  (c>='A' && c<='Z') ||
                  (c>='a' && c<='z') ||
                  (c>='0' && c<='9'))
