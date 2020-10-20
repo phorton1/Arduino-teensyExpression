@@ -6,6 +6,14 @@
 #include "songParser.h"
 #include "rigBase.h"
 
+# prh - the machine should keep track of what buttons are available
+# at any given time and respond to the WHITE presses of unused ones
+# by setting them back to BLACK.
+
+# prh - Add CLIP_VOLUME layer_num, volume [,delay]
+# and change LOOPER_CLIP to CLIP_MUTE
+
+
 #define dbg_machine   1
 #define dbg_vols   1
 

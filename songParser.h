@@ -48,7 +48,7 @@ typedef struct
 #define TOKEN_LOOP                      17   // "LOOP:"
 #define TOKEN_LOOPER_TRACK              18   // "LOOPER_TRACK"
 #define TOKEN_LOOPER_STOP               19   // "LOOPER_STOP"
-#define TOKEN_LOOPER_STOP_IMMEDIATE     20   // "LOOPER_STOP"
+#define TOKEN_LOOPER_STOP_IMMEDIATE     20   // "LOOPER_STOP_IMMEDIATE"
 #define TOKEN_LOOP_IMMEDIATE            21   // "LOOP_IMMEDIATE"
 #define TOKEN_DUB_MODE                  22   // "DUB_MODE"
 #define TOKEN_SYNTH_PATCH               23   // "SYNTH_PATCH"
