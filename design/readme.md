@@ -39,7 +39,7 @@ higher layers.   This includes
 - an object to manage the **rotary controllers**
 
 Above that, the **expSystem** is the main active object in the system.
-It initializesa ll of the subsystems and does the bulk of event management,
+It initializes all of the subsystems and does the bulk of event management,
 in one of three ways: either by being called directly from the
 teensyExpression.ino loop() method, or via one of two timer
 interrupts:
@@ -178,21 +178,27 @@ via the expression pedals on the fly, say, for example,
 if you want to mix the guitar with the synth in just a
 certain way.
 
-What I have found is that what you really want is to,
-in a given song, at a certain time, cause a bunch of
-stuff to change, and that, in fact, all you are really
+What I have found is that what you really want,
+in a given song, at a certain time, is to cause a bunch of
+stuff to change all at once, and that, in fact, all you are really
 need to do, for a given song structure, is to provide
 *timing cues* **WHEN** you want something to happen.
 
 The songMachine *"takes over"* the bottom left four
 buttons of the teensyExpression (of the rig that
-starts the songMaching running).  The provided
+starts the songMaching running), which are normally
+the Looper *track1-4* buttons in the Looper Rig.
+
+The provided
 **text file** then tells the machine how to use those
 four buttons, and *"loop events"* to send out MIDI
 control signals to effect complicated behaviors
 at gig time, **without needing complicated series
 of (foot) button presses** or pedal changes to
 accomplish them.
+
+Typically an entire song can be orchestrated through
+3 or 4 presses of one button.
 
 The songMachine is also granted dedicated real estate
 on the TFT screen to show the name and status of the
@@ -204,6 +210,9 @@ may serve as an example.  Hopefully the comments are descriptive.
 
 ``` ruby
 # INTRO and CHORUS 0
+
+    # the program is executed from the beginning of the file
+    # as soon as the song is "loaded"
 
     start:
         CLEAR_LOOPER                    # clear the looper to start
@@ -217,8 +226,13 @@ may serve as an example.  Hopefully the comments are descriptive.
         DISPLAY 1,"INTRO"               # display the part of the song we are in
         DISPLAY 2,"sing intro"          # display instructions about what to do here
 
-        # you play the intro, and then when ready, press the button to start
-        # recording the chorus ....
+        # the machine "blocks" on button1-4 or loop labels.
+        # it advances to the next "buttonN" if that button is
+        # pressed, or "loop:" label if the looper cycles through
+        # a loop ...
+
+        # In this example you play the intro, and then when ready, press the
+        # 1st button to start recording the chorus ....
 
     button1:                            # when you press button1 the following happens:
         LOOPER_TRACK 1                  # start the looper recording
@@ -278,7 +292,7 @@ can be found [here](readme_songmachine.md).
 ## Note on Pedals and Display Areas
 
 The handling of the expression pedals is *system-modal*.   That is to say,
-the behvior of the pedals is not really bound to a given rig and the pedals
+the behavior of the pedals is not really bound to any given rig and the pedals
 **continue to work** when you go to the configurationSystem and return to
 a given rig (anywhere in the program).
 
@@ -322,10 +336,12 @@ their previously established terminology.
 Just derive a class from *expWindow* or *rigBase*.  In it's begin() method
 set the buttons up how you want them by calling **theButtons.setButtonType()**.
 Add an **onButtonEvent()** method that responds to the button presses
-and does what you want. That's pretty much it.
+and does what you want (like sending out midi CC messages).
 
 Then modify **expSystem.cpp** to instantiate the rig, and away you go!!
 
+That's pretty much it.
+
 See the various API's (*buttons.h, myLeds.h, myTFT.h, etc*) for details on how
 you affect the display and LEDs, and see **rigLooper** or one of the other
-existing rigs for clues on how to put it together.
+existing rigs for clues on how to send midi events upon button presses.

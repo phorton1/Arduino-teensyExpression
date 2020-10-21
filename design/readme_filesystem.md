@@ -75,7 +75,7 @@ string *file_command:*.
 ```
 
 All file commands should return a serial data stream that includes
-at least one line of text that starts with **"file_reply:**.
+at least one line of text that starts with **"file_reply:"**.
 If there is an error encountered (i.e. path not found) the file
 reply line will contain the word **ERROR** followed by some descriptive
 text, as below
