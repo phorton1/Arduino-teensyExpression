@@ -70,7 +70,7 @@ string *file_command:*.
 
 **File Commands** have the format:
 
-```ruby
+```AsciiDoc
     file_command:verb params
 ```
 
@@ -80,7 +80,7 @@ If there is an error encountered (i.e. path not found) the file
 reply line will contain the word **ERROR** followed by some descriptive
 text, as below
 
-```ruby
+```AsciiDoc
     file_reply:ERROR The file '/blah.txt' was not found
 ```
 
@@ -103,13 +103,13 @@ success returns.
 
   So, for example, you might ask for a listing of the */song* directory with this
 
-```ruby
+```AsciiDoc
     file_command:list 0,/songs
 ```
 
   And the returned serial stream of text lines might look like this:
 
-```ruby
+```AsciiDoc
     file_reply:Directory Listing 2020-10-18 12:00:01,/songs
     file_reply:2020-10-19 12:00:01,some_sub_directory/
     file_reply:2020-10-20 12:00:01,3817,BigRiver.song
@@ -142,7 +142,7 @@ success returns.
   line, which is merely the 32bit unsigned sum of the individual (unencoded)
   bytes.
 
-```ruby
+```AsciiDoc
     file_reply: FILE 2020-10-20 12:00:01,123,/songs/blah.txt
     file_reply: 9879874987498772498742982498724987439874329877324987324987234
     file_reply: 9879874987498772498742982498724987439874329877324987324987234
@@ -171,7 +171,7 @@ success returns.
   When the client receives this, it may then send zero or more **BASE64** lines to
   the system, with a terminating **CHECKSUM** command, like this:
 
-```
+```AsciiDoc
     file_command:BASE64 9879874987498772498742982498724987439874329877324987324987234
     file_command:BASE64 9879874987498772498742982498724987439874329877324987324987234
     file_command:BASE64 9879874987498772498742982498724987439874329877324987324987234
@@ -188,7 +188,7 @@ success returns.
 
   Upon success, the file system will reply with a line like
 
-```ruby
+```AsciiDoc
     file_reply:OK DELETE is_dir
 ```
 
@@ -200,7 +200,7 @@ success returns.
 
   Upon success the filesystem will reply with a line like:
 
-```ruby
+```AsciiDoc
     file_reply:OK DELETE is_dir,size,ts
 ```
 
