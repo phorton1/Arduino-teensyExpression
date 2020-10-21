@@ -2,7 +2,7 @@
 #include "songMachine.h"
 #include "rigBase.h"
 #include "myDebug.h"
-#include <SdFat.h>
+#include "fileSystem.h"
 
 #define dbg_token 2
 #define dbg_parse 2
@@ -16,8 +16,6 @@
 //-----------------------------------
 
 
-extern SdFatSdio SD;
-    // in fileSystem.cpp
 
 char songParser::song_name[80];
 

@@ -63,34 +63,39 @@ repository so that I can present it to you.
 
 ## THIS Repository Organization
 
-This repository contains contains the main INO file (teensyExpression.ino) and C++ and H files
-directly included in it.
+The following subfolders are considered "public":
 
-It contains two subfolders which are considered "public" containing ancilary information
-and readme files about how to build the circuit board and some information on my reverse
-engineering efforts with regards to the Fishman FTP Triple Play midi pickup:
-
-* [hardware/](hardware/) - contains the basic schematic, circuit diagrams, and information about the electronics hardware design
-* [ftp/](ftp/) - contains separate discussions and documents regarding my reverse engineering efforts on the FTP Triple play dongle and controller
-
-In this iteration of the github project, I have moved the 3D printing files
-(fusion 360 files, STL, gcode, etc) to a separate github project.
-The fusion files are large, and are not needed to build the INO file:
-
-* [fusion/](https://github.com/phorton1/Arduino-teensyExpression-fusion) - contains the STL, fusion 360 files, and notes on how to print and assemble the box
-
+* [teensyExprssion/](teensyExprssion/) - contains the C++ source code,
+  including the main INO file (teensyExpression.ino) and the C++ and H files
+  needed to build the program.
+* [design/](design/) - contains a description of the software architecture,
+  with ideas on how other programmers might extend it, along with a
+  description of the [User Interface](design/readme_ui.md) in it's
+  current incarnation.
+* [hardware/](hardware/) - contains the basic schematic, circuit diagrams,
+  and information about building the electronics portion of the project.
+* [ftp/](ftp/) - contains separate discussions and documents regarding
+   my reverse engineering efforts on the FTP Triple Play dongle and controller
 
 There are a number of other sub-folders which are considered "private" for my own
 personal use, and/or which exist only to support the readme.md files in the this
 and the above subfolders:
 
 * **images** - contains images used on this and various readme pages
-* **design** - contains a variety of weird files, images, doc files, that, for me, pertain
+* **junk** - contains a variety of weird files, images, doc files, that, for me, pertain
       to the design of the project, but which are not meant to be necessrily useful
       for a reader or anyone besides myself.
-* **test** - contains a number of test programs that are not necessarily currently up-to-date
+* **tests** - contains a number of test programs that are not necessarily currently up-to-date
     or useful.  I keep these for posterities sake as they may have snippets of code I will
     need in the future.
+
+### 3D Printing Information
+
+There is a separate repository containing the Fusion 360, STL, and gcode files
+for this project that were used to 3D print the box and buttons.
+
+* [fusion/](https://github.com/phorton1/Arduino-teensyExpression-fusion) - contains the STL, fusion 360 files, and notes on how to print and assemble the box
+
 
 ### Please See
 
@@ -113,7 +118,6 @@ this teensyExpression pedal.
 
 
 ### Notes on Building and GitHub **DEPENDENCIES**
-
 
 This project relies on the teensyDuino installation.
 
@@ -141,6 +145,9 @@ just leaving the NameOfLibrary portion in the directory structure if you wish.
    global methods with names like "display" and "display_bytes" which are called
    throughout my code, and which can be turned on or off via defines.
 
+* [base64](https://github.com/phorton1/Arduino-libraries-base64) -
+  UNMODIFIED fork of Adam Rudd's https://github.com/adamvr/arduino-base64 repository
+
 * [ILI9341_t3](https://github.com/phorton1/Arduino-libraries-ILI9341_t3) and
   [ILI9341_fonts](https://github.com/phorton1/Arduino-libraries-ILI9341_fonts) -
   These are UNMODIFIED versions of Paul's ILI9341 libraries, forked from
@@ -161,6 +168,11 @@ just leaving the NameOfLibrary portion in the directory structure if you wish.
   These repositories contain the rude and crude port of the LCDWIKI Arduino libraries
   to the Teensy for the cheap touch screen I ended up using.  The touch screen
   is an 8 bit parellel port screen that looks like this:
+
+* [SdFat](https://github.com/phorton1/Arduino-libraries-SdFat) -
+  A fork of Bill Greiman's https://github.com/greiman/SdFat with one slight
+  modification - to increase BUSY_TIMEOUT_MICROS from 500000 to 1000000,
+  which fixed problems I was having opening an SD card on a fresh boot.
 
   [![touchscreen holder](images/teensyExpression15_resized.jpg)](images/teensyExpression15.jpg)
 

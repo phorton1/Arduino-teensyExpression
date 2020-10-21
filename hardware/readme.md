@@ -35,6 +35,8 @@ electronic circuit.
 The TFT/touchscreen is connected to the motherboard through two 8 pin connectors.
 
 [![teensy circuit pinouts](circuit_pinouts_resized.jpg)](circuit_pinouts.jpg)
+[![teensy circuit](teensy_circuit_board_v7_resized.jpg)](teensy_circuit_board_v7.jpg)
+
 
 Besides those three main components, there are separate subassemblies
 and/or circuit boards for the four **rotary countrollers**,
@@ -143,8 +145,6 @@ The pinouts are detailed in previous diagrams.
 I didn't take any pictures, or keep any detailed design description of the
 Rotary Encoder board I threw together. So I would have
 to open the box up and disassmble it to present it properly.
-
-TODO: Open up the friggin box and take pictures of the rotary controler board.
 
 I am not using the momentary switches on the rotary encoders.
 They were kind of an afterthought, and I had no more pins available on

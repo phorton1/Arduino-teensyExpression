@@ -10,7 +10,6 @@
 #include "fileSystem.h"
 #include "prefs.h"
 #include <myDebug.h>
-#include <SdFat.h>
 #include <Base64.h>
 
 #define dbg_tfs    2
@@ -533,7 +532,7 @@ void fileSystem::handleFileCommand(const char *command, const char *param)
         if (SD.exists(path))
         {
             s_Serial->print("file_reply:");
-            s_Serial->print("directory_already_exists ");
+            s_Serial->print("ERROR - directory_already_exists ");
             s_Serial->print(path);
             s_Serial->print("\r\n");
         }
@@ -560,12 +559,12 @@ void fileSystem::handleFileCommand(const char *command, const char *param)
                 #endif
 
                 s_Serial->print("file_reply:");
-                s_Serial->print("created_directory ");
+                s_Serial->print("OK - created_directory ");
             }
             else
             {
                 s_Serial->print("file_reply:");
-                s_Serial->print("could_not_create_directory ");
+                s_Serial->print("ERROR - could_not_create_directory ");
             }
             s_Serial->print(param);
             s_Serial->print("\r\n");

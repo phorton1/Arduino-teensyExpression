@@ -9,6 +9,8 @@
 #define __fileSystem_h__
 
 #include "Arduino.h"
+#include <SdFat.h>
+
 
 class fileSystem
 {
@@ -22,6 +24,10 @@ public:
    static void handleFileCommand(const char *command, const char *param);
 
 };
+
+
+extern SdFatSdio SD;
+    // in fileSystem.cpp
 
 
 #endif  // !__fileSystem_h__
