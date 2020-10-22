@@ -32,7 +32,7 @@ typedef struct
 #define TOKEN_DISPLAY                   1    // "DISPLAY"
 #define TOKEN_LOOP_VOLUME               2    // "LOOP_VOLUME"
 #define TOKEN_SYNTH_VOLUME              3    // "SYNTH_VOLUME"
-#define TOKEN_GUITAR_VOLUME             4    // "SYNTH_VOLUME"
+#define TOKEN_GUITAR_VOLUME             4    // "GUITAR_VOLUME"
 #define TOKEN_GUITAR_EFFECT_NONE        5    // "GUITAR_EFFECT_NONE"
 #define TOKEN_GUITAR_EFFECT_DISTORT     6    // "GUITAR_EFFECT_DISTORT"
 #define TOKEN_GUITAR_EFFECT_WAH         7    // "GUITAR_EFFECT_WAH"

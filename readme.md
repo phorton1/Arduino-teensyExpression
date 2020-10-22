@@ -65,7 +65,7 @@ repository so that I can present it to you.
 
 The following subfolders are considered "public":
 
-* [teensyExprssion/](teensyExprssion/) - contains the C++ source code,
+* [teensyExpression/](teensyExpression/) - contains the C++ source code,
   including the main INO file (teensyExpression.ino) and the C++ and H files
   needed to build the program.
 * [design/](design/) - contains a description of the software architecture,
