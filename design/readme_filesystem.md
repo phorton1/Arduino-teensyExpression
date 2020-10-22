@@ -216,6 +216,8 @@ that can make use of the above protocol to present a nice explorer-like
 user interface that allows you to easily move files between the teensyExpression
 SD card and the Windows development environment.
 
+[![fileSystem](images/fileClient_resized.jpg)](images/fileClient.jpg)
+
 I *may* publish that program at some point.
 
 Furthermore, that UI application works with my also-as-yet-unpublished putty-like
@@ -223,6 +225,12 @@ perl **CONSOLE** serial port monitor program, that, in turn, works with the
 Arduino development environment to open and close serial ports as necessary
 to ensure that Arduino (teensy) builds take place properly and can be uploaded.
 
+[![console](images/console_resized.jpg)](images/console.jpg)
+
+The above image shows *a little* of the capabilities of the CONSOLE program.
+Like putty, it uses ansi color codes.  So it can display debugging and midi-monitoring
+messages using different colors to distinguish between things, like errors coming
+up in red, or warnings in yellow.
 
 Furthermore, on top of that, that  CONSOLE program works with my
 [**teensyPiLooper**](https://github.com/phorton1/Arduino-teensyPiLooper)

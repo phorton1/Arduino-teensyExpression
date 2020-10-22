@@ -71,7 +71,7 @@ The following subfolders are considered "public":
 * [design/](design/) - contains a description of the software architecture,
   with ideas on how other programmers might extend it, along with a
   description of the [User Interface](design/readme_ui.md) in it's
-  current incarnation.
+  current incarnation, including the [songMachine](design/readme_songmachine.md)
 * [hardware/](hardware/) - contains the basic schematic, circuit diagrams,
   and information about building the electronics portion of the project.
 * [ftp/](ftp/) - contains separate discussions and documents regarding

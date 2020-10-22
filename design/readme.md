@@ -6,13 +6,16 @@ program.
 For a discussion of the user interface (the "user manual"), please see
 the [User Interface](readme_ui.md) readme file.
 
+For a discussion of the advanced automation features of the device,
+please see the [songMachine](readme_songmachine.md) readme file.
+
 
 ## Basic Architecture
 
 The system can be viewed as a series of "layers", generally increasing in level
 of abstraction as you move up the following diagram:
 
-[![architecture diagram](SoftwareArchitectureDiagram_resized.jpg)](SoftwareArchitectureDiagram.jpg)
+[![architecture diagram](images/SoftwareArchitectureDiagram_resized.jpg)](images/SoftwareArchitectureDiagram.jpg)
 
 Everything above the dashed line, the **Project Code**, can be found in this repository.
 
@@ -179,26 +182,30 @@ if you want to mix the guitar with the synth in just a
 certain way.
 
 What I have found is that what you really want,
-in a given song, at a certain time, is to cause a bunch of
-stuff to change all at once, and that, in fact, all you are really
-need to do, for a given song structure, is to provide
-*timing cues* **WHEN** you want something to happen.
+in a given song, at a certain time, is to change a
+number of things, all at once, and that, in fact, all
+you are really need to do, are doing, for a given song
+structure, is providing *timing cues* as to **WHEN**
+you want something to happen.
 
-The songMachine *"takes over"* the bottom left four
-buttons of the teensyExpression (of the rig that
-starts the songMaching running), which are normally
-the Looper *track1-4* buttons in the Looper Rig.
+The songMachine allows the user to "program" the
+*track1-4* buttons (it *"takes over"* the bottom left four
+buttons of the teensyExpression pedal, which are normally
+the Looper *track1-4* buttons in the Looper Rig)
+to whatever color is desired, and to have virtually
+any behavior available in the system.
 
-The provided
-**text file** then tells the machine how to use those
-four buttons, and *"loop events"* to send out MIDI
-control signals to effect complicated behaviors
-at gig time, **without needing complicated series
-of (foot) button presses** or pedal changes to
-accomplish them.
+The provided **text file** (program) then tells the machine
+how to use those four buttons, and *"loop events"* to work
+with the Synth, Guitar Effects, and Looper, devices, sending
+out MIDI event to effect and orchestrate complicated behaviors
+at gig time,
+**without needing complicated series of (foot) button presses**
+or pedal changes to accomplish them.
 
 Typically an entire song can be orchestrated through
-3 or 4 presses of one button.
+3 or 4 presses of a single button, which allows the player
+to concentrate on their performance ... and not on their feet!
 
 The songMachine is also granted dedicated real estate
 on the TFT screen to show the name and status of the
@@ -306,6 +313,8 @@ CC's and behaviors), the pedals themselves (pedals.h and cpp) actually send
 out the pedal MIDI CC messages, and **there is no "Top Level Window" or
 expSystem "onPedalEvent()" method**.
 
+[![ui_LooperRig_annotated](images/ui_LooperRig_annotated_resized.jpg)](images/ui_LooperRig_annotated.jpg)
+
 Also, here, it is worth noting that the TFT screen generally always presents
 a **"title" bar**, which includes the context (rig name, configuration
 option name, or modal dialog title) and the *midi activity* and *FTP battery level*
@@ -330,6 +339,62 @@ with the things *THIS* teensyExpression pedal does (*rigs*) and *"patches"* that
 might be selected on a synthesizer or other device in accordance with
 their previously established terminology.
 
+### I am not using the touch screen
+
+Although the code exists to calibrate the touchscreen, and respond to touch events, in practice
+I am merely using the TFT as a display device.
+
+The whole point of a foot pedal is to not have to bend over and use your hands
+to program it!
+
+### This is not an end-user, consumer, ready device
+
+As I have said before, my goal with this project was not to create an end-user ready,
+consumer level, device.  My goal is to produce something that I can use and am
+comfortable with.  So the device presents a very specific User Interface and set
+of behaviors.
+
+At this time, new "Rigs" are created by writing C++ code.
+
+In a consumer level device, you would
+probably be able to create, store, and modify "rigs" via the device itself.  But
+it is easier for me to write C++ code, than to abstract all possible future potential
+user interfaces out and make them user modifiable and persistant.
+
+In other words, at this time, I am not willing to give up the potential flexibility
+to make the device do what I want in the future (via C++) in favor of creating a
+device that other non-programmers could use.
+
+The best example of that is how the system currently knows
+what midi CC messages to send out to communciate with the external (iPad based or
+custom built) Synth, Guitar Effects, and Looper devices.  Those values,
+the channels and CC numbers to send to communicate with those devices,
+are hard coded into the C++.
+
+Having said that I would like to make some points regarding this implementation.
+
+- The device is interesting as it is, and this documentary effort can be
+  instructive, have value, even if one does not actually go ahead and build
+  an exact copy of this teensyExpression pedal.
+- The UI and behaviors that have evolved for the teensyExpression *could* be
+  used, as-is, to duplicate soething similar to my rig.  The CC numbers and
+  channels are available by perusing the C++ code, and one *could* setup their
+  iPad or other USB Midi based rig to accept and respond to those particular
+  channels and CC numbers
+- The whole idea of making this project public, and documenting it, is so that
+  other capable makers can build it, and particularly that they can modify the
+  C++ source code to make the pedal do whatever THEY want.  If someone wanted to,
+  it would be a reasonable task to fork my code, and then implement their vision
+  of a user-level consumer device ... even for resale ... if they wanted.
+
+Some enterprising individual could take this code, and take advantage of the
+touch screen capabilities, to expand the programmability of the device into
+a consumer level end-user product.
+
+I'm trying to accomplish a lot with this series of projects.  And I am very interested
+in making it public, and available as completely free open source.  But my main
+motivation is, and remains, to create a virtual guitar rig that I like, and that
+I can use in live gigs.
 
 ### Creating a new Rig
 
@@ -338,9 +403,10 @@ set the buttons up how you want them by calling **theButtons.setButtonType()**.
 Add an **onButtonEvent()** method that responds to the button presses
 and does what you want (like sending out midi CC messages).
 
-Then modify **expSystem.cpp** to instantiate the rig, and away you go!!
+Or copy one of the existing rigs (rigLooper, rigTest, or rigDemo) cpp and h
+files to another name, edit them to rename the objects, and go from there.
 
-That's pretty much it.
+Then modify **expSystem.cpp** to instantiate the rig, and away you go!!
 
 See the various API's (*buttons.h, myLeds.h, myTFT.h, etc*) for details on how
 you affect the display and LEDs, and see **rigLooper** or one of the other
