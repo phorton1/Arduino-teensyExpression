@@ -34,13 +34,13 @@ in large cyan, and smaller magenta, respectively.
 
 Below that is the songMachine area, which shows:
 
-- on the first line, in magenta, the **name** of the current song (JamaicaFarewell in this case)
+- on the first line, in cyan, the **name** of the current song (JamaicaFarewell in this case)
 - on the first line to the right, in yellow (or red if an error) the **"state"** of the songMachine
   (waiting for a button press in this case)
 - on the second line, to the left, the **first user programmable display area**, by convention
   usually used to show one word describing WHERE you are in the song (i.e. INTRO, VERSE,
   CHORUS, END, etc) in yellow or green.
-- the second line to the right (the rest of the screen down to the pedal area) is given
+- the second line to the right (the rest of the screen down to the pedal region) is given
   to the **second user programmable display area**, which is also where any errors
   would be displayed, or more usefully, your user programmed message(s) describing, perhaps,
   what you should be doing (i.e. "Sing the Verse NOW!!!") or what is coming
@@ -54,8 +54,8 @@ for the Synth volume, Loop volume, Wah Wah value, and Guitar volume.
 The Looper rig buttons are divided into 4 different groups.
 
 The first group, occupying the top 3 rows of the left most 4 buttons, are the **Synth Patch selection
-buttons**.  They pick one of twelve patches on the synth, within the current "bank".  The **BANK/CONFIG**
-button is the upper right most button.  Short clicking it will toggle between two banks of
+buttons**.  They pick one of twelve patches on the synth, within one of two "banks".  The **BANK/CONFIG**
+button is the upper right most button.  Short clicking it will toggle between the two banks of
 12 synth patches, and it's color will change from CYAN to BLUE to represent bank 1 and bank 2,
 respectively. The patches that are selected also show the bank number they were selected under
 by turning either CYAN or BLUE when pressed.
@@ -86,13 +86,13 @@ bank (color).
 
 ### Song Machine Button (loading songs)
 
-*Long pressing* the ***SONG_MACHINE*** button brings up the *Select Song window*, which lets you
+*Long pressing* the ***SONG_MACHINE*** button brings up the *Select Song dialog*, which lets you
 load a song into the song machine.  It uses the usual blue button arrow pattern seen
 elsewhere in the system:
 
 [![ui_selectSong_wide_annotated](images/ui_selectSong_wide_annotated_resized.jpg)](images/ui_selectSong_wide_annotated.jpg)
 
-While in the Select Song window, the blue ***UP*** and ***DOWN*** buttons move between songs,
+While in the Select Song dialog, the blue ***UP*** and ***DOWN*** buttons move between songs,
 whereas the ***LEFT*** and ***RIGHT*** buttons show you the contents of the
 text file, or move back to the list.  Within this dialog, the green buttons mean ***SELECT
 SONG***, which will cause it to be loaded and started running, and the magenta button
@@ -115,7 +115,7 @@ the songMachine.
 
 *When a song is not loaded, a short click on the (blank) SONG_MACHINE button will set a
 **LOOPER_MARK_POINT** in the current loop if any is playing.  If that happens, instead
-of looping back to the beginning of the clips, the rPi Looper will start loopig back to
+of looping back to the beginning of the clips, the rPi Looper will start looping back to
 the marked point, allowing you do things like "repeat the last phrase 3 times then end"*.
 
 *This functionality was stuck here in lieu of a (quite likely) rework of the UI to
@@ -206,29 +206,27 @@ machine.
   1 through 5, and shows the currently selected rig if it
   is in that range. In the above image, rig #1, the Looper
   rig is selected.
-- the orange button second from the top left is the
+- the orange button second from the top right is the
   *abort* button.  Short clicking it will abort any
   changes you have made to the configuration and
   return you to the current rig (as opposed to
-  clicking the top left button which **accepts**
+  clicking the top right button which **accepts**
   the changes).
 - *long clicking the orange button* will **reboot the machine**.
-
-"Off","Debug Port","USB","Serial"
 
 
 ### Configuration Menu Hierarchy
 
-Details about certain setting will be provided below.
+Details about certain settings will be provided below.
 
 ```
     1. Brightness                   NN      # sets the LED brighntess
     2. Rig                        name      # chooses different rigs
-    3. FTP                         ...      # brings up the FTP submenu
-    |  1. Spoof FTP              off/on     # turn FTP spoof mode on or off
-    |  2. FTP Port      off/host/remote     # where is the FTP dongle?
+    3. FTP                         ...    dow  # brings up the FTP submenu
+    |  1. Spoof FTP             off/on      # turn FTP spoof mode on or off
+    |  2. FTP Port     off/host/remote      # where is the FTP dongle?
     |  3. FTP Tuner                ...      # brings up the FTP tuner dialog
-       4. FTP Sens                 ...      # brings up the FTP sensitivity dialog
+    |  4. FTP Sens                 ...      # brings up the FTP sensitivity dialog
     4. Pedals                      ...
     |  1. Configure Pedal1 (SYNTH)          # brings up the pedal configuration
     |  2. Configure Pedal2 (LOOP)           # dialog for one of the four expression
@@ -322,7 +320,7 @@ as a compliant USB midi device with four ports
 - teensyExpression OUT 1
 
 When FTP spoofing is turned **on** this device presents itself
-**as an FTP USB device* with a different set of four ports:
+**as an FTP USB device** with a different set of four ports:
 
 - Fishman Triple Play - (in 0)
 - Fishman Triple Play - (out 0)
@@ -331,7 +329,7 @@ When FTP spoofing is turned **on** this device presents itself
 
 **IF you plug an FTP dongle into the USB Host port** and engage
 *FTP spoof mode*, you may then plug this teensyExpression pedal into
-your windows machine, and can **run the Fishman FTP Windows**
+your Windows machine, and can **run the Fishman FTP Windows**
 application, and it will *see* the teensyExpression **AS**
 a Fishman FTP device!!
 
@@ -399,9 +397,9 @@ as filtering on specific *ports* and/or *midi channels*.
 In addition, you can choose to filter out (or show) specific
 midi messages, like, for example, **sysex** which can be
 shown as a single line, or can include a dump of the actual
-sysex bytes in the monitory.
+sysex bytes in the monitor.
 
-If you are monitoring an Fishman FTP Triple Play Dongle,
+If you are monitoring a Fishman FTP Triple Play Dongle,
 you can also choose to further parse FTP sepecific messages,
 including to display the contents of FTP patches as they
 are being slung back and forth, and/or to interpret the
@@ -457,7 +455,7 @@ to the current pedal) by pressing the **purple** button
 on the upper left.
 
 If you have made changes to a pedal configuration, and
-left this window with the *green* *accept* button you
+left this dialog window with the *green* *accept* button you
 can then save those changes persistently, if you wish,
 when exiting configuration mode by *long pressing* the
 **exit configuration mode** button.
@@ -472,7 +470,7 @@ another ongoing project ... an automated foot pedal, that
 I have yet to finish and/or publish.
 
 The **normal** setting will send out typical MIDI CC
-messages (as determined in rigLooper.cpp) for the various
+messages (as determined in pedals.cpp) for the various
 pedals.
 
 In the **normal** setting, the *Looper Rig* **LOOP pedal**
@@ -481,17 +479,17 @@ on the iPad with (my certain) known CC numbers.
 
 However, if the **LOOP pedal** type is changed to **serial**, then
 the Looper rig expects to control and communicate with my
-**[Loooper](https://github.com/phorton1/circle-prh-apps-Looper)**
+**[bare metal rPi Looper](https://github.com/phorton1/circle-prh-apps-Looper)**
 via serial commands out the 1/8" jack on the back of the box.
 
-My rpi Looper has specific capabilities thst are not available
+My rPi Looper has specific capabilities thst are not available
 in Quantiloop (or any other iPad based looper that I know of).
 
 Overusing the Loop Pedal's *type* in order to provide modal
 behavior to the Looper Rig is a *kludge*.
 
 However, I wanted to document this small detail.  If you happen
-to build both this teensExpression and a bare metal rPi looper,
+to build both this teensExpression and an instance of my bare metal rPi looper,
 you will need to set the Loop Pedal type to Serial to get them
 to work together.
 
@@ -518,7 +516,7 @@ buttons, respectively, decrease or increase the given value.
 
 [![ui_FtpSensitivity_wide](images/ui_FtpSensitivity_wide_resized.jpg)](images/ui_FtpSensitivity_wide.jpg)
 
-The VU meters show the relative MIDI Note On velocity values for each
+The **VU meters** show the relative MIDI Note On velocity values for each
 string, with a **white line** showing the setting value.
 
 The **green** button at the *lower right* accepts the changes and

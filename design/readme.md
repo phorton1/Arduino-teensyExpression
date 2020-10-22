@@ -293,7 +293,7 @@ presses.  The chosen synth patch, volumes and effects are determined by the code
 All you do is tell the machine **WHEN** to change state ...
 
 More info on the songMachine and the songMachine language
-can be found [here](readme_songmachine.md).
+can be found in the [songMachine readme file](readme_songmachine.md).
 
 
 ## Note on Pedals and Display Areas
