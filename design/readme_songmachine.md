@@ -197,3 +197,85 @@ Note that an identifer by itself, followed by a colon is a statement (a label) f
 with the **GOTO** statement, and that the special labels **loop:*, **button1:**, **button3:**,
 **button3:**, and **button4:** are reserved and have specific behaviors associated with them.
 
+## EXAMPLE CODE
+
+
+Here is a short snippet of **"songmachine code"** that
+may serve as an example.  Hopefully the comments are descriptive.
+
+``` ruby
+# INTRO and CHORUS 0
+
+    # the program is executed from the beginning of the file
+    # as soon as the song is "loaded"
+
+    start:
+        CLEAR_LOOPER                    # clear the looper to start
+        LOOP_VOLUME 63                  # set looper to a known volume
+        SYNTH_VOLUME 0                  # turn the synth all the way down
+        GUITAR_VOLUME 70                # set the guitar to a known volume
+        SYNTH_PATCH Bass1               # pick a synth patch for later use
+        GUITAR_EFFECT_NONE              # turn off all guitar effects
+        BUTTON_COLOR 4,yellow           # make 4th button from bottom left yellow
+        BUTTON_COLOR 1,orange,FLASH     # make the first button flashing orange
+        DISPLAY 1,"INTRO"               # display the part of the song we are in
+        DISPLAY 2,"sing intro"          # display instructions about what to do here
+
+        # the machine "blocks" on button1-4 or loop labels.
+        # it advances to the next "buttonN" if that button is
+        # pressed, or "loop:" label if the looper cycles through
+        # a loop ...
+
+        # In this example you play the intro, and then when ready, press the
+        # 1st button to start recording the chorus ....
+
+    button1:                            # when you press button1 the following happens:
+        LOOPER_TRACK 1                  # start the looper recording
+        BUTTON_COLOR 1,red              # set the button to red to indicate recording
+        DISPLAY 1,"CHOR0"               # display the part of the song we are in
+        DISPLAY 2,"recording base clip" # display what's going on at this time
+
+# LEAD 0 - Acoustic guitar fill thru base clip
+
+        # once you press the button again, it starts playing the loop,
+        # turns on the guitar echo so you can play lead over it ...
+
+    button1:
+        LOOPER_TRACK 1                  # end recording
+        delay 10                        # 10's of a second to allow for good loop end recording
+        GUITAR_EFFECT_ECHO on           # turn on the echo effect
+        BUTTON_COLOR 1,green,FLASH      # change button to green flashing
+        DISPLAY 1,"A-LEAD"              # display stuff ...
+        DISPLAY 2,"play acc lead\nready bass"
+
+        # ready bass - you press this button at the end of the
+        # guitar lead but BEFORE the loop happens to fade
+        # out the guitar and fade in the bass before recording it.
+
+    button1:                            # press this BEFORE loop ends!
+        BUTTON_COLOR 1,red,FLASH        # show red flashing button
+        GUITAR_VOLUME 0,20              # bring guitar down over 2 seconds
+        SYNTH_VOLUME 85,20              # while bringing synth up over two seconds
+        DUB_MODE                        # set dub mode to ...
+        LOOPER_TRACK 1                  # start recording on next loop
+        DISPLAY 2,"ready record bass"
+
+# VERSE1 and CHORUS1 - while recording bass
+
+        # the next time the looper comes around, the song
+        # machine will get the "loop" event and trigger
+        # the following section of code ...
+
+    loop:
+        BUTTON_COLOR 1,red              # button to red
+        DISPLAY 1,"VERSE1"              # what part of song are we in?
+        DISPLAY 2,"recording bass1"     # what the heck are you supposed to be doing now!
+
+    ... and so on
+
+```
+
+The above example lets you play an intro, then record a straight guitar part,
+then play lead over it, then start recording bass over that, with only two button
+presses.  The chosen synth patch, volumes and effects are determined by the code.
+All you do is tell the machine **WHEN** to change state ...
