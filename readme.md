@@ -162,17 +162,17 @@ just leaving the NameOfLibrary portion in the directory structure if you wish.
   The API was changed to make a few functions virtual and to expose
   a few private variables as "protected".
 
+* [SdFat](https://github.com/phorton1/Arduino-libraries-SdFat) -
+  A fork of Bill Greiman's https://github.com/greiman/SdFat with one slight
+  modification - to increase BUSY_TIMEOUT_MICROS from 500000 to 1000000,
+  which fixed problems I was having opening an SD card on a fresh boot.
+
 * [my_LCDWIKI_GUI](https://github.com/phorton1/Arduino-libraries-my_LCDWIKI_GUI),
   [my_LCDWIKI_KBV](https://github.com/phorton1/Arduino-libraries-my_LCDWIKI_KBV), and
   [my_LCDWIKI_TouchScreen](https://github.com/phorton1/Arduino-libraries-my_LCDWIKI_TouchScreen) -
   These repositories contain the rude and crude port of the LCDWIKI Arduino libraries
   to the Teensy for the cheap touch screen I ended up using.  The touch screen
   is an 8 bit parellel port screen that looks like this:
-
-* [SdFat](https://github.com/phorton1/Arduino-libraries-SdFat) -
-  A fork of Bill Greiman's https://github.com/greiman/SdFat with one slight
-  modification - to increase BUSY_TIMEOUT_MICROS from 500000 to 1000000,
-  which fixed problems I was having opening an SD card on a fresh boot.
 
   [![touchscreen holder](images/teensyExpression15_resized.jpg)](images/teensyExpression15.jpg)
 
