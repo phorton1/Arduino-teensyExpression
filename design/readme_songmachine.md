@@ -90,7 +90,7 @@ color of buttons in the BUTTON_COLOR statement.
 - **Numbers** are generally integers, and limited to 3 digits.
 - **Volumes** are numbers in the range of 0 to 127
 - **Delays** are measured in 10ths of a second from 0..255,
-  allowing for delays of 0 to 25 seconds to be stored in a single byte.
+  allowing for delays of 0 to 25.5 seconds to be stored in a single byte.
 - **button numbers**, **track numbers**, and **clip numbers** are limited to 1 through 4
 
 **Identifiers** and **labels**
@@ -127,7 +127,7 @@ The song language supports the following **statements**L
   The LOOP, SYNTH, and GUITAR
   VOLUME statements allow you to set the volumes (pedals) to the given
   values. These statement accept an optional **fade time** parameter,
-  measured in 10ths of a secondm over which the given volume change will
+  measured in 10ths of a second over which the given volume change will
   take place. A fade_time of zero (0) means that that the volume change will take
   place immediately.  The default fade time, if none is specified is
   2 (0.2 seconds) to avoid pops and clicks from abpruptly changing
@@ -157,19 +157,21 @@ The song language supports the following **statements**L
 - **LOOPER_TRACK** *track_number* - is the functional equivalant of pressing one of the
   four **Track1-4** buttons.  The behavior of the Looper in response to a Track Button press
   depends on it's running state and the state of the *DUB* button.
-  On an empty looper, the first press begins *recording* a song, and the
+  For example, on an empty looper, the first press begins *recording* a song, and the
   second press starts *playing it*.
 - **LOOPER_CLIP** *clip_num,MUTE/UNMUTE* - mute, or unmute, the given clip (layer)
   within the **currently selected** track.
 - **DUB_MODE** - the DUB mode (in the rPi looper) is a one-shot mode that applies
   to the *next* Track button that is pressed.  In the cannonical example, from an
   empty looper, pressing Track1 once will start recording the first clip on track1, and pressing
-  it again will begin playing that clip.   But what if you wanted to immediately record the
-  second clip?  You would **first** press the *DUB_MODE* button (execute the DUB_MODE statement)
+  it again will begin playing that clip.   *But what if you wanted to immediately record the
+  second clip?*  You would **first** press the *DUB_MODE* button (execute the DUB_MODE statement)
   and **THEN** upon the second Track1 button press, the Looper will not only start playing the
-  1st clip, but will start recording a second one.  The *DUB_MODE* button works between tracks
+  1st clip, but will start recording a second clip (layer) within the track.
+  The *DUB_MODE* button works between tracks
   too, so that you can, for example, switch to a different track and both start playing it **AND**
   recording another clip in it, on the next track (subject to loop point considerations)
+  as opposed to merely playing it.
 - **LOOP_IMMEDIATE** - loop all clips in the current track, immediately, back to their starts
   (or the last **MARK POINT** if one has been set)
 - **LOOPER_SET_START_MARK** - notify the looper to set a **MARK_POINT** which it will
@@ -276,6 +278,8 @@ may serve as an example.  Hopefully the comments are descriptive.
 ```
 
 The above example lets you play an intro, then record a straight guitar part,
-then play lead over it, then start recording bass over that, with only two button
-presses.  The chosen synth patch, volumes and effects are determined by the code.
+then play lead with echo over it, then start recording bass over that, with only two button
+presses.  The chosen synth patch, volumes and guitar effects are determined by the code.
 All you do is tell the machine **WHEN** to change state ...
+
+----- end of readme_songmachine.md ------

@@ -411,3 +411,5 @@ Then modify **expSystem.cpp** to instantiate the rig, and away you go!!
 See the various API's (*buttons.h, myLeds.h, myTFT.h, etc*) for details on how
 you affect the display and LEDs, and see **rigLooper** or one of the other
 existing rigs for clues on how to send midi events upon button presses.
+
+----- end of design/readme_ui.md ------

@@ -143,10 +143,10 @@ success returns.
   bytes.
 
 ```Text
-    file_reply: FILE 2020-10-20 12:00:01,123,/songs/blah.txt
-    file_reply: 9879874987498772498742982498724987439874329877324987324987234
-    file_reply: 9879874987498772498742982498724987439874329877324987324987234
-    file_reply: 9879874987498772498742982498724987439874329877324987324987234
+    file_reply:FILE 2020-10-20 12:00:01,123,/songs/blah.txt
+    file_reply:9879874987498772498742982498724987439874329877324987324987234
+    file_reply:9879874987498772498742982498724987439874329877324987324987234
+    file_reply:9879874987498772498742982498724987439874329877324987324987234
     file_reply:CHECKSUM 12345
 ```
 
@@ -242,7 +242,7 @@ with this fileSystem, also work with the
 [**Circle rPi bare metal bootloader** ](https://github.com/phorton1/circle-prh)
 that I wrote that allows you to develop and compile
 bare metal rPi programs on Windows and easily upload them (*kernel.img*) via serial
-data to the SD card on the rPi (without swapping the the SD card in and out)
+data to the SD card on the rPi (without swapping the the SD card in and out).
 
 So, even when the teensyExpression main USB port is plugged
 into the iPad (or a USB router to the iPad), that you can STILL communicate
@@ -251,10 +251,14 @@ programs, to access and work with files on the teensyExpression with an explorer
 user interface ... even though the teensyExpression is NOT plugged into the windows
 machine!
 
-I use this to update **song files** as I am developing them (writing them on Windows),
+I use this to update **song files** as I am developing them (editing them in a
+simple text editor, like Notepad, on Windows),
 so that I can play them, in the songMachine on the teensyExpression, in vitro, while IT
 is connected to the iPad, without having to change any cables.
 
 It's very complicated to explain, and I hope a video demonstrating this,
 and some of the other capabilities of my development environment,
 will be forthcoming.
+
+
+----- end of readme_filesystm.md ------

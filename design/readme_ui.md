@@ -74,11 +74,11 @@ The entire bottom row of buttons, plus the one above the right corner, are the *
 buttons**. They are, from left to right, the *TRACK1* through *TRACK4* buttons, the *DUB* button,
 and above the DUB button, the *STOP* button.  *Long pressing either* the DUB or STOP button
 will **clear the Looper** (and, if a song is loaded in the songMachine, it will clear the
-songMachine too)
+songMachine too).
 
 Finally there is the right most column of buttons, which from the top down, are,
 respectively, the ***BANK/CONFIG button***, the ***SONG_MACHINE button***, the
-***QUICK_MODE/TUNER button**, and as previously mentioned, the Looper STOP and DUB buttons.
+**QUICK_MODE/TUNER button**, and as previously mentioned, the Looper STOP and DUB buttons.
 
 *Long pressing* the upper right BANK_SELECT button **takes you to System Configuration mode**
 (rig #0) as described later in this document, whereas a normal click merely toggles the selected
@@ -222,7 +222,7 @@ Details about certain settings will be provided below.
 ```
     1. Brightness                   NN      # sets the LED brighntess
     2. Rig                        name      # chooses different rigs
-    3. FTP                         ...    dow  # brings up the FTP submenu
+    3. FTP                         ...      # brings up the FTP submenu
     |  1. Spoof FTP             off/on      # turn FTP spoof mode on or off
     |  2. FTP Port     off/host/remote      # where is the FTP dongle?
     |  3. FTP Tuner                ...      # brings up the FTP tuner dialog
@@ -379,7 +379,7 @@ Or the Midi Monitor can be specifically directed to
 either the main USB or the ancillary serial port.
 
 So, it is possible, if you desire, to (perhaps using
-an r232 USB Serial Dongle) to connect the Midi Monitor
+an rs232 USB Serial Dongle) to connect the Midi Monitor
 to one console (instance of "putty") on your development
 machine, and have the debugging output from the program
 go to a separate different instance.
@@ -396,14 +396,16 @@ as filtering on specific *ports* and/or *midi channels*.
 
 In addition, you can choose to filter out (or show) specific
 midi messages, like, for example, **sysex** which can be
-shown as a single line, or can include a dump of the actual
+shown as a single line, that just tells you how many bytes
+of sysex were in the message, or it can include a dump of the actual
 sysex bytes in the monitor.
 
 If you are monitoring a Fishman FTP Triple Play Dongle,
 you can also choose to further parse FTP sepecific messages,
-including to display the contents of FTP patches as they
-are being slung back and forth, and/or to interpret the
-FTP **1f/3f** command/reply sequences.
+including to display the contents of FTP patches in a
+meaningfule manner as they are being slung back and forth,
+and/or to interpret the
+FTP **1f/3f** *command/reply* sequences.
 
 For more information on my efforts at reverse engineering
 the FTP Midi protocols, please see the
@@ -517,7 +519,9 @@ buttons, respectively, decrease or increase the given value.
 [![ui_FtpSensitivity_wide](images/ui_FtpSensitivity_wide_resized.jpg)](images/ui_FtpSensitivity_wide.jpg)
 
 The **VU meters** show the relative MIDI Note On velocity values for each
-string, with a **white line** showing the setting value.
+string  The FTP delivers these in a comprssed format with a non-linear
+dynamic range. The **white line** shows the relative, uncompressed
+MIDI Note On velocity.
 
 The **green** button at the *lower right* accepts the changes and
 returns to configuration mode or the current rig.
