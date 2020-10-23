@@ -29,11 +29,11 @@ It is intended to be a *foot* controller ... hence the tiered setup which makes 
 easier to press buttons with your toes without having to reach over other buttons.
 FWIW, I play the guitar barefooted, while sitting in a chair.
 
-There are two major aspects to this project.  First there is the **hardware**, which is
+There are two major aspects to this project.  First there is the [**hardware**](hardware/), which is
 relatively straight forward, and there are circuit diagrams, fusion 360 files, some
 instructions, and so on that might allow someone to create a copy if they wanted to.
 
-The second major aspect is the **software**. Inasmuch as this was conceived as BOTH an
+The second major aspect is the [**software**](design/). Inasmuch as this was conceived as BOTH an
 experimental platform to let me mess with USB midi, and particularly the **Fishman FTP
 Triple Play** dongle/controller, it also has been programmed to fit into my existing
 performance setup.  For me, it is "gig ready", as well as a place I can try different
