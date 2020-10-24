@@ -14,7 +14,7 @@
 // and change LOOPER_CLIP to CLIP_MUTE
 
 
-#define dbg_machine   1
+#define dbg_machine   0
 #define dbg_vols   1
 
 #define MIN_TIME_TWEEN_VOL_CMD_MILLIS    40         // at least 3 buffers on the looper

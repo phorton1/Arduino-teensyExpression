@@ -1,0 +1,142 @@
+# ChinaCat.song
+
+    start:
+        CLEAR_LOOPER
+        LOOP_VOLUME 63
+        SYNTH_VOLUME 90
+        SYNTH_VOLUME 100
+        GUITAR_VOLUME 36
+        SYNTH_PATCH Bass1
+        GUITAR_EFFECT_NONE
+        GUITAR_EFFECT_ECHO on
+        BUTTON_COLOR 4,yellow
+        BUTTON_COLOR 1,red,FLASH
+        DISPLAY 1,"START"
+        DISPLAY 2,"record the C-D break"
+
+# RECORD INITIAL BASS_BREAK C-D part
+
+    button1:
+        LOOPER_TRACK 1                  # start recording BREAK_BASS track 1
+        BUTTON_COLOR 1,orange,FLASH
+        DISPLAY 1,"REC\nBREAK"
+        DISPLAY 2,"record BASS_BREAK\nready MAIN_BASS"
+
+# RECORD THE MAIN_BASS PART
+
+    button1:
+        LOOPER_TRACK 2                  # start recording MAIN_BASS - main G part
+        DISPLAY 1,"REC\nMAIN"
+        DISPLAY 2,"rec MAIN_BASS\npress to save"
+        BUTTON_COLOR 1,yellow,FLASH
+
+# play intro lead part
+
+    button1:                            # finish recording MAIN BASS part
+        LOOPER_TRACK 2                  # start playing main bass part
+        SYNTH_VOLUME 0,5                # turn down the bass
+        GUITAR_VOLUME 0,15              # fade out down guitar temporarily
+        GUITAR_EFFECT_DISTORT on
+        GUITAR_EFFECT_WAH on
+        BUTTON_COLOR 1,green,FLASH
+        DISPLAY 1,"LEAD"
+        DISPLAY 2,"press at end to\nready MAIN_CHORDS"
+        delay 10
+        GUITAR_EFFECT_ECHO on
+        GUITAR_VOLUME 70,15             # fade in guitar for lead
+
+        # play the lead here until a walk down
+        # then press the button to end the lead and prepare for
+        # reording the MAIN CHORDS part
+
+    button1:
+        DISPLAY 1,"READY\nMAIN"
+        DISPLAY 2,"will rec MAIN_CHORDS\nat next loop"
+        GUITAR_EFFECT_DISTORT off
+        GUITAR_EFFECT_WAH off
+        GUITAR_EFFECT_ECHO off
+        BUTTON_COLOR 1,black
+        DUB_MODE                        # ready to record
+        LOOPER_TRACK 2                  # will record on next loop
+
+#--------------------------
+# verse 1
+#--------------------------
+# RECORD THE MAIN F-G chords under FIRST VERSE
+
+    loop:   # look for a while at the       # recording main chords
+
+            DISPLAY 1,"REC\nMAIN"
+            DISPLAY 2,"rec MAIN_CHORDS through verse and chorus"
+            BUTTON_COLOR 1,green,FLASH
+
+    button1:
+            DISPLAY 1,"CHOR"
+            LOOPER_TRACK 2                  # finish recording main chords
+            SYNTH_PATCH Bass-G
+            BUTTON_COLOR 1,yellow,FLASH
+            DISPLAY 2,"chorus bass+guitar"
+
+    button1:
+            DUB_MODE                        # ready to record
+            BUTTON_COLOR 1,red,FLASH
+            DISPLAY 2,"READY D bass+guitar"
+            LOOPER_TRACK 3                  # ready record D part
+
+# RECORD the D combined bass+guitar part
+
+    loop:
+            SYNTH_VOLUME 70,0
+            BUTTON_COLOR 1,orange,FLASH
+            DISPLAY 1,"REC\nPART"
+            DISPLAY 2,"press to FINISH\nrecording D part"
+            DUB_MODE
+
+#-------------------------------------------------------
+# second verse
+#-------------------------------------------------------
+
+    button1:                                # finish recording the D part
+    BREAK_AGAIN:
+            LOOPER_TRACK    1               # play the BASS_BREAK part while
+            BUTTON_COLOR 1,black
+            SYNTH_VOLUME 0,0                # turn down the bass
+            DISPLAY 1,"BREAK"
+            DISPLAY 2,""
+            delay 10                        # and THEN go into the verse
+            LOOPER_TRACK    2               # will finish recording BREAK_CHORDS and start verse 2
+
+
+    loop:       # should now just be playing verse two, singing over it
+            DISPLAY 1,"VERSE"
+            DISPLAY 2,"1"
+    loop:
+            DISPLAY 2,"2"
+    loop:
+            DISPLAY 2,"3"
+    loop:
+            DISPLAY 2,"4"
+    loop:
+            DISPLAY 1,"CHOR"
+            DISPLAY 2,"1"
+    loop:
+            DISPLAY 2,"2"
+    loop:
+            DISPLAY 2,"3"
+    loop:
+            DISPLAY 2,"4"
+            # goto d part
+            LOOPER_TRACK 3
+
+    loop:
+
+        # nuther time around
+        goto BREAK_AGAIN
+
+
+
+button4:
+    goto start
+
+
+# end of file: ChinaCat.song
