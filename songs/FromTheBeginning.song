@@ -1,0 +1,257 @@
+# FromTheBeginning.song
+
+    start:
+
+        BUTTON_COLOR 4,yellow
+
+        CLEAR_LOOPER
+        LOOP_VOLUME 63
+
+        SYNTH_VOLUME 0,10
+        GUITAR_VOLUME 0,10
+        DELAY 10
+
+        SYNTH_PATCH SFlute
+        SYNTH_VOLUME 42,20
+
+        GUITAR_EFFECT_NONE
+        GUITAR_EFFECT_ECHO on
+        GUITAR_VOLUME 80,20
+
+        BUTTON_COLOR 1,green
+        DISPLAY 1,"INTRO"
+        DISPLAY 2,"press for finger picking"
+
+# press when starting walk down finger picking part
+# brings the synth and guitar down a little
+
+    button1:
+        SYNTH_VOLUME 35,10
+        GUITAR_VOLUME 70,10
+        BUTTON_COLOR 1,orange,FLASH
+        DISPLAY 2,"press for PICKUP"
+
+
+# PICKUP
+# press this ON the beat (on FOUR) just before the pickup (which comes on 'and')
+# this will record just those 3 notes
+
+    button1:
+        GUITAR_VOLUME 70,2
+        BUTTON_COLOR 1,red
+        LOOPER_TRACK 1
+
+# VAMP
+# Then press this soon therafter, on ONE, and record two times through the vamp part
+
+    button1:
+        LOOPER_TRACK 2
+        DISPLAY 1,"VAMP"
+        DISPLAY 2,"press to record\nverse chords"
+        BUTTON_COLOR 1,red,FLASH
+
+#-------------------------------
+# VERSE1
+#-------------------------------
+# press this after two times through the vamp part,
+# then record the verse and chorus, INCLUDING two more
+# times through the vamp to get started
+
+    button1:
+        LOOPER_TRACK 3
+        BUTTON_COLOR 1,yellow,flash
+        DISPLAY 1,"VERSE"
+        DISPLAY 2,"press to turn up synth"
+
+    # turn up the synth at the end of the chorus
+
+    button1:
+        SYNTH_VOLUME 45,40
+        DISPLAY 1,"CHORUS"
+        DISPLAY 2,"press to return\nto pickup-vamp"
+
+
+#===============================================
+# back to beginning
+#===============================================
+# press this button on the beat (FOUR) after the end
+# of the chorus. this snippet actually causes the
+# PICKUP (track1) to play and then AUTOMATICALLY
+# goes into the vamp ... the guitar and synth are
+# turned down first.
+
+    button1:                # .... from the beginning
+        LOOPER_TRACK 1      # pickup
+        GUITAR_VOLUME 0,10
+        SYNTH_VOLUME 0,10
+        DELAY 10
+        LOOPER_TRACK 2      # vamp
+
+        # turn the bass up in preparation for recording
+
+        SYNTH_PATCH Bass1
+        BUTTON_COLOR 1,green
+        DISPLAY 1,"VAMP"
+        DISPLAY 2,"turning up bass"
+        SYNTH_VOLUME 80,30
+        DELAY 50            # get well into the vamp loop
+        DISPLAY 2,"ready to record\n vamp bass"
+
+# RECORD VAMP BASS
+# THE BASS WILL AUTOMATICALLY START RECORDING after ONE
+# time through (the PAIR of) vamps
+
+        DUB_MODE
+        LOOPER_TRACK 2
+        BUTTON_COLOR 1,red
+        DISPLAY 1,"VAMP"
+        DISPLAY 2,"recording bass"
+
+        # recording first time through above
+        # recording second time through below
+
+    loop:
+        BUTTON_COLOR 1,red,flash
+        DISPLAY 2,"ready record\n VERSE bass"
+        DUB_MODE
+        LOOPER_TRACK 3
+
+#----------------------------------------------------------
+# VERSE2 - record BASS automaticallly after two times
+#----------------------------------------------------------
+# through vamp ... start singing after two times
+# through ...
+
+    loop:
+        BUTTON_COLOR 1,red
+        DISPLAY 1,"VERSE"
+        DISPLAY 2,"recording VERSE BASS\nSING !!"
+
+
+#===============================================
+# back to the beginning
+#===============================================
+# At the end of the chorus loop, it will automatically go back
+# and (continue) record(ing) the bass over the PICKUP
+# The button will turn GREEN on the FOUR beat before the pickup.
+# It's a tricky bass timing ...
+
+        DELAY 40            # get well into the verse
+        DUB_MODE
+        LOOPER_TRACK 1
+
+    # record pickup ... THEN IT AUTOMATICALLY
+    # turns down the bass and up the lead guitar
+
+    loop:
+        BUTTON_COLOR 1,green        # FOUR BEAT before PICKUP!!!
+        DELAY 10
+        LOOPER_TRACK 2
+        DELAY 10
+
+#----------------
+# GUITAR LEAD1
+#----------------
+
+        SYNTH_VOLUME 0,20
+        GUITAR_EFFECT_WAH on
+        GUITAR_EFFECT_DISTORT on
+        GUITAR_VOLUME 45,40
+        SYNTH_PATCH Space1
+        DISPLAY 1,"LEAD"
+        DISPLAY 2,"wah wah press for space"
+        BUTTON_COLOR 1,green,flash
+        LOOP_VOLUME 70,100
+
+        # guitar lead through two loops
+
+    button1:
+        SYNTH_VOLUME 70,50
+        DISPLAY 2,"wpress for verse"
+        BUTTON_COLOR 1,yellow,flash
+
+    button1:
+        BUTTON_COLOR 1,purple
+        DISPLAY 2,"going into verse"
+        LOOPER_TRACK 3
+        LOOP_VOLUME 63,50
+
+#--------------------------------------
+# VERSE3 - same as the first
+#--------------------------------------
+# fade down the loop a little bit
+# note that the guitar is where it is
+
+    loop:
+        DISPLAY 1,"VERSE"
+        DISPLAY 2,"finish lead\nWORK THE SYNTH OUT (DOWN!)"
+        BUTTON_COLOR 1,yellow,FLASH
+
+    # prepare pickup to another lead
+
+        DELAY 50
+        LOOPER_TRACK 1
+
+    # and back into the vamp for the second lead
+
+    loop:
+        SYNTH_VOLUME 0,10
+        DELAY 10
+        LOOPER_TRACK 2
+
+#------------------------------------------------------------
+# SECOND GUITAR LEAD (with organ and breaks, button to stop)
+#------------------------------------------------------------
+
+    loop:
+        DISPLAY 1,"LEAD2",purple
+        DISPLAY 2,"TURN UP THE ORGAN!",yellow
+        SYNTH_VOLUME 0,20
+        SYNTH_PATCH Organ1
+        BUTTON_COLOR 1,orange,flash
+        DELAY 80
+        DISPLAY 2,"button for final verse"
+
+
+#------------------------------------
+# FINAL VERSE4 and END
+#------------------------------------
+
+    button1:
+        BUTTON_COLOR 1,black
+        DISPLAY 1,"FINAL",red
+        LOOPER_TRACK 3
+        DELAY 50
+        BUTTON_COLOR 1,green,flash
+        DISPLAY 2,"press button near and",yellow
+        LOOPER_TRACK 3          # stop on next loop
+
+    # press button at walkdown
+
+#---------
+# END
+#---------
+
+    button1:
+        SYNTH_VOLUME 0,10
+        BUTTON_COLOR 1,black
+        DISPLAY 2,"change to SFLUTE"
+        DELAY 10
+        SYNTH_PATCH SFlute
+        DISPLAY 2,"bringing up SFLUTE"
+        SYNTH_VOLUME 70,10
+        DELAY 50
+
+        DISPLAY 1,"END"
+        DISPLAY 2,"press to start over"
+        BUTTON_COLOR 1,yellow
+
+button1:
+        goto start
+button4:
+        goto start
+
+
+
+
+# end of file: FromTheBeginning.song
