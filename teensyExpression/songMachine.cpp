@@ -14,8 +14,8 @@
 // and change LOOPER_CLIP to CLIP_MUTE
 
 
-#define dbg_machine   0
-#define dbg_vols   1
+#define dbg_machine   	0			// 0 dumps program, -1 for meaningful debugging
+#define dbg_vols   		1
 
 #define MIN_TIME_TWEEN_VOL_CMD_MILLIS    40         // at least 3 buffers on the looper
 
@@ -222,7 +222,7 @@ bool songMachine::load(const char *song_name)
 void songMachine::setMachineState(int state)
 {
     m_state = state;
-    display(dbg_machine,"songMachine::setMachineState(%d)",state);
+    display(dbg_machine+1,"songMachine::setMachineState(%d)",state);
     if (m_state == SONG_STATE_EMPTY)
     {
         songParser::clear();
@@ -240,10 +240,60 @@ void songMachine::setMachineState(int state)
 // events
 //--------------------------
 
+int songMachine::advance(int ptr)
+	// advance paat the "statement" at the current ptr,
+	// specifically while looking for buttons
+{
+    int ttype = songParser::getCode(ptr++);
+	if (ttype == TOKEN_DISPLAY)
+	{
+		ptr++;  // skip the display_num
+		while (songParser::getCode(ptr)) ptr++; // skip to zero
+		ptr++;	// one more
+	}
+
+	// those with three bytes of params
+
+    else if (ttype == TOKEN_BUTTON_COLOR)
+	{
+		ptr += 3;
+	}
+
+	// those with two bytes of parameters
+
+	else if (ttype == TOKEN_GOTO ||					// 16 bit integer
+			 ttype == TOKEN_CALL ||
+			 ttype == TOKEN_LOOP_VOLUME ||			// two bytes
+			 ttype == TOKEN_SYNTH_VOLUME ||
+			 ttype == TOKEN_GUITAR_VOLUME ||
+		 	 ttype == TOKEN_LOOPER_CLIP)
+	{
+		ptr += 2;
+	}
+
+	// those with single byte params
+
+	else if (ttype == TOKEN_GUITAR_EFFECT_DISTORT ||
+			 ttype == TOKEN_GUITAR_EFFECT_WAH     ||
+			 ttype == TOKEN_GUITAR_EFFECT_CHORUS  ||
+			 ttype == TOKEN_GUITAR_EFFECT_ECHO    ||
+			 ttype == TOKEN_LOOPER_TRACK          ||
+			 ttype == TOKEN_SYNTH_PATCH           ||
+			 ttype == TOKEN_DELAY)
+	{
+		ptr++;
+	}
+
+	// other opcodes are monadic
+
+	return ptr;
+}
+
+
 void songMachine::notifyPress(int button_num)
     // one based
 {
-    display(dbg_machine,"songMachine::notifyPress(%d)",button_num);
+    display(dbg_machine+1,"songMachine::notifyPress(%d) m_code_ptr=%d",button_num);
 
     // Find the next occurance of the button, if any
     // give an warning message if not found
@@ -265,7 +315,7 @@ void songMachine::notifyPress(int button_num)
             // no given buttons in scope
             break;
         }
-        find_ptr++;
+		find_ptr = advance(find_ptr);
     }
 
     if (found_offset >= 0)
@@ -284,7 +334,7 @@ void songMachine::notifyPress(int button_num)
 
 void songMachine::notifyLoop()
 {
-    display(dbg_machine,"songMachine::notifyLoop()",0);
+    display(dbg_machine+1,"songMachine::notifyLoop()",0);
     if (m_state & SONG_STATE_WAITING_LOOP)
     {
         if (songParser::getCode(m_code_ptr) == TOKEN_LOOP)
@@ -588,6 +638,7 @@ int songMachine::tokenToTFTColor(int ttype)
 
 void songMachine::doSongOp(int op)
 {
+	display(dbg_machine+1,"-%5d doSongOp(%s) ",m_code_ptr-1,songParser::tokenToString(op));
     switch (op)
     {
         case TOKEN_DISPLAY:
@@ -640,7 +691,7 @@ void songMachine::doSongOp(int op)
                 m_code_ptr += 2;
 
                 m_call_stack[m_num_calls++] = m_code_ptr;
-                display(dbg_machine,"call(%d) from %d to %d",m_num_calls,m_code_ptr,to_ptr);
+                display(dbg_machine+1,"call(%d) from %d to %d",m_num_calls,m_code_ptr,to_ptr);
                 m_code_ptr = to_ptr;
             }
             break;
@@ -649,7 +700,7 @@ void songMachine::doSongOp(int op)
         {
             // skip inline methods in execution
 
-            display(dbg_machine,"skipping method at offset %d",m_code_ptr);
+            display(dbg_machine+1,"skipping method at offset %d",m_code_ptr);
             int start_offset = m_code_ptr;
             int len = songParser::codeLen();
             while (m_code_ptr<len && op != TOKEN_END_METHOD)
@@ -660,7 +711,7 @@ void songMachine::doSongOp(int op)
             }
             else
             {
-                display(dbg_machine,"    resuming at offset %d",m_code_ptr);
+                display(dbg_machine+1,"    resuming at offset %d",m_code_ptr);
             }
             break;
         }
@@ -673,7 +724,7 @@ void songMachine::doSongOp(int op)
             else
             {
                 int ret_loc = m_call_stack[m_num_calls-1];
-                display(dbg_machine,"end_method(%d) returning to location %d",m_num_calls,ret_loc);
+                display(dbg_machine+1,"end_method(%d) returning to location %d",m_num_calls,ret_loc);
                 m_code_ptr = ret_loc;
                 m_num_calls--;
             }

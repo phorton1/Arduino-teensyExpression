@@ -146,6 +146,7 @@ class songMachine
         void doSongOp(int op);
         int tokenToLEDColor(int ttype);
         int tokenToTFTColor(int ttype);
+        int advance(int ptr);
 
         // debugging
 
