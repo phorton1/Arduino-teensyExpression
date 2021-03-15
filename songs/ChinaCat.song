@@ -3,138 +3,222 @@
     start:
         CLEAR_LOOPER
         LOOP_VOLUME 63
-        SYNTH_VOLUME 90
-        SYNTH_VOLUME 100
-        GUITAR_VOLUME 36
         SYNTH_PATCH Bass1
+        DELAY 10
+        SYNTH_VOLUME 0
+        GUITAR_VOLUME 75
         GUITAR_EFFECT_NONE
         GUITAR_EFFECT_ECHO on
-        BUTTON_COLOR 4,yellow
-        BUTTON_COLOR 1,red,FLASH
         DISPLAY 1,"START"
-        DISPLAY 2,"record the C-D break"
-
-# RECORD INITIAL BASS_BREAK C-D part
-
-    button1:
-        LOOPER_TRACK 1                  # start recording BREAK_BASS track 1
+        DISPLAY 2,"press to record\n C-D break"
         BUTTON_COLOR 1,orange,FLASH
-        DISPLAY 1,"REC\nBREAK"
-        DISPLAY 2,"record BASS_BREAK\nready MAIN_BASS"
+        BUTTON_COLOR 4,yellow
 
-# RECORD THE MAIN_BASS PART
+# RECORD initial C-D BREAK_GUITAR part
 
     button1:
-        LOOPER_TRACK 2                  # start recording MAIN_BASS - main G part
-        DISPLAY 1,"REC\nMAIN"
-        DISPLAY 2,"rec MAIN_BASS\npress to save"
-        BUTTON_COLOR 1,yellow,FLASH
+        LOOPER_TRACK 1                  # start recording BREAK_GUITAR
+        DISPLAY 1,"REC\nBREAK"
+        DISPLAY 2,"press to record\nF-G chords"
+        BUTTON_COLOR 1,red,FLASH
 
-# play intro lead part
+# RECORD the MAIN_GUITAR F-G part
 
-    button1:                            # finish recording MAIN BASS part
-        LOOPER_TRACK 2                  # start playing main bass part
-        SYNTH_VOLUME 0,5                # turn down the bass
-        GUITAR_VOLUME 0,15              # fade out down guitar temporarily
+    button1:
+        LOOPER_TRACK 2                  # start recording MAIN_GUITAR
+        DISPLAY 1,"REC\nGUIT"
+        DISPLAY 2,"press to play loop"
+        BUTTON_COLOR 1,green,FLASH
+
+    # loop main guitar
+    # turn up the bass, ready record
+
+    button1:                            # finish recording MAIN_GUITAR
+        LOOPER_TRACK 2                  # start playing main guitar part
+        DISPLAY 1,"wait"
+        DISPLAY 2,""
+        BUTTON_COLOR 1,black
+        SYNTH_VOLUME 72,30              # BASS VOLUME
+        GUITAR_VOLUME 0,30              # turn down the guitar
+        DELAY 30
+        DISPLAY 1,"MAIN"
+        DISPLAY 2,"ready to record bass"
+        BUTTON_COLOR 1,orange,FLASH
+        DUB_MODE
+
+        # prep for guitar lead
+
         GUITAR_EFFECT_DISTORT on
         GUITAR_EFFECT_WAH on
-        BUTTON_COLOR 1,green,FLASH
-        DISPLAY 1,"LEAD"
-        DISPLAY 2,"press at end to\nready MAIN_CHORDS"
-        delay 10
         GUITAR_EFFECT_ECHO on
-        GUITAR_VOLUME 70,15             # fade in guitar for lead
 
-        # play the lead here until a walk down
-        # then press the button to end the lead and prepare for
-        # reording the MAIN CHORDS part
+# RECORD the MAIN_BASS PART
+
+    # loop:
+        DELAY 30
+        LOOPER_TRACK 2                  # start recording MAIN_BASS
+        DISPLAY 1,"REC\nBASS"
+        DISPLAY 2,"press for guitar lead"
+        BUTTON_COLOR 1,green,FLASH
+
+# INTRO GUITAR LEAD (and first verse)
+
+    # there's really nothing to do coming out of the guitar lead
+    # into the first verse.  Just start singing, and get ready to
+    # go to the D break ... but we add a button press sometime
+    # during the verse to prep the D part WHILE NOT PLAYING
 
     button1:
-        DISPLAY 1,"READY\nMAIN"
-        DISPLAY 2,"will rec MAIN_CHORDS\nat next loop"
+        LOOPER_TRACK 2                  # will finish recording MAIN_BASS at loop
+        DISPLAY 1,"wait"
+        DISPLAY 2,""
+
+    # 1st time through lead
+
+    loop:                               # recording ends here
+        BUTTON_COLOR 1,black
+        SYNTH_VOLUME 0,10               # turn down synth
+        GUITAR_VOLUME 70,10             # turn up lead guitar
+        DELAY 10
+        DISPLAY 1,"LEAD\nVERSE"
+        DISPLAY 2,"press to prep D chord DURING verse"
+        BUTTON_COLOR 1,purple,FLASH
+        SYNTH_PATCH Bass-F
+
+        # do guitar lead twice
+
+# SING VERSE ....
+# SING CHORUS
+
+    button1:                            # press this during last chorus loop
+        LOOPER_TRACK 3
+        DISPLAY 1,"wait"
+        DISPLAY 2,""
+        BUTTON_COLOR 1,black
+        GUITAR_VOLUME 0,10               # temp turn down guitar
+        DELAY 10
         GUITAR_EFFECT_DISTORT off
         GUITAR_EFFECT_WAH off
-        GUITAR_EFFECT_ECHO off
+        GUITAR_VOLUME 70,20
+        SYNTH_VOLUME 74,5              # BASS VOLUME
+
+    loop:
+        DISPLAY 1,"D\nPART"
+        DISPLAY 2,"press to loop\nfrom start"
+        BUTTON_COLOR 1,red,FLASH
+
+
+#------------------------------------------------
+# back to start ONE
+#------------------------------------------------
+# Record the bass pickup notes, play a lead,
+# then sing
+
+# RECORD bass (and play) the break part
+
+    button1:
+        GUITAR_VOLUME 0
+        LOOPER_TRACK 1              # record bass notes over break intro
+        BUTTON_COLOR 1,red
+        DELAY 12
+        LOOPER_TRACK 2              # record bass notes over break intro
+
+# Guitar Lead and Second Verse
+# 8 times through
+
+    loop:
+        SYNTH_VOLUME  0,20
+        GUITAR_EFFECT_DISTORT on
+        GUITAR_EFFECT_WAH on
+        GUITAR_VOLUME 70,10
+        GUITAR_VOLUME 70,20
+        DISPLAY 1,"ONE"
+        DISPLAY 2,"Guitar Lead"
+        delay 20
+        SYNTH_PATCH Space1
+
+    loop:                          # add the spacy sound
+        DISPLAY 1,"TWO"
+        DISPLAY 2,"Guitar Lead w/space"
+        SYNTH_VOLUME  62,40
+    loop:
+        SYNTH_VOLUME  50,40
+        DISPLAY 1,"THREE\nV1"
+        DISPLAY 2,"Sing Verse"
+    loop:
+        DISPLAY 1,"FOUR\nV2"
+    loop:
+        DISPLAY 1,"FIVE\nCHOR"
+        DISPLAY 2,"Sing Chorus"
+        DUB_MODE
+        LOOPER_TRACK 3          # goto second D part
+
+# 2nd D PART - record
+
+    loop:                       # D Part before
+        SYNTH_VOLUME  60,10
+        SYNTH_VOLUME  63,40
+        DISPLAY 1,"2nd\nD-PART"
+        LOOPER_TRACK 1          # do pickup
+
+    loop:                       # pickup before
+        DISPLAY 1,"2nd\nPICKUP"
+        LOOPER_TRACK 2          # back to main loop
+        DISPLAY 2,"Last time through"
+        SYNTH_VOLUME  0,40
+        SYNTH_PATCH Organ1
+
+#---------------------------------------------
+# BACK TO START TWO (VERSE 3)
+#---------------------------------------------
+# LEAD WITH ORGAN
+
+# SING VERSE and CHORUS 2
+
+    loop:
         BUTTON_COLOR 1,black
-        DUB_MODE                        # ready to record
-        LOOPER_TRACK 2                  # will record on next loop
+        SYNTH_VOLUME  70,40
+        DISPLAY 1,"LEAD\nORGAN"
+        DISPLAY 2,"Guitar Lead"
 
-#--------------------------
-# verse 1
-#--------------------------
-# RECORD THE MAIN F-G chords under FIRST VERSE
 
-    loop:   # look for a while at the       # recording main chords
+# last D PART
 
-            DISPLAY 1,"REC\nMAIN"
-            DISPLAY 2,"rec MAIN_CHORDS through verse and chorus"
-            BUTTON_COLOR 1,green,FLASH
+    button1:                      # D Part before
+        LOOPER_TRACK 3            # do pickup
+        SYNTH_VOLUME  0,20
+        DISPLAY 1,"D-PART"
+        GUITAR_EFFECT_DISTORT off
+        GUITAR_EFFECT_WAH off
+        Delay 20
+        SYNTH_PATCH sflute
+
+    loop:
+        SYNTH_VOLUME  50,20
+
+
+#--------------------------------------
+# clear looper, switch to bass
+#--------------------------------------
+# I KNOQW YOU RIDER
 
     button1:
-            DISPLAY 1,"CHOR"
-            LOOPER_TRACK 2                  # finish recording main chords
-            SYNTH_PATCH Bass-G
-            BUTTON_COLOR 1,yellow,FLASH
-            DISPLAY 2,"chorus bass+guitar"
-
-    button1:
-            DUB_MODE                        # ready to record
-            BUTTON_COLOR 1,red,FLASH
-            DISPLAY 2,"READY D bass+guitar"
-            LOOPER_TRACK 3                  # ready record D part
-
-# RECORD the D combined bass+guitar part
-
-    loop:
-            SYNTH_VOLUME 70,0
-            BUTTON_COLOR 1,orange,FLASH
-            DISPLAY 1,"REC\nPART"
-            DISPLAY 2,"press to FINISH\nrecording D part"
-            DUB_MODE
-
-#-------------------------------------------------------
-# second verse
-#-------------------------------------------------------
-
-    button1:                                # finish recording the D part
-    BREAK_AGAIN:
-            LOOPER_TRACK    1               # play the BASS_BREAK part while
-            BUTTON_COLOR 1,black
-            SYNTH_VOLUME 0,0                # turn down the bass
-            DISPLAY 1,"BREAK"
-            DISPLAY 2,""
-            delay 10                        # and THEN go into the verse
-            LOOPER_TRACK    2               # will finish recording BREAK_CHORDS and start verse 2
-
-
-    loop:       # should now just be playing verse two, singing over it
-            DISPLAY 1,"VERSE"
-            DISPLAY 2,"1"
-    loop:
-            DISPLAY 2,"2"
-    loop:
-            DISPLAY 2,"3"
-    loop:
-            DISPLAY 2,"4"
-    loop:
-            DISPLAY 1,"CHOR"
-            DISPLAY 2,"1"
-    loop:
-            DISPLAY 2,"2"
-    loop:
-            DISPLAY 2,"3"
-    loop:
-            DISPLAY 2,"4"
-            # goto d part
-            LOOPER_TRACK 3
-
-    loop:
-
-        # nuther time around
-        goto BREAK_AGAIN
+        CLEAR_LOOPER
+        SYNTH_VOLUME 20,0
+        SYNTH_PATCH BASS-F
+        DELAY 5
+        SYNTH_VOLUME 65,20
 
 
 
+
+
+
+
+
+
+button1:
+    goto start
 button4:
     goto start
 
