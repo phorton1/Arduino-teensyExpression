@@ -1,6 +1,8 @@
 #ifndef __defines_h__
 #define __defines_h__
 
+#define TEENSY_EXPRESSION_VERSION  "v1.1"
+
 #define NEW_DESIGN          0
     // 2023-07-29 Redesigned Everything
 
@@ -125,7 +127,7 @@ typedef struct
     #define ROTARY_3B   10
     #define ROTARY_4B   11
     #define ROTARY_4A   12
-#elser
+#else
     #define ROTARY_1A   4     // mashed up pin assignments
     #define ROTARY_1B   6
     #define ROTARY_2A   2
