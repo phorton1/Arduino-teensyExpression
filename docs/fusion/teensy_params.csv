@@ -1,0 +1,168 @@
+
+______BASICS_________,,0
+, basic dimensions of the machine
+
+overall_width,		mm,	237 mm,
+overall_depth,		mm,	299 mm,
+base_thick,			mm,	5 mm,
+top_thick,			mm,	3 mm,
+
+post_diam,			mm,	10 mm,
+level_inc,			mm,	10 mm,					the levels differ by 10 mm
+
+top1,				mm,	18.50 mm,							how far top1 is from the BASE
+top_back,			mm,	top1 + 4 * level_inc + top_thick,	offset plane for top of left and right back parts
+
+
+________GRID________,,0
+, defines offsets from zero and spacing for grid objects
+
+frame_spacing,		mm,	45 mm,			buttons are arranged in a square grid
+
+hole_offset,		mm,	6 mm,			the 0th hole is 6mm from the left and front edges
+
+button_offset,		mm,	10.562 mm,		the 0th button is 10.562 mm from the left and front edges
+button_offset_z,	mm,	0.5 mm,			the 0th button is 0.5 mm above the base
+
+
+
+
+______HOLES_AND_BUMPS_____,,0
+, fairly standard general purpose parameters
+
+tiny_screw,			mm,	1.0 mm,			those small black screws
+screw2_tight,		mm,	1.7 mm,			standard hole into which M2 screw threads tightly
+screw3_tight,		mm,	2.7 mm,			standard hole into which M3 screw threads tightly
+screw3_loose,		mm,	3.2 mm,			holes a M3 fits through easily
+screw3_head_room,	mm,	6 mm,			holes in bottom that screw heads fit into
+
+flange_depth,		mm,	2 mm,			the flanges for the screws are 2mm below the surface of the base
+bump_height,		mm,	3 mm,			the 'bumps' are the raised areas on the base, which includes the flanges and pegs
+
+post_hole_depth,	mm,	10 mm,			how far the screw holes go into the bottom of the posts
+
+
+________JOINERS________,,0
+, the joiners are the pieces that over lap the bases
+
+insert_peg,			mm,	10 mm,			probably unused, same as post_diam
+insert_hole,		mm,	10.5 mm,		hole into which the joiner pegs will fit
+
+joiner_height,		mm,	10 mm,						how high are the joiners
+joiner_inset,		mm,	bump_height + 0.2mm,		how high is the inside of the joiners
+
+
+
+__________FRAMES___________,,0
+, these parameters determine the building of the frames
+
+frame_offset_left,	mm,	18.20 mm,		offset of 0th frame
+frame_offset_front,	mm,	15.70 mm,		offset of 0th frame
+
+frame_width,		mm,	20.60 mm,		basic rectangle describing a frame
+frame_depth,		mm,	25.60 mm,		basic rectangle describing a frame
+
+frame_wall,			mm,	2.8 mm,			how thick are the side walls of the frame
+
+
+, these params mark the tops of the frames
+
+frame1,				mm,	6.5 mm,						the 0th frame is 6.5mm high
+frame2,				mm,	frame1 + level_inc,
+frame3,				mm,	frame2 + level_inc,
+frame4,				mm,	frame3 + level_inc,
+frame5,				mm,	frame4 + level_inc,
+
+, a correction is made for the back pieces of the frame (the stems of the inverted L's)
+
+riser_fix,			mm,	2.2 mm,						the extrusions are frameN - riser_fix
+
+, the inner parts of the frame are extruded a little less at each layer
+
+frame_inner1,		mm,	1 mm,
+frame_inner2,		mm,	frame_inner1 + 8 mm,
+frame_inner3,		mm,	frame_inner2 + 8 mm,
+frame_inner4,		mm,	frame_inner3 + 8 mm,
+frame_inner5,		mm,	frame_inner4 + 8 mm,
+
+
+___________TOPS__________,,0
+, building the tops is complicated
+, they are 1mm lower than in the previous design
+, as the button is smaller.
+, the top drawings are at bump_height (3mm above the base)
+
+top1_extrude,		mm,	top1 - bump_height,		how far to extrude things to the top
+top2_extrude,		mm,	top1_extrude + level_inc
+top3_extrude,		mm,	top2_extrude + level_inc
+top4_extrude,		mm,	top3_extrude + level_inc
+top5_extrude,		mm,	top4_extrude + level_inc
+
+
+push_down,			mm,	7.5 mm,					how far from top to extrude the push downs
+thin_part,			mm, 1.5 mm,					how far from top to extrude the thin piece in the back
+tab_cover,			mm,	2.0 mm,					how far from top to extrude the little piece over the button tab
+
+
+__________DISPLAY_________,,0
+
+
+, measurements from new imported 3D model
+
+, display_3d_wide,		mm,	83 mm,			from 3D model
+, display_3d_high,		mm,	55 mm,			from 3D model
+, display_3d_deep,		mm,	5.75 mm,		from 3D model
+, display_3d_cd_wide,	mm,	15 mm,			from 3D model
+, display_3d_cd_deep,	mm, 1.5 mm,			from 3D model
+, display_3d_cd_off,	mm, 15 mm,			CD on right, display face up, offset from top from 3D model
+
+, In my old 3D model, the display is as wide as the inside space
+, but there is 0.3mm of space above and below it, giving an
+, effective height of the vertical display space of 56.6 mm.
+
+, old_display_wide,		mm,	86 mm,			from my 3D old model
+, old_display_high,		mm,	56 mm,			from my 3D old model (with 0.6 mm of space left)
+, old_display_deep,		mm,	7 mm,			from my 3D old model
+, old_display_cd_wide,	mm,	17 mm,			from my 3D old model
+, old_display_cd_deep,	mm, 2 mm,			from my 3D old model
+, old_display_cd_off,	mm, 13.2,			CD on right, offset from top from my old 3D model
+
+, The new display design closely mimicks the old one.
+, In the new design, the 3D model will be inserted and adjusted
+, appropriately, but we will design it for the old tolerances.
+
+, This design carries over the width of the display mount as 92mm,
+, which is called "display_space". Given a wall width of 3mm, this
+, exactly fits the old_display_wide of 86mm.
+,
+, In the old model the top pieces fit tolerance was offset
+, into the top pieces, and the tops were separated by 92.4mm.
+, In our model we will offset the display_mount sides by 0.2mm,
+, so the walls will really only be 2.8mm, but the tops will be
+, separated by 92mm.
+,
+, We will also carry over the thickness of the "securing pieces" as 4mm
+
+display_space,		mm,	92 mm,			distance between top left and top right (display mount exceeds both by 2mm)
+, display_side,		mm,	3 mm,			thickness of side walls
+, display_secure,		mm,	4 mm,			thickness of securing piecesi
+
+display_wide,		mm,	86, 			from old model
+display_high,		mm,	56.6 mm,		the effective height from old model
+display_deep,		mm, 7 mm,			using old depth for securers
+display_cd_wide,	mm,	17 mm,			using old cd dimensions for securers
+display_cd_deep,	mm, 2 mm,
+display_cd_off,		mm, 14 mm,			compromise, hope it still fits
+
+, the bezels are set in from the above two display constants
+
+bezel_thick,		mm,	1.00
+bezel_bottom,		mm,	1.75
+bezel_top,			mm,	1.85
+bezel_left,			mm,	1.5 mm,
+bezel_right,		mm,	5.0 mm,
+
+, which leads to the following contrained values
+
+, disp_window_wide,	mm,	79.5 mm,
+, disp_window_high,	mm,	53.0 mm,
