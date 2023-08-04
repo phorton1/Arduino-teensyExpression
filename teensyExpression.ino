@@ -2,15 +2,15 @@
 
 
 #include <myDebug.h>
-#include "prefs.h"
-#include "myTFT.h"
-#include "myLeds.h"
-#include "pedals.h"
-#include "rotary.h"
-#include "buttons.h"
-#include "expSystem.h"
-#include "myMidiHost.h"
-#include "myTouchScreen.h"
+#include "src/prefs.h"
+#include "src/myTFT.h"
+#include "src/myLeds.h"
+#include "src/pedals.h"
+#include "src/rotary.h"
+#include "src/buttons.h"
+#include "src/expSystem.h"
+#include "src/myMidiHost.h"
+#include "src/myTouchScreen.h"
 
 
 

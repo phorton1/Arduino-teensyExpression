@@ -1,6 +1,9 @@
 #ifndef __defines_h__
 #define __defines_h__
 
+#define NEW_DESIGN          0
+    // 2023-07-29 Redesigned Everything
+
 #define NUM_PORTS           8       // ports defined in midiQueue.h
 #define NUM_PEDALS          4
 #define NUM_BUTTON_COLS     5
@@ -37,22 +40,24 @@ typedef struct
 //----------------------------------------------------------------------
 // PIN USAGE
 //----------------------------------------------------------------------
-// left/right  main               alternate
+// We are using Serial3 as our "second" SERIAL_IO_PORT
+//
+// left/right  old                          new
 //   pin
 //    GND
 // L  0        unused1 RX1 used by LEDS
 // L  1        unused2 TX1 used by LEDS
-// L  2        ROTARY_2A
-// L  3        ROTARY_2B
-// L  4        ROTARY_1A
+// L  2        ROTARY_2A                    ROTARY_1A
+// L  3        ROTARY_2B                    ROTARY_1B
+// L  4        ROTARY_1A                    ROTARY_2B
 // L  5        LEDS_OUT (Serial1)
-// L  6        ROTARY_1B
-// L  7        SERIAL_RX3    We are using Serial3 as our "second" SERIAL_IO_PORT
+// L  6        ROTARY_1B                    ROTARY_2A
+// L  7        SERIAL_RX3
 // L  8        SERIAL_TX3
-// L  9        ROTARY_3B
-// L 10        ROTARY_3A
-// L 11        ROTARY_4A
-// L 12        ROTARY_4B
+// L  9        ROTARY_3B                    ROTARY_3A
+// L 10        ROTARY_3A                    ROTARY_3B
+// L 11        ROTARY_4A                    ROTARY_4B
+// L 12        ROTARY_4B                    ROTary_4A
 //   3.3V
 // L 24        BUTTON_OUT0
 // L 25        BUTTON_OUT1
@@ -111,16 +116,25 @@ typedef struct
 #define PIN_BUTTON_IN3          32
 #define PIN_BUTTON_IN4          33
 
-
-#define ROTARY_1A   4     // mashed up pin assignments
-#define ROTARY_1B   6
-#define ROTARY_2A   2
-#define ROTARY_2B   3
-#define ROTARY_3A   10    // this one is wired differently than the others
-#define ROTARY_3B   9
-#define ROTARY_4A   11
-#define ROTARY_4B   12
-
+#if NEW_DESIGN
+    #define ROTARY_1A   2     // mashed up pin assignments
+    #define ROTARY_1B   3
+    #define ROTARY_2B   4
+    #define ROTARY_2A   6
+    #define ROTARY_3A   9    //  I suspect this is backwards due to Looper
+    #define ROTARY_3B   10
+    #define ROTARY_4B   11
+    #define ROTARY_4A   12
+#elser
+    #define ROTARY_1A   4     // mashed up pin assignments
+    #define ROTARY_1B   6
+    #define ROTARY_2A   2
+    #define ROTARY_2B   3
+    #define ROTARY_3A   10    // this one is wired differently than the others
+    #define ROTARY_3B   9
+    #define ROTARY_4A   11
+    #define ROTARY_4B   12
+#endif
 
 #define PIN_EXPR1    23  // A6
 #define PIN_EXPR2    22  // A7
