@@ -1,0 +1,980 @@
+---------------------------------------------------------
+FTP Descriptors
+---------------------------------------------------------
+
+    deviceDescriptor
+        length:         18
+        descType:       0x01=CONFIG_TYPE_DEVICE
+        usbSpec:        0x0200
+        devClass:       0x00=
+        devSubClass:    0x00-
+        deviceProtocol: 0x00
+        maxPacketSize:  8
+        vendorID:       0x26e7
+        productID:      0x0001
+        productVersion: 0x0100
+        iManufacturer:  1 - Fishman Transducers, Inc.
+        iProduct:       2 - Fishman TriplePlay
+        iSerialNumber:  3 - SN12345678
+        numConfigs:     1
+    configDescriptor
+        length:         9
+        descType:       0x02=CONFIG_TYPE_CONFIG
+        totalLength:    0x0085=133
+        numInterfaces:  2
+        configNum:      1
+        iConfig:        0 - 
+        attributes:     0x80=bus_powered
+        maxPower:       0x32=100 ma
+    standardInterface
+        length:         9
+        descType:       0x04=CONFIG_TYPE_INTERFACE
+        intNumber:      0
+        altInt:         0
+        numEP:          0
+        intClass:       0x01=USB_CLASS_AUDIO
+        intSubClass:    0x01=USB_SUBCLASS_AUDIO_CONTROL
+        intProtocol:    0x00
+        iInterface:     0 - 
+        audioControlInterface
+            length:         9
+            descType:       0x24 CONFIG_TYPE_CS_INTERFACE
+            descSubtype:    0x01 ACI_SUBTYPE_HEADER
+            classRevision:  0x0100
+            totalLength:    0x0009=9
+            numIntfcs:      1
+            intfcNum[0]:    1
+    standardInterface
+        length:         9
+        descType:       0x04=CONFIG_TYPE_INTERFACE
+        intNumber:      1
+        altInt:         0
+        numEP:          2
+        intClass:       0x01=USB_CLASS_AUDIO
+        intSubClass:    0x03=USB_SUBCLASS_MIDI_STREAMING
+        intProtocol:    0x00
+        iInterface:     0 - 
+        midiInterface
+            length:         7
+            descType:       0x24=CONFIG_TYPE_CS_INTERFACE
+            descSubtype:    0x01=MIDI_SUBTYPE_HEADER
+            classRevision:  0x0100
+            totalLength:    0x0061=97
+
+        embInJack1 <-- OUT-EP1
+            length:         6
+            descType:       0x24=CONFIG_TYPE_CS_INTERFACE
+            descSubtype:    0x02=MIDI_SUBTYPE_IN_JACK
+            jackType:       0x01=embedded
+            jackID:         1
+            iJack:          4 - TP Guitar
+        extInJack2 <-- OUT-EP1
+            length:         6
+            descType:       0x24=CONFIG_TYPE_CS_INTERFACE
+            descSubtype:    0x02=MIDI_SUBTYPE_IN_JACK
+            jackType:       0x02=external
+            jackID:         2
+            iJack:          0 - 
+        embOutJack3 --> IN-EP1
+            length:         9
+            descType:       0x24=CONFIG_TYPE_CS_INTERFACE
+            descSubtype:    0x03=MIDI_SUBTYPE_OUT_JACK
+            jackType:       0x01=embedded
+            jackID:         3
+            numInPins:      1
+            sourceID:       2
+            sourcePin:      1
+            iJack:          4 - TP Guitar
+        extOutJack1 --> IN-EP1
+            length:         9
+            descType:       0x24=CONFIG_TYPE_CS_INTERFACE
+            descSubtype:    0x03=MIDI_SUBTYPE_OUT_JACK
+            jackType:       0x02=external
+            jackID:         4
+            numInPins:      1
+            sourceID:       1
+            sourcePin:      1
+            iJack:          0 - 
+
+        // 5,6,7,8 not referenced by any endpoints
+        // yet TP-CONTROL shows up in the UI
+        
+        embInJack5 --> extOutJack8
+            length:         6
+            descType:       0x24=CONFIG_TYPE_CS_INTERFACE
+            descSubtype:    0x02=MIDI_SUBTYPE_IN_JACK
+            jackType:       0x01=embedded
+            jackID:         5
+            iJack:          5 - TP Control
+        extInJack6 --> embOutJack7
+            length:         6
+            descType:       0x24=CONFIG_TYPE_CS_INTERFACE
+            descSubtype:    0x02=MIDI_SUBTYPE_IN_JACK
+            jackType:       0x02=external
+            jackID:         6
+            iJack:          0 - 
+        embOutJack7 <-- extInJack6
+            length:         9
+            descType:       0x24=CONFIG_TYPE_CS_INTERFACE
+            descSubtype:    0x03=MIDI_SUBTYPE_OUT_JACK
+            jackType:       0x01=embedded
+            jackID:         7
+            numInPins:      1
+            sourceID:       6
+            sourcePin:      1
+            iJack:          5 - TP Control
+        extOutJack8 <-- embInJack5
+            length:         9
+            descType:       0x24=CONFIG_TYPE_CS_INTERFACE
+            descSubtype:    0x03=MIDI_SUBTYPE_OUT_JACK
+            jackType:       0x02=external
+            jackID:         8
+            numInPins:      1
+            sourceID:       5
+            sourcePin:      1
+            iJack:          0 - 
+
+    OUT-EP1  --> embInjack1(TPGuitar), extInjack2()
+        length:         9
+        descType:       0x05=CONFIG_TYPE_EP
+        epAddress:      0x01
+        attributes:     2=
+        maxPacketSize:  0x0020=32
+        interval:       0
+        refresh:        0x00
+        synchAddr:      0x00
+        midiEP
+            length:         6
+            descType:       0x25 CONFIG_TYPE_CS_EP
+            descSubtype:    0x01
+            numEmbMIDIJack: 2
+            assocJackID:    1
+
+    IN-EP1 <-- embOutJack3(TP Guitar), extOutjack4() 
+        length:         9
+        descType:       0x05=CONFIG_TYPE_EP
+        epAddress:      0x81
+        attributes:     2=
+        maxPacketSize:  0x0020=32
+        interval:       0
+        refresh:        0x00
+        synchAddr:      0x00
+        midiEP
+            length:         6
+            descType:       0x25 CONFIG_TYPE_CS_EP
+            descSubtype:    0x01
+            numEmbMIDIJack: 2
+            assocJackID:    3
+
+//----------------------------------------------------------
+// MPD218 Descriptors
+//----------------------------------------------------------
+
+
+  deviceDescriptor
+        length:         18
+        descType:       0x01=CONFIG_TYPE_DEVICE
+        usbSpec:        0x0110
+        devClass:       0x00=
+        devSubClass:    0x00-
+        deviceProtocol: 0x00
+        maxPacketSize:  8
+        vendorID:       0x09e8
+        productID:      0x0034
+        productVersion: 0x0101
+        iManufacturer:  1 - Akai
+        iProduct:       2 - MPD218
+        iSerialNumber:  4 - NO SERIAL NUMBER
+        numConfigs:     1
+    configDescriptor
+        length:         9
+        descType:       0x02=CONFIG_TYPE_CONFIG
+        totalLength:    0x0056=86
+        numInterfaces:  2
+        configNum:      1
+        iConfig:        0 - 
+        attributes:     0x80=bus_powered
+        maxPower:       0xfa=500 ma
+    standardInterface
+        length:         9
+        descType:       0x04=CONFIG_TYPE_INTERFACE
+        intNumber:      0
+        altInt:         0
+        numEP:          0
+        intClass:       0x01=USB_CLASS_AUDIO
+        intSubClass:    0x01=USB_SUBCLASS_AUDIO_CONTROL
+        intProtocol:    0x00
+        iInterface:     0 - 
+        audioControlInterface
+            length:         9
+            descType:       0x24 CONFIG_TYPE_CS_INTERFACE
+            descSubtype:    0x01 ACI_SUBTYPE_HEADER
+            classRevision:  0x0100
+            totalLength:    0x0012=18
+            numIntfcs:      1
+            intfcNum[0]:    1
+    standardInterface
+        length:         9
+        descType:       0x04=CONFIG_TYPE_INTERFACE
+        intNumber:      1
+        altInt:         0
+        numEP:          2
+        intClass:       0x01=USB_CLASS_AUDIO
+        intSubClass:    0x03=USB_SUBCLASS_MIDI_STREAMING
+        intProtocol:    0x00
+        iInterface:     3 - Interface
+        midiInterface
+            length:         7
+            descType:       0x24=CONFIG_TYPE_CS_INTERFACE
+            descSubtype:    0x01=MIDI_SUBTYPE_HEADER
+            classRevision:  0x0100
+            totalLength:    0x0032=50
+        embInJack1 <-- OUT-EP1
+            length:         6
+            descType:       0x24=CONFIG_TYPE_CS_INTERFACE
+            descSubtype:    0x02=MIDI_SUBTYPE_IN_JACK
+            jackType:       0x01=embedded
+            jackID:         1
+            iJack:          6 - Port A
+        embOutJack2 --> IN-EP2
+            length:         9
+            descType:       0x24=CONFIG_TYPE_CS_INTERFACE
+            descSubtype:    0x03=MIDI_SUBTYPE_OUT_JACK
+            jackType:       0x01=embedded
+            jackID:         2
+            numInPins:      1
+            sourceID:       1
+            sourcePin:      1
+            iJack:          13 - Port A
+    OUT-EP1 --> embInJack1
+        length:         9
+        descType:       0x05=CONFIG_TYPE_EP
+        epAddress:      0x01
+        attributes:     2=
+        maxPacketSize:  0x0040=64
+        interval:       0
+        refresh:        0x00
+        synchAddr:      0x00
+	    midiEP
+            length:         5
+            descType:       0x25 CONFIG_TYPE_CS_EP
+            descSubtype:    0x01
+            numEmbMIDIJack: 1
+            assocJackID:    1
+    IN-EP2 <-- embOutJack2
+        length:         9
+        descType:       0x05=CONFIG_TYPE_EP
+        epAddress:      0x82
+        attributes:     2=
+        maxPacketSize:  0x0040=64
+        interval:       0
+        refresh:        0x00
+        synchAddr:      0x00
+        midiEP
+            length:         5
+            descType:       0x25 CONFIG_TYPE_CS_EP
+            descSubtype:    0x01
+            numEmbMIDIJack: 1
+            assocJackID:    2
+
+----------------------------------------------------------
+SoftStep Descriptors
+----------------------------------------------------------
+HAS HID DEVICE
+
+at 0x1174 in broken_softstep_flash_dump
+
+
+deviceDescriptor
+        length:         18
+        descType:       0x01=CONFIG_TYPE_DEVICE
+        usbSpec:        0x0110
+        devClass:       0x00=
+        devSubClass:    0x00-
+        deviceProtocol: 0x00
+        maxPacketSize:  64
+        vendorID:       0x1f38
+        productID:      0x000b
+        productVersion: 0x0100
+        iManufacturer:  1 - KESUMO, LLC
+        iProduct:       2 - SSCOM
+        iSerialNumber:  0 - 
+        numConfigs:     1
+    configDescriptor
+        length:         9
+        descType:       0x02=CONFIG_TYPE_CONFIG
+        totalLength:    0x0085=133
+        numInterfaces:  2
+        configNum:      1
+        iConfig:        0 - 
+        attributes:     0xc0=self-powered
+        maxPower:       0x20=64 ma
+    standardInterface
+        length:         9
+        descType:       0x04=CONFIG_TYPE_INTERFACE
+        intNumber:      0
+        altInt:         0
+        numEP:          0
+        intClass:       0x01=USB_CLASS_AUDIO
+        intSubClass:    0x01=USB_SUBCLASS_AUDIO_CONTROL
+        intProtocol:    0x00
+        iInterface:     0 - 
+        audioControlInterface
+            length:         9
+            descType:       0x24 CONFIG_TYPE_CS_INTERFACE
+            descSubtype:    0x01 ACI_SUBTYPE_HEADER
+            classRevision:  0x0100
+            totalLength:    0x0009=9
+            numIntfcs:      1
+            intfcNum[0]:    1
+    standardInterface
+        length:         9
+        descType:       0x04=CONFIG_TYPE_INTERFACE
+        intNumber:      1
+        altInt:         0
+        numEP:          2
+        intClass:       0x01=USB_CLASS_AUDIO
+        intSubClass:    0x03=USB_SUBCLASS_MIDI_STREAMING
+        intProtocol:    0x00
+        iInterface:     0 - 
+        midiInterface
+            length:         7
+            descType:       0x24=CONFIG_TYPE_CS_INTERFACE
+            descSubtype:    0x01=MIDI_SUBTYPE_HEADER
+            classRevision:  0x0100
+            totalLength:    0x0061=97
+        emInJack1 <-- OUT-EP1
+            length:         6
+            descType:       0x24=CONFIG_TYPE_CS_INTERFACE
+            descSubtype:    0x02=MIDI_SUBTYPE_IN_JACK
+            jackType:       0x01=embedded
+            jackID:         1
+            iJack:          0 - 
+        extInJack2 <-- OUT-EP1
+            length:         6
+            descType:       0x24=CONFIG_TYPE_CS_INTERFACE
+            descSubtype:    0x02=MIDI_SUBTYPE_IN_JACK
+            jackType:       0x02=external
+            jackID:         2
+            iJack:          0 - 
+
+
+        // note that 5678 form an internal set
+        // not referenced by any endpoints
+        
+        embInJack5 -->  extOutJack8
+            length:         6
+            descType:       0x24=CONFIG_TYPE_CS_INTERFACE
+            descSubtype:    0x02=MIDI_SUBTYPE_IN_JACK
+            jackType:       0x01=embedded
+            jackID:         5
+            iJack:          0 - 
+        extInJack6 --> embOutJack7
+            length:         6
+            descType:       0x24=CONFIG_TYPE_CS_INTERFACE
+            descSubtype:    0x02=MIDI_SUBTYPE_IN_JACK
+            jackType:       0x02=external
+            jackID:         6
+            iJack:          0 -
+            
+        embOutJack3 --> IN-EP1
+            length:         9
+            descType:       0x24=CONFIG_TYPE_CS_INTERFACE
+            descSubtype:    0x03=MIDI_SUBTYPE_OUT_JACK
+            jackType:       0x01=embedded
+            jackID:         3
+            numInPins:      1
+            sourceID:       2
+            sourcePin:      1
+            iJack:          0 - 
+        extOutJack4 --> IN-EP1
+            length:         9
+            descType:       0x24=CONFIG_TYPE_CS_INTERFACE
+            descSubtype:    0x03=MIDI_SUBTYPE_OUT_JACK
+            jackType:       0x02=external
+            jackID:         4
+            numInPins:      1
+            sourceID:       1
+            sourcePin:      1
+            iJack:          0 -
+            
+            
+        embOutJack7 <-- extInJack6
+            length:         9
+            descType:       0x24=CONFIG_TYPE_CS_INTERFACE
+            descSubtype:    0x03=MIDI_SUBTYPE_OUT_JACK
+            jackType:       0x01=embedded
+            jackID:         7
+            numInPins:      1
+            sourceID:       6
+            sourcePin:      1
+            iJack:          0 - 
+        extOutJack8 <-- embInJack5
+            length:         9
+            descType:       0x24=CONFIG_TYPE_CS_INTERFACE
+            descSubtype:    0x03=MIDI_SUBTYPE_OUT_JACK
+            jackType:       0x02=external
+            jackID:         8
+            numInPins:      1
+            sourceID:       5
+            sourcePin:      1
+            iJack:          0 -
+            
+    OUT-EP1 --> embInJack1,extInJack2
+        length:         9
+        descType:       0x05=CONFIG_TYPE_EP
+        epAddress:      0x01
+        attributes:     2=
+        maxPacketSize:  0x0008=8
+        interval:       0
+        refresh:        0x00
+        synchAddr:      0x00
+        midiEP
+            length:         6
+            descType:       0x25 CONFIG_TYPE_CS_EP
+            descSubtype:    0x01
+            numEmbMIDIJack: 2
+            assocJackID:    1
+    IN-EP1 <- embOutJack3,extOutJack4
+        length:         9
+        descType:       0x05=CONFIG_TYPE_EP
+        epAddress:      0x81
+        attributes:     2=
+        maxPacketSize:  0x0008=8
+        interval:       0
+        refresh:        0x00
+        synchAddr:      0x00
+        midiEP
+            length:         6
+            descType:       0x25 CONFIG_TYPE_CS_EP
+            descSubtype:    0x01
+            numEmbMIDIJack: 2
+            assocJackID:    3
+
+
+//----------------------------------------------------------
+// audiofront (yellow box) Descriptors
+//----------------------------------------------------------
+
+deviceDescriptor
+        length:         18
+        descType:       0x01=CONFIG_TYPE_DEVICE
+        usbSpec:        0x0101
+        devClass:       0x00=
+        devSubClass:    0x00-
+        deviceProtocol: 0x00
+        maxPacketSize:  64
+        vendorID:       0x16c0
+        productID:      0x0473
+        productVersion: 0x0200
+        iManufacturer:  1 - Audiofront
+        iProduct:       2 - MIDI Expression YELLOW
+        iSerialNumber:  3 - 4294967295
+        numConfigs:     1
+    configDescriptor
+        length:         9
+        descType:       0x02=CONFIG_TYPE_CONFIG
+        totalLength:    0x008c=140
+        numInterfaces:  3
+        configNum:      1
+        iConfig:        0 - 
+        attributes:     0xa0=bus_powered
+        maxPower:       0x32=100 ma
+    standardInterface
+        length:         9
+        descType:       0x04=CONFIG_TYPE_INTERFACE
+        intNumber:      0
+        altInt:         0
+        numEP:          2
+        intClass:       0x01=USB_CLASS_AUDIO
+        intSubClass:    0x03=USB_SUBCLASS_MIDI_STREAMING
+        intProtocol:    0x00
+        iInterface:     0 - 
+        midiInterface
+            length:         7
+            descType:       0x24=CONFIG_TYPE_CS_INTERFACE
+            descSubtype:    0x01=MIDI_SUBTYPE_HEADER
+            classRevision:  0x0100
+            totalLength:    0x0041=65
+              
+                   
+        embInJack1 <-- OUT-EP2
+        embInJack1 --> extOutJack4
+            length:         6
+            descType:       0x24=CONFIG_TYPE_CS_INTERFACE
+            descSubtype:    0x02=MIDI_SUBTYPE_IN_JACK
+            jackType:       0x01=embedded
+            jackID:         1
+            iJack:          0 -
+            
+        extInJack2 <-- embOutJack3
+            length:         6
+            descType:       0x24=CONFIG_TYPE_CS_INTERFACE
+            descSubtype:    0x02=MIDI_SUBTYPE_IN_JACK
+            jackType:       0x02=external
+            jackID:         2
+            iJack:          0 -
+            
+        embOutJack3 --> IN-EP1
+        embOutJack3 <-- extInJack2
+            length:         9
+            descType:       0x24=CONFIG_TYPE_CS_INTERFACE
+            descSubtype:    0x03=MIDI_SUBTYPE_OUT_JACK
+            jackType:       0x01=embedded
+            jackID:         3
+            numInPins:      1
+            sourceID:       2
+            sourcePin:      1
+            iJack:          0 - 
+        extOutJack4 <-- embInJack1
+            length:         9
+            descType:       0x24=CONFIG_TYPE_CS_INTERFACE
+            descSubtype:    0x03=MIDI_SUBTYPE_OUT_JACK
+            jackType:       0x02=external
+            jackID:         4
+            numInPins:      1
+            sourceID:       1
+            sourcePin:      1
+            iJack:          0 -
+            
+        OUT-EP2 --> embInJack1
+            length:         9
+            descType:       0x05=CONFIG_TYPE_EP
+            epAddress:      0x02
+            attributes:     2=
+            maxPacketSize:  0x0040=64
+            interval:       0
+            refresh:        0x00
+            synchAddr:      0x00
+            midiEP
+                length:         5
+                descType:       0x25 CONFIG_TYPE_CS_EP
+                descSubtype:    0x01
+                numEmbMIDIJack: 1
+                assocJackID:    1
+        IN-EP1 <-- embOutJack3
+            length:         9
+            descType:       0x05=CONFIG_TYPE_EP
+            epAddress:      0x81
+            attributes:     2=
+            maxPacketSize:  0x0040=64
+            interval:       0
+            refresh:        0x00
+            synchAddr:      0x00
+            midiEP
+                length:         5
+                descType:       0x25 CONFIG_TYPE_CS_EP
+                descSubtype:    0x01
+                numEmbMIDIJack: 1
+                assocJackID:    3
+            
+    // SECOND INTERFACE (HID)            
+
+    standardInterface
+        length:         9
+        descType:       0x04=CONFIG_TYPE_INTERFACE
+        intNumber:      2
+        altInt:         0
+        numEP:          1
+        intClass:       0x03=USB_CLASS_HID
+        intSubClass:    0x01=HID_SUBCLASS_BOOT_INTERFACE
+        intProtocol:    0x01
+        iInterface:     0 - 
+        hidDevice
+            length:         9
+            descType:       0x21=CONFIG_TYPE_CS_DEVICE
+            classRevision:  0x0111
+            countryCode:    0x00
+            numDescriptors: 1
+            subDescType:    0x22=CONFIG_TYPE_CS_CONFIG
+            subDescLen:     0x003f=63
+        IN-EP5
+            length:         7
+            descType:       0x05=CONFIG_TYPE_EP
+            epAddress:      0x85
+            attributes:     3=
+            maxPacketSize:  0x0008=8
+            interval:       1
+            refresh:        0x09
+            synchAddr:      0x04
+        
+    // third interface (HID2)
+    
+    standardInterface
+        length:         9
+        descType:       0x04=CONFIG_TYPE_INTERFACE
+        intNumber:      1
+        altInt:         0
+        numEP:          2
+        intClass:       0x03=USB_CLASS_HID
+        intSubClass:    0x00=
+        intProtocol:    0x00
+        iInterface:     0 - 
+        hidDevice
+            length:         9
+            descType:       0x21=CONFIG_TYPE_CS_DEVICE
+            classRevision:  0x0111
+            countryCode:    0x00
+            numDescriptors: 1
+            subDescType:    0x22=CONFIG_TYPE_CS_CONFIG
+            subDescLen:     0x001c=28
+        EP-IN3
+            length:         7
+            descType:       0x05=CONFIG_TYPE_EP
+            epAddress:      0x83
+            attributes:     3=
+            maxPacketSize:  0x0040=64
+            interval:       1
+            refresh:        0x07
+            synchAddr:      0x05
+        EP-OUT4
+            length:         7
+            descType:       0x05=CONFIG_TYPE_EP
+            epAddress:      0x04
+            attributes:     3=
+            maxPacketSize:  0x0040=64
+            interval:       1
+            refresh:        0x00
+            synchAddr:      0x00
+
+------------------------------------------------------------------------------------
+MPK Descriptors
+------------------------------------------------------------------------------------
+
+
+    deviceDescriptor
+        length:          0x12
+        descType:        0x01 CONFIG_TYPE_DEVICE
+        usbSpec:         0x0110
+        devClass:        0x00 
+        devSubClass:     0x00 
+        deviceProtocol:  0x00
+        maxPacketSize:   32
+        vendorID:        0x2011
+        productID:       0x0715
+        productVersion:  0x0000
+        iManufacturer:   1 AKAI
+        iProduct:        2 MPKmini2
+        iSerialNumber:   3 0001
+        numConfigs:      0x01
+    configDescriptor
+        length:         9
+        descType:       0x02 CONFIG_TYPE_CONFIG
+        totalLength:    0x0085 133
+        numInterfaces:  3
+        configNum:      1
+        iConfig:        0 
+        attributes:     0x00 UNKNOWN CONFIG ATRRIBUTE
+        maxPower: ma    0xfa 500
+    standardInterface
+        length:       9
+        descType:     0x04 CONFIG_TYPE_INTERFACE
+        intNumber:    0
+        altInt:       0
+        numEP:        2
+        intClass:     0x03 USB_CLASS_HID
+        intSubClass:  0x00 
+        intProtocol:  0x00
+        iInterface:   0 
+        hidDevice
+            length:          9
+            descType:        0x21 CONFIG_TYPE_CS_DEVICE
+            classRevision:   0x0111
+            countryCode:     0x00
+            numDescriptors:  1
+            subDescType:     0x22 CONFIG_TYPE_CS_CONFIG
+            subDescLen:      0x0034 52
+    standard EP
+        length:         7
+        descType:       0x05 CONFIG_TYPE_EP
+        epAddress:      0x81
+        attributes:     0x03 
+        maxPacketSize:  0x0020 32
+        interval:       1
+        refresh:        0x07
+        synchAddr:      0x05
+    standard EP
+        length:         7
+        descType:       0x05 CONFIG_TYPE_EP
+        epAddress:      0x02
+        attributes:     0x03 
+        maxPacketSize:  0x0020 32
+        interval:       1
+        refresh:        0x09
+        synchAddr:      0x04
+    standardInterface
+        length:       9
+        descType:     0x04 CONFIG_TYPE_INTERFACE
+        intNumber:    1
+        altInt:       0
+        numEP:        0
+        intClass:     0x01 USB_CLASS_AUDIO
+        intSubClass:  0x01 USB_SUBCLASS_AUDIO_CONTROL
+        intProtocol:  0x00
+        iInterface:   0 
+        audioControlInterface
+            length:         9
+            descType:       0x24 CONFIG_TYPE_CS_INTERFACE
+            descSubtype:    0x01 ACI_SUBTYPE_HEADER
+            classRevision:  0x0100
+            totalLength:    0x0009 9
+            numIntfcs:      1
+            intfcNumN:      0x02
+    standardInterface
+        length:       9
+        descType:     0x04 CONFIG_TYPE_INTERFACE
+        intNumber:    2
+        altInt:       0
+        numEP:        2
+        intClass:     0x01 USB_CLASS_AUDIO
+        intSubClass:  0x03 USB_SUBCLASS_MIDI_STREAMING
+        intProtocol:  0x00
+        iInterface:   0 
+        midiInterface
+            length:         7
+            descType:       0x24 CONFIG_TYPE_CS_INTERFACE
+            descSubtype:    0x01 MIDI_SUBTYPE_HEADER
+            classRevision:  0x0100
+            totalLength:    0x41 65
+        midiInJack
+            length:       6
+            descType:     0x24 CONFIG_TYPE_CS_INTERFACE
+            descSubtype:  0x02 MIDI_SUBTYPE_IN_JACK
+            jackType:     0x01 embedded
+            jackID:       1
+            iJack:        0 
+        midiInJack
+            length:       6
+            descType:     0x24 CONFIG_TYPE_CS_INTERFACE
+            descSubtype:  0x02 MIDI_SUBTYPE_IN_JACK
+            jackType:     0x02 external
+            jackID:       2
+            iJack:        0 
+        midiOutJack
+            length:       9
+            descType:     0x24 CONFIG_TYPE_CS_INTERFACE
+            descSubtype:  0x03 MIDI_SUBTYPE_OUT_JACK
+            jackType:     0x01 embedded
+            jackID:       3
+            numInPins:    1
+            sourceID:     2
+            sourcePin:    1
+            iJack:        0 
+        midiOutJack
+            length:       9
+            descType:     0x24 CONFIG_TYPE_CS_INTERFACE
+            descSubtype:  0x03 MIDI_SUBTYPE_OUT_JACK
+            jackType:     0x02 external
+            jackID:       4
+            numInPins:    1
+            sourceID:     1
+            sourcePin:    1
+            iJack:        0 
+    standard EP
+        length:         9
+        descType:       0x05 CONFIG_TYPE_EP
+        epAddress:      0x03
+        attributes:     0x02 
+        maxPacketSize:  0x0040 64
+        interval:       0
+        refresh:        0x00
+        synchAddr:      0x00
+        midiEP
+            length:         5
+            descType:       0x25 CONFIG_TYPE_CS_EP
+            descSubtype:    0x01
+            numEmbMIDIJack: 1
+            assocJackID:    1
+    standard EP
+        length:         9
+        descType:       0x05 CONFIG_TYPE_EP
+        epAddress:      0x84
+        attributes:     0x02 
+        maxPacketSize:  0x0040 64
+        interval:       0
+        refresh:        0x00
+        synchAddr:      0x00
+        midiEP
+            length:         5
+            descType:       0x25 CONFIG_TYPE_CS_EP
+            descSubtype:    0x01
+            numEmbMIDIJack: 1
+            assocJackID:    3
+
+
+
+
+---------------------------------------------------------------------------------
+Behringer Descriptors
+---------------------------------------------------------------------------------
+
+raw device
+
+		12 01 00 02 ef 02 01 40 97 13 09 05 12 01 01 03 
+                00 02 
+
+raw config
+
+
+                09 02 b9 01 06 01 00 80 fa 08 0b 00 03 01 00 20 
+                00 09 04 00 00 00 01 01 20 03 09 24 01 00 02 08 
+                87 00 00 08 24 0a 29 03 07 00 09 08 24 0b 28 01 
+                29 03 0d 11 24 02 02 01 01 00 28 02 00 00 00 00 
+                0d 00 00 06 1a 24 06 0a 02 0f 00 00 00 0f 00 00 
+                00 0f 00 00 00 0f 00 00 00 0f 00 00 00 00 0c 24 
+                03 14 01 03 00 0a 28 00 00 00 11 24 02 01 01 02 
+                00 28 02 00 00 00 00 11 00 00 00 1a 24 06 0b 01 
+                0f 00 00 00 0f 00 00 00 0f 00 00 00 0f 00 00 00 
+                0f 00 00 00 00 0c 24 03 16 01 01 00 0b 28 00 00 
+                07 09 04 01 00 00 01 02 20 04 09 04 01 01 02 01 
+                02 20 04 10 24 01 02 00 01 01 00 00 00 02 00 00 
+                00 00 0d 06 24 02 01 03 18 07 05 01 05 26 01 01 
+                08 25 01 00 00 02 08 00 07 05 81 11 04 00 04 09 
+                04 01 02 02 01 02 20 04 10 24 01 02 00 01 01 00 
+                00 00 02 00 00 00 00 0d 06 24 02 01 02 10 07 
+
+
+    deviceDescriptor
+        length:         18
+        descType:       0x01=CONFIG_TYPE_DEVICE
+        usbSpec:        0x0200
+        devClass:       0xef=USB_CLASS_MISC
+        devSubClass:    0x02-USING ASSOCIATED INTERFACES
+        deviceProtocol: 0x01
+        maxPacketSize:  64
+        vendorID:       0x1397
+        productID:      0x0509
+        productVersion: 0x0112
+        iManufacturer:  1 - BEHRINGER
+        iProduct:       3 - UMC404HD 192k
+        iSerialNumber:  0 - 
+        numConfigs:     2
+    configDescriptor
+        length:         9
+        descType:       0x02=CONFIG_TYPE_CONFIG
+        totalLength:    0x01b9=441
+        numInterfaces:  6
+        configNum:      1
+        iConfig:        0 - 
+        attributes:     0x80=bus_powered
+        maxPower:       0xfa=500 ma
+    interfaceAssociationDescriptor
+        length:         8
+        descType:       0x0b=CONFIG_TYPE_INTERFACE_ASSOC
+        firstInterface: 0
+        interfaceCount: 3
+        fxnClass:       0x01=USB_CLASS_AUDIO
+        fxnSubClass;    0x00=
+        fxnProtocol:    0x20
+        fxn:	        0x00
+        
+    standardInterface
+        length:         9
+        descType:       0x04=CONFIG_TYPE_INTERFACE
+        intNumber:      0
+        altInt:         0
+        numEP:          0
+        intClass:       0x01=USB_CLASS_AUDIO
+        intSubClass:    0x01=USB_SUBCLASS_AUDIO_CONTROL
+        intProtocol:    0x20
+        iInterface:     3 - UMC404HD 192k
+        audioControlInterface
+            length:         9
+            descType:       0x24 CONFIG_TYPE_CS_INTERFACE
+            descSubtype:    0x01 ACI_SUBTYPE_HEADER
+            classRevision:  0x0200
+            totalLength:    0x8708=34568
+            numIntfcs:      0
+    UNKNOWN AUDIO_CONTROL INTERFACE SUB_TYPE(0a)
+    ??? 08 24 0a 29 03 07 00 09 
+    UNKNOWN AUDIO_CONTROL INTERFACE SUB_TYPE(0b)
+    ??? 08 24 0b 28 01 29 03 0d 
+    UNKNOWN AUDIO_CONTROL INTERFACE SUB_TYPE(02)
+    ??? 11 24 02 02 01 01 00 28 02 00 00 00 00 0d 00 00 
+        06 
+    UNKNOWN AUDIO_CONTROL INTERFACE SUB_TYPE(06)
+    ??? 1a 24 06 0a 02 0f 00 00 00 0f 00 00 00 0f 00 00 
+        00 0f 00 00 00 0f 00 00 00 00 
+    UNKNOWN AUDIO_CONTROL INTERFACE SUB_TYPE(03)
+    ??? 0c 24 03 14 01 03 00 0a 28 00 00 00 
+    UNKNOWN AUDIO_CONTROL INTERFACE SUB_TYPE(02)
+    ??? 11 24 02 01 01 02 00 28 02 00 00 00 00 11 00 00 
+        00 
+    UNKNOWN AUDIO_CONTROL INTERFACE SUB_TYPE(06)
+    ??? 1a 24 06 0b 01 0f 00 00 00 0f 00 00 00 0f 00 00 
+        00 0f 00 00 00 0f 00 00 00 00 
+    UNKNOWN AUDIO_CONTROL INTERFACE SUB_TYPE(03)
+    ??? 0c 24 03 16 01 01 00 0b 28 00 00 07 
+    standardInterface
+        length:         9
+        descType:       0x04=CONFIG_TYPE_INTERFACE
+        intNumber:      1
+        altInt:         0
+        numEP:          0
+        intClass:       0x01=USB_CLASS_AUDIO
+        intSubClass:    0x02=USB_SUBCLASS_AUDIO_STREAMING
+        intProtocol:    0x20
+        iInterface:     4 - UMC404HD 192k Output
+    standardInterface
+        length:         9
+        descType:       0x04=CONFIG_TYPE_INTERFACE
+        intNumber:      1
+        altInt:         1
+        numEP:          2
+        intClass:       0x01=USB_CLASS_AUDIO
+        intSubClass:    0x02=USB_SUBCLASS_AUDIO_STREAMING
+        intProtocol:    0x20
+        iInterface:     4 - UMC404HD 192k Output
+        classSpecificInterface
+            length:         16
+            descType:       0x24 CONFIG_TYPE_CS_INTERFACE
+            descSubtype:    0x01
+            classRevision:  0x0002
+        classSpecificInterface
+            length:         6
+            descType:       0x24 CONFIG_TYPE_CS_INTERFACE
+            descSubtype:    0x02
+            classRevision:  0x0301
+        OUT-EP1
+            length:         7
+            descType:       0x05=CONFIG_TYPE_EP
+            epAddress:      0x01
+            attributes:     5=
+            maxPacketSize:  0x0126=294
+            interval:       1
+            refresh:        0x08
+            synchAddr:      0x25
+        UNKNOWN CLASS SPECIFIC EP FOR SUBCLASS(02)
+        ??? 08 25 01 00 00 02 08 00 
+        IN-EP1
+            length:         7
+            descType:       0x05=CONFIG_TYPE_EP
+            epAddress:      0x81
+            attributes:     17=
+            maxPacketSize:  0x0004=4
+            interval:       4
+            refresh:        0x09
+            synchAddr:      0x04
+    standardInterface
+        length:         9
+        descType:       0x04=CONFIG_TYPE_INTERFACE
+        intNumber:      1
+        altInt:         2
+        numEP:          2
+        intClass:       0x01=USB_CLASS_AUDIO
+        intSubClass:    0x02=USB_SUBCLASS_AUDIO_STREAMING
+        intProtocol:    0x20
+        iInterface:     4 - UMC404HD 192k Output
+        classSpecificInterface
+            length:         16
+            descType:       0x24 CONFIG_TYPE_CS_INTERFACE
+            descSubtype:    0x01
+            classRevision:  0x0002
+        classSpecificInterface
+            length:         6
+            descType:       0x24 CONFIG_TYPE_CS_INTERFACE
+            descSubtype:    0x02
+            classRevision:  0x0201
+    UNKNOWN CONFIG_TYPE(55)
+    ??? 07 55 4d 43 34 30 34 
+
