@@ -5,6 +5,8 @@
 #include "oldRig_defs.h"
 #include "ftp.h"
 #include "midiQueue.h"  // for mySendDeviceControlChange()
+#include "commonDefines.h"
+
 
 // 2020-09-20 prh I am not thrilled with the encapsulation of pedals at this time.
 //
@@ -464,8 +466,10 @@ void pedalManager::pedalEvent(int num, int value)
         // IT IS THE LOOP VOLUME PEDAL
         // AND IS HARDWIRED HERE TO SEND CC 0x67
 
+        // 2023-08-05 changed to use existing defines
+
         sendSerialControlChange(
-            0x67,   // pedal->getCCNum(),
+            LOOP_CONTROL_BASE_CC + LOOPER_CONTROL_LOOP_VOLUME,
             value,
             "pedals.cpp");
     }

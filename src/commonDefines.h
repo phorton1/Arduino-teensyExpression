@@ -2,12 +2,7 @@
 // This file is currently denormalized and stored in both the Arduino-TeensyExpresiona
 // project and in the circle-Looper projecte
 
-#ifndef __common_defines_h__
-#define __common_defines_h__
-
-//---------------------------------------------
-// Previously from rPi Looper.h
-//---------------------------------------------
+#pragma once
 
 #define LOOPER_NUM_TRACKS     4
 #define LOOPER_NUM_LAYERS     4
@@ -35,8 +30,8 @@
 
         // the above commands can be sent to the loop machine.
         // the following are for internal "pending" command use only
-#define LOOP_COMMAND_RECORD             0x40
-#define LOOP_COMMAND_PLAY               0x50
+#define LOOP_COMMAND_RECORD             0x80
+#define LOOP_COMMAND_PLAY               0x81
 
 
 // Looper Serial CC numbers             // TE       rPi         descrip
@@ -50,4 +45,12 @@
 #define NOTIFY_LOOP            0x64     // recv     send        value=number of pending loop notifies
 
 
-#endif
+// Looper Volume Controls
+// these are based off of LOOP_CONTROL_BASE_CC
+
+#define LOOPER_CONTROL_INPUT_GAIN      0
+#define LOOPER_CONTROL_THRU_VOLUME     1
+#define LOOPER_CONTROL_LOOP_VOLUME     2
+#define LOOPER_CONTROL_MIX_VOLUME      3
+#define LOOPER_CONTROL_OUTPUT_GAIN     4
+#define LOOPER_NUM_CONTROLS            5

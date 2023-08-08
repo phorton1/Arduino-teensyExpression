@@ -716,31 +716,16 @@ bool rigLooper::onRotaryEvent(int num, int val)
 {
 	display(dbg_rig,"rigLooper::onRotaryEvent(%d,%d)",num,val);
 
-	// send the value out on CC's 101 thru 105
-	// mapped from rotary controls
-	//   0==input volume      1==output volume
-	//   2==thru volume       3==mix volume
-	// to rPi control numbers + 101
-
-	#define RPI_CONTROL_INPUT_GAIN          0
-	#define RPI_CONTROL_THRU_VOLUME         1
-	#define RPI_CONTROL_LOOP_VOLUME         2
-	#define RPI_CONTROL_MIX_VOLUME          3
-	#define RPI_CONTROL_OUTPUT_GAIN         4
-
-	#define RPI_CONTROL_NUM_CC_OFFSET  0x65
-		// so the loop volume pedal will be at 0x65 + 2
-
 	int control_num =
-		num == 0 ? RPI_CONTROL_INPUT_GAIN :
-		num == 1 ? RPI_CONTROL_OUTPUT_GAIN :
-		num == 2 ? RPI_CONTROL_THRU_VOLUME :
-		RPI_CONTROL_MIX_VOLUME;
+		num == 0 ? LOOPER_CONTROL_INPUT_GAIN :
+		num == 1 ? LOOPER_CONTROL_OUTPUT_GAIN :
+		num == 2 ? LOOPER_CONTROL_THRU_VOLUME :
+		LOOPER_CONTROL_MIX_VOLUME;
 
 	if (!m_quantiloop_mode)
 	{
 		// prh - no rotary events for quantiloop - should be relative volumes
-		sendSerialControlChange(control_num + RPI_CONTROL_NUM_CC_OFFSET,val,"rigLooper Rotary Control");
+		sendSerialControlChange(control_num + LOOP_CONTROL_BASE_CC, val,"rigLooper Rotary Control");
 	}
 
 	return true;
@@ -770,7 +755,7 @@ void rigLooper::onSerialMidiEvent(int cc_num, int value)
 		m_stop_button_cmd = value;
 	}
 	else if (cc_num >= CLIP_MUTE_BASE_CC &&
-			 cc_num < CLIP_MUTE_BASE_CC + 12)
+			 cc_num < CLIP_MUTE_BASE_CC + 16)		// 2023-08-05 - 12 was definitely wrong here; it should be 16
 	{
 		int num = cc_num - CLIP_MUTE_BASE_CC;
 		m_clip_mute[num] = value;
