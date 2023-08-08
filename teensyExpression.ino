@@ -12,8 +12,6 @@
 #include "src/myMidiHost.h"
 #include "src/myTouchScreen.h"
 
-
-
 #define TOUCH_DRAW_TEST  0
 
 
@@ -42,7 +40,7 @@ void setup()
         if (Serial3)
         {
             delay(1000);
-            Serial3.println("hello from teensyExpression Serial3 port");
+            Serial3.println("hello from teensyExpression.ino() setup() " TEENSY_EXPRESSION_VERSION " Serial3 port");
         }
     #endif
 
@@ -55,7 +53,6 @@ void setup()
     if (serial_debug_pref == 2)
     {
         dbgSerial = &Serial3;
-        display(0,"debugging output redirected to Serial3",0);
     }
     else if (!serial_debug_pref)
     {
@@ -66,6 +63,10 @@ void setup()
 
     if (getPref8(PREF_SPOOF_FTP))
         setFishmanFTPDescriptor();
+
+
+
+
     my_usb_init();
     delay(1000);
 
@@ -76,7 +77,7 @@ void setup()
     while (serial_started<1000 && !Serial) {}
 
     delay(400);
-    display(0,"teensyExpression v2.01 started",0);
+    display(0,"teensyExpression,ino " TEENSY_EXPRESSION_VERSION " setup() started",0);
 
     // start the TFT display device
 
