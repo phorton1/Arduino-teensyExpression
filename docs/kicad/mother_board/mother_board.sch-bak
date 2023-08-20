@@ -320,12 +320,12 @@ SW_IN5
 $Comp
 L power:GND #PWR01
 U 1 1 64CFCC09
-P 3750 1500
-F 0 "#PWR01" H 3750 1250 50  0001 C CNN
-F 1 "GND" V 3750 1300 50  0000 C CNN
-F 2 "" H 3750 1500 50  0001 C CNN
-F 3 "" H 3750 1500 50  0001 C CNN
-	1    3750 1500
+P 4250 1500
+F 0 "#PWR01" H 4250 1250 50  0001 C CNN
+F 1 "GND" V 4250 1300 50  0000 C CNN
+F 2 "" H 4250 1500 50  0001 C CNN
+F 3 "" H 4250 1500 50  0001 C CNN
+	1    4250 1500
 	1    0    0    -1  
 $EndComp
 $Comp
@@ -339,13 +339,13 @@ F 3 "" H 4550 2700 50  0001 C CNN
 	1    4550 2700
 	1    0    0    -1  
 $EndComp
-Text GLabel 3950 1500 3    50   Input ~ 0
+Text GLabel 3850 1500 3    50   Input ~ 0
 EXPR1
-Text GLabel 4050 1500 3    50   Input ~ 0
+Text GLabel 3950 1500 3    50   Input ~ 0
 EXPR2
-Text GLabel 4150 1500 3    50   Input ~ 0
+Text GLabel 4050 1500 3    50   Input ~ 0
 EXPR3
-Text GLabel 4250 1500 3    50   Input ~ 0
+Text GLabel 4150 1500 3    50   Input ~ 0
 EXPR4
 Text GLabel 4650 2700 1    50   Input ~ 0
 EXPR1
@@ -447,12 +447,12 @@ $EndComp
 $Comp
 L power:+3V3 #PWR06
 U 1 1 64D07CE1
-P 3850 1500
-F 0 "#PWR06" H 3850 1350 50  0001 C CNN
-F 1 "+3V3" V 3850 1700 50  0000 C CNN
-F 2 "" H 3850 1500 50  0001 C CNN
-F 3 "" H 3850 1500 50  0001 C CNN
-	1    3850 1500
+P 3750 1500
+F 0 "#PWR06" H 3750 1350 50  0001 C CNN
+F 1 "+3V3" V 3750 1700 50  0000 C CNN
+F 2 "" H 3750 1500 50  0001 C CNN
+F 3 "" H 3750 1500 50  0001 C CNN
+	1    3750 1500
 	-1   0    0    1   
 $EndComp
 Text GLabel 3000 1800 1    50   Input ~ 0

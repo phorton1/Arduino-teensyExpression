@@ -1,6 +1,6 @@
-update=8/19/2023 4:46:17 PM
+update=8/19/2023 6:23:40 PM
 version=1
-last_client=pcbnew
+last_client=kicad
 [general]
 version=1
 RootSch=
@@ -25,7 +25,7 @@ ERC_TestSimilarLabels=1
 [pcbnew]
 version=1
 PageLayoutDescrFile=
-LastNetListRead=mother_board.net
+LastNetListRead=uno_display_connector.net
 CopperLayerCount=2
 BoardThickness=1.6
 AllowMicroVias=0
@@ -40,7 +40,7 @@ MinMicroViaDrill=0.09999999999999999
 MinHoleToHole=0.25
 TrackWidth1=0.25
 TrackWidth2=1
-TrackWidth3=1.5
+TrackWidth3=2
 TrackWidth4=2.2
 ViaDiameter1=0.8
 ViaDrill1=0.4
