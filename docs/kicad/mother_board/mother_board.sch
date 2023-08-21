@@ -383,21 +383,21 @@ Text GLabel 4850 1500 3    50   Input ~ 0
 TFT_WR
 Text GLabel 4750 1500 3    50   Input ~ 0
 TFT_RD
-Text GLabel 6300 1500 3    50   Input ~ 0
-TFT_DAT1
-Text GLabel 6200 1500 3    50   Input ~ 0
-TFT_DAT0
-Text GLabel 6100 1500 3    50   Input ~ 0
-TFT_DAT7
-Text GLabel 6000 1500 3    50   Input ~ 0
-TFT_DAT6
-Text GLabel 5900 1500 3    50   Input ~ 0
-TFT_DAT5
-Text GLabel 5800 1500 3    50   Input ~ 0
-TFT_DAT4
 Text GLabel 5700 1500 3    50   Input ~ 0
-TFT_DAT3
+TFT_DAT1
 Text GLabel 5600 1500 3    50   Input ~ 0
+TFT_DAT0
+Text GLabel 6300 1500 3    50   Input ~ 0
+TFT_DAT7
+Text GLabel 6200 1500 3    50   Input ~ 0
+TFT_DAT6
+Text GLabel 6100 1500 3    50   Input ~ 0
+TFT_DAT5
+Text GLabel 6000 1500 3    50   Input ~ 0
+TFT_DAT4
+Text GLabel 5900 1500 3    50   Input ~ 0
+TFT_DAT3
+Text GLabel 5800 1500 3    50   Input ~ 0
 TFT_DAT2
 Text GLabel 5150 2700 1    50   Input ~ 0
 TFT_RES
@@ -409,21 +409,21 @@ Text GLabel 5450 2700 1    50   Input ~ 0
 TFT_WR
 Text GLabel 5550 2700 1    50   Input ~ 0
 TFT_RD
-Text GLabel 5050 2700 1    50   Input ~ 0
-TFT_DAT1
-Text GLabel 5650 2700 1    50   Input ~ 0
-TFT_DAT0
-Text GLabel 6050 2700 1    50   Input ~ 0
-TFT_DAT7
-Text GLabel 6150 2700 1    50   Input ~ 0
-TFT_DAT6
-Text GLabel 6250 2700 1    50   Input ~ 0
-TFT_DAT5
-Text GLabel 6350 2700 1    50   Input ~ 0
-TFT_DAT4
 Text GLabel 6450 2700 1    50   Input ~ 0
-TFT_DAT3
+TFT_DAT1
 Text GLabel 6550 2700 1    50   Input ~ 0
+TFT_DAT0
+Text GLabel 5050 2700 1    50   Input ~ 0
+TFT_DAT7
+Text GLabel 5650 2700 1    50   Input ~ 0
+TFT_DAT6
+Text GLabel 6050 2700 1    50   Input ~ 0
+TFT_DAT5
+Text GLabel 6150 2700 1    50   Input ~ 0
+TFT_DAT4
+Text GLabel 6250 2700 1    50   Input ~ 0
+TFT_DAT3
+Text GLabel 6350 2700 1    50   Input ~ 0
 TFT_DAT2
 NoConn ~ 5850 2700
 NoConn ~ 5950 2700
