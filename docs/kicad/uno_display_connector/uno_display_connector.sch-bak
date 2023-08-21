@@ -164,4 +164,6 @@ F 3 "" H 3350 4800 50  0001 C CNN
 	1    3350 4800
 	0    1    1    0   
 $EndComp
+Text Notes 1200 3000 0    50   ~ 0
+NOTE that LCD_D0 and LCD_D1 are switched\nwhile soldering the wires onto this connector so  \nALL DATA LINES COME OUT IN ORDER on the\nother end as REQUIRED by the mother board!!!
 $EndSCHEMATC
