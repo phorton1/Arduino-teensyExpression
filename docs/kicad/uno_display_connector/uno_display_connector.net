@@ -1,7 +1,7 @@
 (export (version D)
   (design
     (source C:\src\Arduino\teensyExpression\docs\kicad\uno_display_connector\uno_display_connector.sch)
-    (date "8/21/2023 2:40:41 PM")
+    (date "8/22/2023 12:12:15 AM")
     (tool "Eeschema (5.1.6)-1")
     (sheet (number 1) (name /) (tstamps /)
       (title_block
@@ -93,11 +93,11 @@
       (uri "C:\\Program Files\\KiCad\\share\\kicad\\library/Connector_Generic.lib")))
   (nets
     (net (code 1) (name +3V3)
-      (node (ref J2) (pin 1))
+      (node (ref J2) (pin 2))
       (node (ref U1) (pin 18)))
     (net (code 2) (name +5V)
       (node (ref U1) (pin 19))
-      (node (ref J2) (pin 2)))
+      (node (ref J2) (pin 1)))
     (net (code 3) (name GND)
       (node (ref U1) (pin 21))
       (node (ref J2) (pin 8)))
