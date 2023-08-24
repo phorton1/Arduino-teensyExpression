@@ -214,8 +214,10 @@ void expressionPedal::setAutoRawValue(int value)
 
 
 void expressionPedal::teensyReceiveByte()
-    // quick and dirty, timings derived empirically to
-    // match the arduino code's arbitrary constants.
+    // called as an ISR on a RISING edge from the pedal.
+    // reads a byte from the pedal, with timings derived
+    // empirically to match the signals from the Arduino
+    // autoPedal.ino sketch.
 {
     delayMicroseconds(TEENSY_START_IN_DELAY);
     int value = 0;
