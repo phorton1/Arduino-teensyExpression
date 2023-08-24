@@ -1,3 +1,44 @@
+//--------------------------------------------------------------
+// winConfigPedal.cpp
+//--------------------------------------------------------------
+// 2023-08-24 - There is some wonkiness in here that causes the machine to reboot.
+//    I wanna figure it out and fix it before porting this kind of functionality to TE2.
+//    So for now, this comment is an analysis of existing behavior.
+//
+// On this version there were 4 types of pedals:
+//		Normal - sends MIDI CC's
+//      Serial - sends Serial Midi CC's
+//      Smart  - Normal + PEDAL_MODE_AUTO bit
+//		Smart-Serial - Serial + PEDAL_MODE_AUTO bit
+//
+//		The PEDAL_MODE_AUTO is implemented in Pedals.cpp to communicate
+//      with the Arduino AutoPedal.ino program via my one wire serial protocol.
+//      Those pedals can then "follow" the volumes set in the songMachine.
+//      None of this appears to an issue right now, I'm just documenting it
+//      for completeness.
+//
+// Navigation:  There is an arrow pad, an upper left BLUE button, and
+//    upper right ORANGE and GREEN buttons.
+//
+//    Upper Right Green - Accepts Pedal Changes and returns
+//       to GeneralConfigurationMode, where, BTW, the changes
+//       can still be aborted or accepted.
+//    Upper Right Orange - I think this is intended to revert the
+//       changes from PedalConfigurationMode, and return to
+//       GeneralConfiguration mode. It really shouild only be
+//       highlighted and functional if there have been changes
+//       to the pedals.
+//    Upper Left Blue - This is intended to cycle through Pedals
+//       as they are all one set of changes as far as the system
+//       is concerned.
+//
+// Crashes:
+//
+//    Pressing the Blue button while in Calibration mode currently crashes.
+//    Fix: the fix was merely to set m_in_calibrate = 0 when switching pedals.
+//
+
+
 
 #include <myDebug.h>
 #include "winConfigPedal.h"
@@ -9,10 +50,6 @@
 //----------------------------------
 // Pedals
 //----------------------------------
-// for the time being there is one set of values for the pedals
-// across all rigs.  An idea is then to have "pedal sets"
-// that can be shared between different rigs while still
-// allowing for multiple definitions.
 
 #define KEYPAD_UP      12
 #define KEYPAD_DOWN    22
@@ -287,6 +324,7 @@ void winConfigPedal::onButtonEvent(int row, int col, int event)
     }
 	else if (num == NEXT_PEDAL_BUTTON)
 	{
+        m_in_calibrate = 0;
         int next_num = (m_pedal_num+1) % NUM_PEDALS;
 		theSystem.swapModal(new winConfigPedal(next_num),0);
 	}
