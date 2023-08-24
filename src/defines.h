@@ -19,13 +19,18 @@
 #define BUTTON_ROW(i)      ((i) / NUM_BUTTON_COLS)
 #define BUTTON_COL(i)      ((i) % NUM_BUTTON_COLS)
 
+#define BUTTON_MOVE_UP          12
+#define BUTTON_MOVE_LEFT        16
+#define BUTTON_MOVE_RIGHT       18
+#define BUTTON_MOVE_DOWN        22
+#define BUTTON_SELECT           17
+
 #define PEDAL_SYNTH     0
 #define PEDAL_LOOP      1
 #define PEDAL_WAH       2
 #define PEDAL_GUITAR    3
 
 #define LOOPER_NUM_TRACKS_TIMES_LAYERS    (LOOPER_NUM_TRACKS * LOOPER_NUM_LAYERS)
-
 
 
 typedef struct
@@ -42,24 +47,25 @@ typedef struct
 //----------------------------------------------------------------------
 // PIN USAGE
 //----------------------------------------------------------------------
-// We are using Serial3 as our "second" SERIAL_IO_PORT
-//
-// left/right  old                          new
+// On Teensy 3.6 SERIAL is SERIAL3
+// On Teensy 4.1 SERIAL is SERIAL2
+
+// left/right
 //   pin
 //    GND
 // L  0        unused1 RX1 used by LEDS
 // L  1        unused2 TX1 used by LEDS
-// L  2        ROTARY_2A                    ROTARY_1A
-// L  3        ROTARY_2B                    ROTARY_1B
-// L  4        ROTARY_1A                    ROTARY_2B
+// L  2        ROTARY_1A
+// L  3        ROTARY_1B
+// L  4        ROTARY_2A
 // L  5        LEDS_OUT (Serial1)
-// L  6        ROTARY_1B                    ROTARY_2A
-// L  7        SERIAL_RX3
-// L  8        SERIAL_TX3
-// L  9        ROTARY_3B                    ROTARY_3A
-// L 10        ROTARY_3A                    ROTARY_3B
-// L 11        ROTARY_4A                    ROTARY_4B
-// L 12        ROTARY_4B                    ROTary_4A
+// L  6        ROTARY_2B
+// L  7        SERIAL_RX
+// L  8        SERIAL_TX
+// L  9        ROTARY_3A
+// L 10        ROTARY_3B
+// L 11        ROTARY_4A
+// L 12        ROTARY_4B
 //   3.3V
 // L 24        BUTTON_OUT0
 // L 25        BUTTON_OUT1
@@ -77,126 +83,154 @@ typedef struct
 // R 22 A8     EXPR2
 // R 21 A7     EXPR3
 // R 20 A6     EXPR4
-// R 19 A5     CHEAP_TFT_DATA0
-// R 18 A4     CHEAP_TFT_RESET
-// R 17 A3     CHEAP_TFT_CS
-// R 16 A2     CHEAP_TFT_CD(RS)
-// R 15 A1     CHEAP_TFT_WR
-// R 14 A0     CHEAP_TFT_RD
-// R 13        CHEAP_TFT_DATA1
+// R 19 A5     TFT_DATA7
+// R 18 A4     TFT_RESET
+// R 17 A3     TFT_CS
+// R 16 A2     TFT_CD(RS)
+// R 15 A1     TFT_WR
+// R 14 A0     TFT_RD
+// R 13        TFT_DATA6
 //      3,3V
-// R    A22    x - unused analog only
-// R    A21    x - unused analog only
-// R 39 A20    CHEAP_TFT_DATA7
-// R 38 A19    CHEAP_TFT_DATA6
-// R 37 A18    CHEAP_TFT_DATA5
-// R 36 A17    CHEAP_TFT_DATA4
-// R 35 A16    CHEAP_TFT_DATA3
-// R 34 A15    CHEAP_TFT_DATA2
+// R    A22    x - unused analog only;
+// R    A21    x - unused analog only;
+// R 39 A20    TFT_DATA5
+// R 38 A19    TFT_DATA4
+// R 37 A18    TFT_DATA3
+// R 36 A17    TFT_DATA2
+// R 35 A16    TFT_DATA1
+// R 34 A15    TFT_DATA0
 // R 33 A14    BUTTON_IN4
 
-// The pins for the TFT were not well laid on in the circuit,
-// causing a twisted cable, and some late fixes (13 and 19 to
-// CHEAP_DATA1 and 0, right on top of unused A21 and A22 pins
-// which cannot be used for digital io.
-//
-// The pins for the ROTARY were munged ... one of em is
-// different, and the order is weird
-//
-// I had to add 10K resistors to the 1/4" pedal jacks to
-// the insertion switch to ground them when not in use!
+
+//============================================================
+// pin definitions and connectors
+//============================================================
+// The serial cable connector, 3 pin Dupon on front of PCB, pins are facing.
+//      On Teensy 3.6 SERIAL is SERIAL3
+//      On Teensy 4.1 SERIAL is SERIAL2
+// In terms of the teensy's viewpoint of RX/TX,
+// which map to Tip, Ring, and Sleeve the opposite
+// of the Looper's.
+
+// SERIAL_TX    pin 1		// Tip on TE
+// SERIAL_RX	pin 2		// Ring on TE
+// GND          pin 3		// Sleeve on both
 
 
-#define PIN_BUTTON_OUT0         24
-#define PIN_BUTTON_OUT1         25
-#define PIN_BUTTON_OUT2         26
-#define PIN_BUTTON_OUT3         27
-#define PIN_BUTTON_OUT4         28
-#define PIN_BUTTON_IN0          29
-#define PIN_BUTTON_IN1          30
-#define PIN_BUTTON_IN2          31
-#define PIN_BUTTON_IN3          32
-#define PIN_BUTTON_IN4          33
+//--------------------------------------------
+// Button in and out pins
+//--------------------------------------------
+// 1st and 2nd 5 pin connectors on back in FACING order
+// when seen from front of board.  Note that a single
+// 15 pin connector on the board is used for 3 5 pin plugs.
 
-#if NEW_DESIGN
-    #define ROTARY_1A   2     // mashed up pin assignments
-    #define ROTARY_1B   3
-    #define ROTARY_2B   4
-    #define ROTARY_2A   6
-    #define ROTARY_3A   9    //  I suspect this is backwards due to Looper
-    #define ROTARY_3B   10
-    #define ROTARY_4B   11
-    #define ROTARY_4A   12
-#else
-    #define ROTARY_1A   4     // mashed up pin assignments
-    #define ROTARY_1B   6
-    #define ROTARY_2A   2
-    #define ROTARY_2B   3
-    #define ROTARY_3A   10    // this one is wired differently than the others
-    #define ROTARY_3B   9
-    #define ROTARY_4A   11
-    #define ROTARY_4B   12
+#define PIN_BUTTON_IN0      29      // pin 5 on 1st connector facing
+#define PIN_BUTTON_IN1      30      // pin 4
+#define PIN_BUTTON_IN2      31      // pin 3
+#define PIN_BUTTON_IN3      32      // pin 2
+#define PIN_BUTTON_IN4      33      // pin 1
+
+#define PIN_BUTTON_OUT4     28      // pin 1 on 2nd connector facing
+#define PIN_BUTTON_OUT3     27      // pin 2
+#define PIN_BUTTON_OUT2     26      // pin 3
+#define PIN_BUTTON_OUT1     25      // pin 4
+#define PIN_BUTTON_OUT0     24      // pin 5
+
+
+//--------------------------------------------------------
+// Expression pedal connector, 6 pin dupont on front, facing
+//--------------------------------------------------------
+// I added 10K resistors to the 1/4" pedal jacks to
+// the insertion switch to ground them when not in use.
+// New PCB also adds 10K pulldowns to each as well as a
+// 1K inline power resistor to prevent reboots when inserting
+// expression pedal plugs, resulting in an effective range of
+// about 0..(0.75 * 1023)
+
+#define PIN_EXPR4    20     // pin1 A6
+#define PIN_EXPR3    21     // pin2 A7
+#define PIN_EXPR2    22     // pin3 A8
+#define PIN_EXPR1    23     // pin4 A9
+                            // pin5 3.3V
+                            // pin6 GND
+
+//---------------------------------------
+// Rotary Pins and connectors
+//---------------------------------------
+// 3rd and 4th 5 pin connectors on back in FACING order
+// The kicad files show the NEW rotary board setup.
+
+#if 0		// NEW ROTARY BOARD DESIGN
+
+								// pin 1 3V on 3rd connector facing
+	#define ROTARY_4B   12      // pin 2
+	#define ROTARY_4A   11      // pin 3
+	#define ROTARY_3B   10      // pin 4
+	#define ROTARY_3A   9       // pin 5
+
+								// pin 1 GND on 4th connector facing
+	#define ROTARY_2B   6       // pin 2
+	#define ROTARY_2A   4       // pin 3
+	#define ROTARY_1B   3       // pin 4
+	#define ROTARY_1A   2       // pin 5
+
+#else		// old rotary perf board
+
+	// these definitions work with the old teensyExpression
+
+								// pin 1 3V on 3rd connector facing
+	#define ROTARY_1B   12      // pin 2   // was 4
+	#define ROTARY_1A   11      // pin 3
+	#define ROTARY_2B   10      // pin 4
+	#define ROTARY_2A   9       // pin 5
+
+								// pin 1 GND on 4th connector facing
+	#define ROTARY_3B   6       // pin 2	// was 2
+	#define ROTARY_3A   4       // pin 3
+	#define ROTARY_4A   3       // pin 4	// was 1 reversed
+	#define ROTARY_4B   2       // pin 5
+
 #endif
 
-#define PIN_EXPR1    23  // A6
-#define PIN_EXPR2    22  // A7
-#define PIN_EXPR3    21  // A8
-#define PIN_EXPR4    20  // A9
+
+//-----------------------------------------------
+// UNO style parallel ILI9486 320x480 display
+//-----------------------------------------------
+// The TFT DATA is on the 1st front 8 pin JST connector, facing
+
+#define TFT_DATA0   34     // pin 1
+#define TFT_DATA1   35     // pin 2
+#define TFT_DATA2	36     // pin 3
+#define TFT_DATA3   37     // pin 4
+#define TFT_DATA4   38     // pin 5
+#define TFT_DATA5   39     // pin 6
+#define TFT_DATA6   13     // pin 7
+#define TFT_DATA7   19     // pin 8
 
 
-//-----------------------------------------
-// CHEAP TFT and TOUCH SCREEN
-//-----------------------------------------
-// Always defined as of now
-// Cheap Ardino 3.5" 320x480 TFT's
-// Uses my modified version of LCDWIKI, which
+// The TFT controls and power are on the 2nd front 8 pin JST connector, facing
 //
-// - has HARDWIRED (though arbitray) pin numbers
-//   in myLCDWIKI_KBV/LCDWikiStuff_for_teensy.cpp
-// - and uses ILI9431_t3.h in myLCDWIKI_GUI/LCDWIKI_GUI.cpp
-//   to implement fonts
-//
-// Do not confuse the CD flash drive pins for the touch screen.
-// This device uses direct measurements of resistance and very
-// touchy, pun intended, modified version of TouchScreen.h which:
-//
-// - ONLY USE getPoint()  !!!
-// - uses digitalWrite instead of portReg stuff
-// - softened up the validity checks
-// - reset all the pinModes when finished
+// GND              			// pin 1
+#define TFT_RD     		14      // pin 2
+#define TFT_WR          15 		// pin 3
+#define TFT_CD_RS		16 		// pin 4
+#define TFT_CS          17 		// pin 5
+#define TFT_RESET       18 		// pin 6
+// 5V               			// pin 7
+// 3.3V             			// pin 8
 
-#define CHEAP_TFT_DATA0     19      // needed by ts
-#define CHEAP_TFT_DATA1     13      // needed by ts
-#define CHEAP_TFT_DATA2     34
-#define CHEAP_TFT_DATA3     35
-#define CHEAP_TFT_DATA4     36
-#define CHEAP_TFT_DATA5     37
-#define CHEAP_TFT_DATA6     38
-#define CHEAP_TFT_DATA7     39
+// Touch Screen Redefinitions
 
-#define CHEAP_TFT_RD         14
-#define CHEAP_TFT_WR         15
-#define CHEAP_TFT_CD_RS      16      // needed by ts - labelled "RS" on board
-#define CHEAP_TFT_CS         17      // needed by ts
-#define CHEAP_TFT_RESET      18
+#define YP  TFT_CD_RS   // 16=A2        // A2 maps to LCD_RS on arduino    // must be an analog pin, use "An" notation!
+#define XM  TFT_CS      // 17=A3        // A3 maps to LCD_CS on arduino    // must be an analog pin, use "An" notation!
+#define YM  TFT_DATA0   // 34=A15        / 8  maps to LCD_D0 on arduino    // can be a digital pin
+#define XP  TFT_DATA1   // 35=A16       // 9  maps to LCD_D1 on arduino    // can be a digital pin
 
 
-// define   my definition    // pin number   // arduino pin number and notes    // general notes
-#define YP  CHEAP_TFT_CD_RS  // 17=A4        // A2 maps to LCD_RS on arduino    // must be an analog pin, use "An" notation!
-#define XM  CHEAP_TFT_CS     // 16=A2        // A3 maps to LCD_CS on arduino    // must be an analog pin, use "An" notation!
-#define YM  CHEAP_TFT_DATA0  // 14=A0        // 8  maps to LCD_D0 on arduino    // can be a digital pin
-#define XP  CHEAP_TFT_DATA1  // 13           // 9  maps to LCD_D1 on arduino    // can be a digital pin
 
-
-// common buttons
-
-#define BUTTON_MOVE_UP          12
-#define BUTTON_MOVE_LEFT        16
-#define BUTTON_MOVE_RIGHT       18
-#define BUTTON_MOVE_DOWN        22
-#define BUTTON_SELECT           17
-
-
+//===========================================================
+// ansi colors
+//===========================================================
 // ansi colors
 
 #define ansi_color_black 	            30
@@ -236,6 +270,9 @@ typedef struct
 #define ansi_color_bg_white  		    107
 
 
+//----------------------------------------
+// int_rect
+//----------------------------------------
 
 class int_rect
 {
