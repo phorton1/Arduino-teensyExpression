@@ -148,8 +148,8 @@ expSystem::expSystem()
 	draw_title = 1;
 	m_title = 0;
 
-    for (int i=0; i<MAX_EXP_RIGS; i++)
-        m_rigs[i] = 0;
+	for (int i=0; i<MAX_EXP_RIGS; i++)
+		m_rigs[i] = 0;
 
 	song_msg_rect[0].assign(
 		client_rect.xs,
@@ -162,7 +162,6 @@ expSystem::expSystem()
 		song_title_rect.ye + 10,
 		client_rect.xe,
 		client_rect.ye);
-
 
 }
 

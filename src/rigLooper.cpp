@@ -362,7 +362,7 @@ void rigLooper::startQuickMode()
 
 	for (int track=0; track<LOOPER_NUM_TRACKS; track++)
 	{
-		bool ud = m_quantiloop_mode ? 0 : BUTTON_MASK_USER_DRAW;
+		int ud = m_quantiloop_mode ? 0 : BUTTON_MASK_USER_DRAW;
 		int color = m_quantiloop_mode ? LED_RED : 0;
 		theButtons.setButtonType(track + NUM_BUTTON_COLS * QUICK_ROW_ERASE_TRACK, BUTTON_EVENT_CLICK | BUTTON_EVENT_LONG_CLICK, ud, color);
 	}

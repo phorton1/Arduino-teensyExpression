@@ -190,11 +190,11 @@ void buttonArray::select(int num, int pressed)
 		leds_changed = true;
 	}
 
-    if (pressed != 1)
-        button->m_press_time = 0;
+	if (pressed != 1)
+		button->m_press_time = 0;
 
-   	if (leds_changed)
-        showLEDs();
+	if (leds_changed)
+		showLEDs();
 }
 
 
