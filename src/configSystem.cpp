@@ -250,9 +250,7 @@ void configSystem::onEndModal(expWindow *win, uint32_t param)
 {
 	if (param && win->getId() == OPTION_TYPE_FACTORY_RESET)
 	{
-		for (int i=0; i<NUM_EEPROM_USED; i++)
-			setPref8(i,255);
-		save_global_prefs();
+		clear_prefs();
 		reboot(THE_SYSTEM_BUTTON);
 	}
 }

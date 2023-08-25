@@ -28,7 +28,7 @@ extern "C" {
 
 void setup()
 {
-    init_global_prefs();
+    bool prefs_reset = init_global_prefs();
 
     // start the hardware serial port
 
@@ -64,9 +64,6 @@ void setup()
     if (getPref8(PREF_SPOOF_FTP))
         setFishmanFTPDescriptor();
 
-
-
-
     my_usb_init();
     delay(1000);
 
@@ -90,26 +87,36 @@ void setup()
     mylcd.print("teensyExpression ");
     mylcd.print(TEENSY_EXPRESSION_VERSION);
     mylcd.println(" started ... ");
+    mylcd.Set_Text_colour(TFT_YELLOW);
 
-    int do_delay = 3000;
+    int do_delay = 2000;
 
+    if (prefs_reset)
+    {
+        const char *msg = "    PREFS WERE AUTOMATICALLY RESET!!";
+        warning(0,"%s",msg);
+        mylcd.println(msg);
+        do_delay = 5000;
+    }
     if (!dbgSerial)
     {
-        mylcd.Set_Text_colour(TFT_YELLOW);
-        mylcd.println("    NO SERIAL PORT IS ACTIVE!!");
-        do_delay = 3000;
+        const char *msg = "    NO SERIAL PORT IS ACTIVE!!";
+        warning(0,"%s",msg);
+        mylcd.println(msg);
+        do_delay = 5000;
     }
     else if (serial_debug_pref == 2)
     {
-        mylcd.Set_Text_colour(TFT_YELLOW);
-        mylcd.println("    DEBUG_OUTPUT to hardware Serial3!");
-        if (!do_delay) do_delay = 1200;
+        const char *msg = "    DEBUG_OUTPUT to hardware Serial3!";
+        warning(0,"%s",msg);
+        mylcd.println(msg);
+        do_delay = 5000;
     }
 
     #if !defined(USB_MIDI4_SERIAL)
-        error("PROGRAM IS NOT COMPILED UNDER USB_MIDI4_SERIAL teensyDuino type!! Things may not work correctly!!!",0);
-        mylcd.Set_Text_colour(TFT_YELLOW);
-        mylcd.println("    NOT COMPILED WITH USB_MIDI4_SERIAL !!");
+        const char *msg = "    NOT COMPILED WITH USB_MIDI4_SERIAL !!!";
+        my_error("%s",msg);
+        mylcd.println(msg);
         do_delay = 5000;
     #endif
 

@@ -209,13 +209,29 @@ void setPrefStrings(int pref, const char *strings[])
 //------------------------------
 
 // extern
-extern void init_global_prefs()
+void clear_prefs()
 {
-    for (int i=0; i<NUM_EEPROM_USED; i++)
+    EEPROM.write(0,TEENSY_EXPRESSION1_PREF_VERSION);
+    for (int i=1; i<NUM_EEPROM_USED; i++)
+        EEPROM.write(i,255);
+}
+
+
+// extern
+bool init_global_prefs()
+{
+    bool retval = 0;
+    if (EEPROM.read(0) != TEENSY_EXPRESSION1_PREF_VERSION)
+    {
+        retval = 1;
+        clear_prefs();
+    }
+    for (int i=1; i<NUM_EEPROM_USED; i++)
     {
         prefs[i] = last_prefs[i] = pref_cache[i] = EEPROM.read(i);
     }
     setDefaultPrefs();
+    return retval;
 }
 
 
@@ -224,7 +240,7 @@ extern void init_global_prefs()
 void save_global_prefs()
 {
     display(dbg_prefs,"save_global_prefs",0);
-    for (int i=0; i<NUM_EEPROM_USED; i++)
+    for (int i=1; i<NUM_EEPROM_USED; i++)
     {
         EEPROM.write(i,pref_cache[i]);
         last_prefs[i] = pref_cache[i];

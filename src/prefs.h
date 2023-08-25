@@ -11,17 +11,26 @@
 #define FTP_PORT_HOST           1
 #define FTP_PORT_REMOTE         2
 
+#define TEENSY_EXPRESSION1_PREF_VERSION   237
+
 //--------------------------------------------------------------------------------
 // SETTINGS (PREFERENCES) OPTIONS
 //--------------------------------------------------------------------------------
-// These define are also the locations in EEPROM of these items
+// EEPROM location 0 is magic
+// 		it is 237 for teensyExpression1
+// 		and 238 for teensyExpression2
+//      so that we can recognize the difference
+//      and automatically do a factory reset when switching between them
+// Otherwise, these define are also the locations in EEPROM of these items
 
-#define PREF_BRIGHTNESS         0           // 1..100 - default(40)
-#define PREF_RIG_NUM            1           // 0..254 - default(1)
-#define PREF_DEBUG_PORT         2           // off, USB, Serial - default(USB)
-#define PREF_FILE_SYSTEM_PORT   3
-#define PREF_SPOOF_FTP          4           // off, on - default(off)
-#define PREF_FTP_PORT           5           // off, Host, Remote, default(Host)
+#define PREF_VERSION			0			// 237 for teensyExpression1, 238 for teensyExpression2
+
+#define PREF_BRIGHTNESS         1           // 1..100 - default(40)
+#define PREF_RIG_NUM            2           // 0..254 - default(1)
+#define PREF_DEBUG_PORT         3           // off, USB, Serial - default(USB)
+#define PREF_FILE_SYSTEM_PORT   4
+#define PREF_SPOOF_FTP          5           // off, on - default(off)
+#define PREF_FTP_PORT           6           // off, Host, Remote, default(Host)
 
 #define FTP_OUTPUT_PORT    (getPref8(PREF_SPOOF_FTP) ? 1 : getPref8(PREF_FTP_PORT))
 
@@ -30,7 +39,7 @@
 // pedals
 //--------------------------------
 
-#define PREF_PEDAL0    (PREF_FTP_PORT + 2)      // skip a byte from header == 6 at this time
+#define PREF_PEDAL0    (PREF_FTP_PORT + 1)      // skip a byte from header == 6 at this time
 
 #define MAX_PEDAL_CURVES                3       // number of curves per pedal
 #define MAX_CURVE_POINTS                4       // number of points per curve
@@ -175,8 +184,10 @@ inline uint8_t  getPref8(int pref)      { return prefs[pref]; }
 inline bool     getPrefBool(int pref)   { return (bool) prefs[pref]; }
 inline uint16_t getPref16(int pref)     { uint16_t *p=(uint16_t *) &prefs[pref];  return *p; }
 
+extern void clear_prefs();
+extern bool init_global_prefs();
+	// returns TRUE if the prefs were automatically reset
 
-extern void init_global_prefs();
 extern void save_global_prefs();
 
 extern void setPref8(int pref, uint8_t val);
