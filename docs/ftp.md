@@ -1,5 +1,7 @@
 # FTP (Fishman Triple Play) Reverse Engineering and Midi Specificiations
 
+TODO: many broken links in this file
+
 The folder contains historical and more up-to-date results of the last couple
 of years of my efforts to reverse engineer the FTP midi specification and behavior.
 
@@ -113,7 +115,7 @@ which I already have, in whatever state it happens to be in.   Below I try to gi
 an idea of the relevance of each document in this folder.
 
 
-### [my_devices_midi_descriptors.txt](my_devices_midi_descriptors.txt)
+### \[my_devices_midi_descriptors.txt](my_devices_midi_descriptors.txt)
 
 This file contains a dump of the the USB descriptors for various devices that I have owned,
 including the FTP, the Akai MPD218, a Softstep2 foot pedal, an "AudioFront" exprssion pedal
@@ -129,7 +131,7 @@ Others who might *not* be interested in the FTP may still find interest in the d
 for one of the other devices therein.
 
 
-### [FTP_Midi_Analysis.docx](FTP_Midi_Analysis.docx)
+### \[FTP_Midi_Analysis.docx](FTP_Midi_Analysis.docx)
 
 This file was also generated using Arduinos (or maybe a teensy) and various Arduino host shield
 solutions.  I got quite involved trying to implement an (unpublished) "USB Pass Thru" device that
@@ -147,7 +149,7 @@ my notes were scattered, and I had to, basically, go through everything again.
 But I did.   If you've read this far, keep reading.
 
 
-### [readme-2020-06-14.txt](readme-2020-06-14.txt)
+### \[readme-2020-06-14.txt](readme-2020-06-14.txt)
 
 Of course, one of the things I initially tried right away with the FTP was to use the
 **midiOx** program to *get in between* the windows FTP editor and the dongle/controller
@@ -169,7 +171,7 @@ pictures and desribe the results mo-better.
 
 
 
-### [FinallyFiguredOutMidiOXSpoof.docx](FinallyFiguredOutMidiOXSpoof.docx)
+### \[FinallyFiguredOutMidiOXSpoof.docx](FinallyFiguredOutMidiOXSpoof.docx)
 
 This document purports to explain how YOU TOO (lol) can use **midiOx** and **loopMidi**
 to get *in between* the FTP dongle and the Windows FTP editor program so that you can
@@ -185,7 +187,7 @@ is in C++ header and source files at this time, which I will attempt to link to 
 major section of this readme file.
 
 
-### [hardware_patches.csv](hardware_patches.csv)
+### \[hardware_patches.csv](hardware_patches.csv)
 
 A CSV (comma delimtied text) file of the original FTP hardware patches created by using the
 "export" function from the FTP Windows Editor.
@@ -199,7 +201,7 @@ features that Fishman either had in mind and did not implemnt, or have yet to im
 (like an arpegiator).
 
 
-### [FTP_MIDI_SPEC.xlsm](FTP_MIDI_SPEC.xlsm)
+### \[FTP_MIDI_SPEC.xlsm](FTP_MIDI_SPEC.xlsm)
 
 This file is just getting started.   It was my intention to document here, in one place
 all of the 0x1F/0x3F commands that the editor uses, and the dongle/controller responds
@@ -223,7 +225,7 @@ in various C++ header and source files in the main "teensyExpression" project.
 
 I try to call out the most relevant files containing FTP midi information here.
 
-### [../arduino/teensyExpression/ftp_defs.h](../arduino/teensyExpression/ftp_defs.h)
+### \[../arduino/teensyExpression/ftp_defs.h](../arduino/teensyExpression/ftp_defs.h)
 
 **This is probably the most important and relevant file for FTP midi
 information, in my system, at this time!!**
@@ -266,12 +268,12 @@ In this H file you will find most of the command/replies that I have identified,
 and/or tested, and/or which I use to effect things in the teensyExpression program.
 
 For instance, I was able to implement the "string sensitivity settings"
-in [winFTPSensitivity.h](../arduino/teensyExpression/winFTPSensitivity.h) and
-[winFTPSensitivity.cpp](../arduino/teensyExpression/winFTPSensitivity.cpp)
+in \[winFTPSensitivity.h](../arduino/teensyExpression/winFTPSensitivity.h) and
+\[winFTPSensitivity.cpp](../arduino/teensyExpression/winFTPSensitivity.cpp)
 as well as a guitar tuner based on the FTP, largely based on the information
 available in this H file.
 
 [![ftp-tuner.jpg](images/ftp-tuner.jpg)](images/ftp-tuner.big.jpg)
 
-also see [winFTPTuner.h](../arduino/teensyExpression/winFTPTuner.h) and
-[winFTPTuner.cpp](../arduino/teensyExpression/winFTPTuner.cpp)
+also see \[winFTPTuner.h](../arduino/teensyExpression/winFTPTuner.h) and
+\[winFTPTuner.cpp](../arduino/teensyExpression/winFTPTuner.cpp)

@@ -108,7 +108,7 @@ When a song is loaded, and the songMachine is running, **it takes over the botto
 When it is not running, or no file is loaded, those four buttons revert back to the the normal Looper
 TRACK1 through TRACK4 buttons.
 
-Please see the [songMachine readme file](readme_songmachine.md) for more information about
+Please see the [songMachine readme file](songmachine.md) for more information about
 the songMachine.
 
 **There is a small, kind of weird, overload of the songMachine button.**
@@ -409,7 +409,7 @@ FTP **1f/3f** *command/reply* sequences.
 
 For more information on my efforts at reverse engineering
 the FTP Midi protocols, please see the
-[../ftp/readme.md](../ftp/readme.md) file
+[ftp readme](ftp.md) file
 
 TODO: Make a readme file specific to Midi monitoring
 showing how it displays messages in differet colors
@@ -534,4 +534,4 @@ Tuner and the Sensitivity dialogs by pressing the **purple** button
 at the upper right.
 
 
------ end of readme_ui.md ------
+----- end of ui.md ------

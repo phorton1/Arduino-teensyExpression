@@ -72,8 +72,8 @@ like $8.   With care 3 of switch-boards can be cut from each prototype board,
 and, since 25 are needed, you'd need 9 of the prototype boards to reproduce
 this project.
 
-[![hardware-led_strip.jpg](images/hardware-led_strip.jpg)](https://www.ebay.com/itm/5V-WS2812B-Led-Strip-Waterproof-IP65-IP67-30Leds-m-60Leds-m-5M-Neon-5V-Led-light/383642094481)
-[![hardware-prototype_boards.jpg](images/hardware-prototype_boards.jpg)](https://www.ebay.com/itm/20pcs-PCB-Prototype-Board-Circuit-Stripboard-2X8-3X7-4X6-5X7-5Pcs-Each-Veroboard/252520067657)
+[![hardware-led_strip.jpg](images/hardware-led_strip.jpg)](https://www.ebay.com/itm/383642094481)
+[![hardware-prototype_boards.jpg](images/hardware-prototype_boards.jpg)](https://www.ebay.com/itm/252520067657)
 
 *click on images above to see them in ebay*
 
@@ -92,7 +92,7 @@ enough spring back to work, and they work fine in practice.   I found them
 available on ebay for $1.85 for 20 (so you'd need two packs, but have 15 left
 over at the end).
 
-[![hardware-switches.jpg](images/hardware-switches.jpg)](https://www.ebay.com/itm/20pcs-8x8x5MM-4PIN-Tactile-Push-Button-Micro-Switch-Direct-Self-ResetSoundlessHY/313082729862)
+[![hardware-switches.jpg](images/hardware-switches.jpg)](https://www.ebay.com/itm/313082729862)
 
 *click on image above to see in ebay*
 
@@ -169,7 +169,7 @@ power meter to monitor the power usage.
 
 These power meters are available on Ebay for about $7.
 
-[![hardware-power_meter.jpg](images/hardware-power_meter.jpg)](https://www.ebay.com/itm/USB-Charger-Doctor-Voltage-Current-Meter-Mobile-Battery-Tester-Power-Detector/401708239662)
+[![hardware-power_meter.jpg](images/hardware-power_meter.jpg)](https://www.ebay.com/itm/401708239662)
 
 *click on the image to go to ebay*
 
@@ -182,8 +182,6 @@ that connects to the teensy.
 I was very pleased with these little micro-usb connectors that I also got
 on ebay, at 10 for $5.79 (about 60 cents each)
 
-[![hardware-micro_usb.jpg](hardware-micro_usb.jpg)](https://www.ebay.com/itm/10X-Micro-Usb-5-Pin-Male-Plug-Socket-Connector-Right-Angle-Long-Head-Cover-Tail/201390419549)
-
 And I needed the female TypeB connector as well (probably around $1 on ebay).
 
 What made this step considerably more fun, and easy, was the purchase of some
@@ -192,7 +190,7 @@ under $4 on ebay, and used to two in this project.  I will definitely use these
 more in the future, as I **hate** dupont connectors and trying to build them
 from scratch!
 
-[![hardware-wired_4pin_connectors.jpg](images/hardware-wired_4pin_connectors.jpg)](https://www.ebay.com/itm/10-Sets-4-Pin-Micro-JST-XH-2-54mm-24AWG-Connector-Plug-With-Wire-Cables/264781666854)
+[![hardware-wired_4pin_connectors.jpg](images/hardware-wired_4pin_connectors.jpg)](https://www.ebay.com/itm/264781666854)
 
 The circuit board  is approximately 24x38 mm, and the typeB USB connector
 projects about 3mm through the back of the box.

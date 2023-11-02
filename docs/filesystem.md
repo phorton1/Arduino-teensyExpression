@@ -2,7 +2,7 @@
 
 This page describes the **fileSystem**.
 
-The fileSystem is currently ONLY *used* by the [**songMachine**](readme_songmachine.md) to
+The fileSystem is currently ONLY *used* by the [**songMachine**](songmachine.md) to
 read **.song** files from the */songs* directory on the SD card.
 
 The fileSystem also presents a *Serial File Transfer Protocol*, which
@@ -261,4 +261,4 @@ and some of the other capabilities of my development environment,
 will be forthcoming.
 
 
------ end of readme_filesystm.md ------
+----- end of filesystm.md ------

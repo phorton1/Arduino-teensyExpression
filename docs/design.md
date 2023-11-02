@@ -4,10 +4,10 @@ This page describes the software architecture for the teensyExpression ino
 program.
 
 For a discussion of the user interface (the "user manual"), please see
-the [User Interface](readme_ui.md) readme file.
+the [User Interface](ui.md) readme file.
 
 For a discussion of the advanced automation features of the device,
-please see the [songMachine](readme_songmachine.md) readme file.
+please see the [songMachine](songmachine.md) readme file.
 
 
 ## Basic Architecture
@@ -30,7 +30,7 @@ follows.  There are a number of APIs (classes, objects) that represent an
 higher layers.   This includes
 
 - an abstraction of the SD Card FAT32 **fileSystem**.  The file system
-  has it's own readme file at [readme_filesystem.md](readme_filesystem.md).
+  has it's own readme file at [filesystem.md](filesystem.md).
 - an object that manages the four expression **pedals**
   including polling them and their functional behavior
 - objects to process, and monitor **MIDI** io, including a
@@ -148,7 +148,7 @@ defined behavior.
 
 A description of the user interface of these two rigs, which
 currently pretty much constitutes the entire user interface at
-this time can be found in the [User Interface](readme_ui.md) readme file.
+this time can be found in the [User Interface](ui.md) readme file.
 
 
 ## songMachine and rigBase
@@ -293,7 +293,7 @@ presses.  The chosen synth patch, volumes and effects are determined by the code
 All you do is tell the machine **WHEN** to change state ...
 
 More info on the songMachine and the songMachine language
-can be found in the [songMachine readme file](readme_songmachine.md).
+can be found in the [songMachine readme file](songmachine.md).
 
 
 ## Note on Pedals and Display Areas
@@ -412,4 +412,4 @@ See the various API's (*buttons.h, myLeds.h, myTFT.h, etc*) for details on how
 you affect the display and LEDs, and see **rigLooper** or one of the other
 existing rigs for clues on how to send midi events upon button presses.
 
------ end of design/readme_ui.md ------
+----- end of design/ui.md ------

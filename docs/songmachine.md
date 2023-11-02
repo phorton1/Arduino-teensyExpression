@@ -109,10 +109,10 @@ The song language supports the following **statements**L
 
 **Display Statements**
 
-- **BUTTON_COLOR** *button_num,color[,opt_flash]* - set the given button
+- **BUTTON_COLOR** *button_num,color\[,opt_flash]* - set the given button
   to the given color.  May optionally include (comma) **FLASH** to make
   the button flash.
-- **DISPLAY** *area_num,"quoted string"[,opt_color]* - The DISPLAY statement
+- **DISPLAY** *area_num,"quoted string"\[,opt_color]* - The DISPLAY statement
   shows text on the TFT in one of the two display areas (1 or 2).  You
   must provide a quoted string for the text to display, and the statement
   takes an optional **color constant**.   The default color for area
@@ -120,9 +120,9 @@ The song language supports the following **statements**L
 
 **Volume Statments**
 
-- **LOOP_VOLUME** *value[,opt_fade_time]*
-- **SYNTH_VOLUME** *value[,opt_fade_time]*
-- **GUITAR_VOLUME** *value[,opt_fade_time]*
+- **LOOP_VOLUME** *value\[,opt_fade_time]*
+- **SYNTH_VOLUME** *value\[,opt_fade_time]*
+- **GUITAR_VOLUME** *value\[,opt_fade_time]*
 
   The LOOP, SYNTH, and GUITAR
   VOLUME statements allow you to set the volumes (pedals) to the given

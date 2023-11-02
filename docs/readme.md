@@ -29,11 +29,11 @@ It is intended to be a *foot* controller ... hence the tiered setup which makes 
 easier to press buttons with your toes without having to reach over other buttons.
 FWIW, I play the guitar barefooted, while sitting in a chair.
 
-There are two major aspects to this project.  First there is the [**hardware**](hardware/), which is
+There are two major aspects to this project.  First there is the [**hardware**](hardware.md), which is
 relatively straight forward, and there are circuit diagrams, fusion 360 files, some
 instructions, and so on that might allow someone to create a copy if they wanted to.
 
-The second major aspect is the [**software**](design/). Inasmuch as this was conceived as BOTH an
+The second major aspect is the [**software**](design.md). Inasmuch as this was conceived as BOTH an
 experimental platform to let me mess with USB midi, and particularly the **Fishman FTP
 Triple Play** dongle/controller, it also has been programmed to fit into my existing
 performance setup.  For me, it is "gig ready", as well as a place I can try different
@@ -63,19 +63,11 @@ repository so that I can present it to you.
 
 ## THIS Repository Organization
 
-The following subfolders are considered "public":
+TODO: rework this whole section
 
-* [teensyExpression/](teensyExpression/) - contains the C++ source code,
+This repository contains the C++ source code,
   including the main INO file (teensyExpression.ino) and the C++ and H files
   needed to build the program.
-* [design/](design/) - contains a description of the software architecture,
-  with ideas on how other programmers might extend it, along with a
-  description of the [User Interface](design/readme_ui.md) in it's
-  current incarnation, including the [songMachine](design/readme_songmachine.md)
-* [hardware/](hardware/) - contains the basic schematic, circuit diagrams,
-  and information about building the electronics portion of the project.
-* [ftp/](ftp/) - contains separate discussions and documents regarding
-   my reverse engineering efforts on the FTP Triple Play dongle and controller
 
 There are a number of other sub-folders which are considered "private" for my own
 personal use, and/or which exist only to support the readme.md files in the this
@@ -94,8 +86,7 @@ and the above subfolders:
 There is a separate repository containing the Fusion 360, STL, and gcode files
 for this project that were used to 3D print the box and buttons.
 
-* [fusion/](https://github.com/phorton1/Arduino-teensyExpression-fusion) - contains the STL, fusion 360 files, and notes on how to print and assemble the box
-
+TODO: rework
 
 ### Please See
 
@@ -145,9 +136,10 @@ just leaving the NameOfLibrary portion in the directory structure if you wish.
    global methods with names like "display" and "display_bytes" which are called
    throughout my code, and which can be turned on or off via defines.
 
-* [base64](https://github.com/phorton1/Arduino-libraries-base64) -
-  UNMODIFIED fork of Adam Rudd's https://github.com/adamvr/arduino-base64 repository
+TODO: cleanup NEEDS vs USES forked libraries
 
+* **base64** -
+  UNMODIFIED fork of Adam Rudd's https://github.com/adamvr/arduino-base64 repository
 * [ILI9341_t3](https://github.com/phorton1/Arduino-libraries-ILI9341_t3) and
   [ILI9341_fonts](https://github.com/phorton1/Arduino-libraries-ILI9341_fonts) -
   These are UNMODIFIED versions of Paul's ILI9341 libraries, forked from
