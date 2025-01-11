@@ -1,0 +1,79 @@
+, 2025-01-07	teensy_redraw.csv
+
+
+______WOOD________,,0,
+ply_thin,			mm, 3.175 mm,				"1/8"" birch plywood"
+ply_medium,			mm, 4.8 mm,					"bocas 3/16"" plywood"
+wood_quarter,		mm, 6.35 mm,				"1/4"" wood"
+ply_thick,			mm, 11.0 mm,				"bocas 1/2"" plywood"
+frame_offset_left,	mm, 18.20 mm,				offset of 0th frame duplicating original design
+
+______SCREWS_____,,0,
+tiny_screw,			mm, 1.0 mm,					those small black screws
+screw2_tight,		mm, 1.7 mm,					standard hole into which M2 screw threads tightly
+screw3_tight,		mm, 2.8 mm,					standard hole into which M3 screw threads tightly
+screw3_loose,		mm, 3.2 mm,					holes a M3 fits through easily
+screw3_head_room,	mm, 6 mm,					holes in bottom that screw heads fit into
+screw3_sink,		mm,	3.0 mm,					counter sink depth for M3 screw head
+
+______BASICS_________,,0,
+overall_width,		mm, 237 mm,
+overall_depth,		mm, 299 mm,
+base_thick,			mm, ply_thick,
+frame_spacing,		mm, 45 mm,					buttons are arranged in a square grid
+level_inc,			mm, 10 mm,					the levels differ by 10 mm
+assy_tolerance,		mm,	0.4mm,					tolerance for assembled parts
+tight_tolerance,	mm, 0.2mm,					for tight fitting (mostly tops) parts
+
+______FRAME_RECT_____,,0,
+frame_offset_front,	mm, 15.70 mm,				offset of 0th frame
+frame_width,		mm, 20.60 mm,				basic rectangle describing a frame
+frame_depth,		mm, 25.60 mm,				basic rectangle describing a frame
+frame_wall,			mm, 2.8 mm,how 				thick are the side walls of the frame
+
+
+______LEVELS_____,,0,
+, the "frame" holds the button boards inside of the button casing
+
+frame1,				mm, 11 mm,					the 1st frame is a defining constant
+frame2,				mm, frame1 + level_inc,
+frame3,				mm, frame2 + level_inc,
+frame4,				mm, frame3 + level_inc,
+frame5,				mm, frame4 + level_inc,
+
+frame_inner1,		mm, 4.5 mm,					the lower part creating an opening for the wires
+frame_inner2,		mm, frame_inner1 + 8 mm,	the inner parts only rise 8mm per level
+frame_inner3,		mm, frame_inner2 + 8 mm,
+frame_inner4,		mm, frame_inner3 + 8 mm,
+frame_inner5,		mm, frame_inner4 + 8 mm,
+
+push_down,			mm, 7.5 mm,					how "thick" are the tops
+, the "push_down" variable is set to press down on the button casing tops
+
+top_thick,			mm, 3 mm,					generic thickness; used in tops
+top1,				mm, 23 mm,				the 1st top is a defining constant
+top2,				mm, top1 + level_inc,
+top3,				mm, top2 + level_inc,
+top4,				mm, top3 + level_inc,
+top5,				mm, top4 + level_inc,
+
+top1_bottom,		mm, top1 - push_down,		the tops are push_down mm thick
+top2_bottom,		mm, top1_bottom + level_inc,
+top3_bottom,		mm, top2_bottom + level_inc,
+top4_bottom,		mm, top3_bottom + level_inc,
+top5_bottom,		mm, top4_bottom + level_inc,
+top_back,			mm, top5 + top_thick,			offset plane for top of left and right back parts
+
+riser_fix,			mm, 2.2 mm,					a fix for the back corners for board variations
+wire_channel,		mm, 10mm,					cut into front wall of base frames to allow wires to traverse
+tab_cover,			mm, 2.0 mm,					how far from top to extrude the little piece over the button tab
+thin_part,			mm, 1.5 mm,					how far from top to extrude the thin piece in the back
+
+
+__________DISPLAY_________,,0,
+, only one parameter drives the display design
+, the rest of the dimensions are ad-hoc (baked in)
+
+display_space,		mm, 94 mm,					distance between top left and top right (display mount exceeds both by 2mm)
+
+
