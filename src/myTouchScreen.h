@@ -1,5 +1,4 @@
-#ifndef _myTouchScreen_h_
-#define _myTouchScreen_h_
+#pragma once
 
 // Resistive touch screen on Cheap Ardino 3.5" 320x480 TFT's
 // need an object, calibration routine, etc
@@ -34,5 +33,3 @@ class myTouchScreen
 
 extern myTouchScreen theTouchScreen;
 
-
-#endif  // !_myTouchScreen_h_

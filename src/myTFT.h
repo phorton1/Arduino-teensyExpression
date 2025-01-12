@@ -1,8 +1,10 @@
-#ifndef __myTFT_h_
-#define __myTFT_h_
+//------------------------------------
+// myTFT.h API to myLcd library
+//------------------------------------
 
-#include <LCDWIKI_GUI.h>    // my modified Core graphics library
-#include <LCDWIKI_KBV.h>    // my modified Hardware-specific library
+#pragma once
+
+#include <myLcdDevice.h>    // my modified library
 #include <font_Arial.h>
 #include <font_ArialBold.h>
 #include "defines.h"
@@ -10,6 +12,8 @@
 #define TFT_WIDTH           480
 #define TFT_HEIGHT          320
 
+// these color constants are the same whether using
+// myLCD, ILI9486_t3, or ILI9341_t3
 
 #define TFT_RGB_COLOR(r,g,b)  ((((r) & 0xF8) << 8) | (((g) & 0xFC) << 3) | ((b) >> 3))
 
@@ -35,19 +39,16 @@
 #define TFT_PINK            0xF81F
 
 
+extern myLcdDevice mylcd;
 
-
-extern LCDWIKI_KBV mylcd;
 extern void initMyTFT();
 
 inline void fillRect(int_rect &rect, int color)
 {
-    mylcd.Fill_Rect(
-            rect.xs,
-            rect.ys,
-            rect.width(),
-            rect.height(),
-            color);
+    mylcd.fillRect(
+        rect.xs,
+        rect.ys,
+        rect.width(),
+        rect.height(),
+        color);
 }
-
-#endif

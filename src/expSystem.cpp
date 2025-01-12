@@ -233,11 +233,11 @@ void expSystem::begin()
         // start the timer
 
     activateRig(rig_num);
-        // show the first windw
+        // show the first window
 
 	if (!fileSystem::init())
 	{
-        mylcd.Set_Text_colour(TFT_YELLOW);
+        mylcd.setTextColor(TFT_YELLOW);
         mylcd.println("");
         mylcd.println("expSystem: COULD NOT START FILE SYSTEM!!");
 		delay(10000);
@@ -300,7 +300,7 @@ void expSystem::startWindow(expWindow *win, bool warm)
 	display(dbg_exp,"startWindow(%d,%s)",warm,win->name());
 
 	theButtons.clear();
-	mylcd.Fill_Screen(0);
+	mylcd.fillScreen(0);
 	if (!(win->m_flags & WIN_FLAG_OWNER_TITLE))
 		setTitle(win->name());
 	else
@@ -732,7 +732,7 @@ void expSystem::updateUI()
 			draw_pedals = false;
 			draw_pedal_values = true;
 
-			mylcd.Fill_Rect(
+			mylcd.fillRect(
 				pedal_rect.xs,
 				pedal_rect.ys,
 				pedal_rect.width(),
@@ -740,12 +740,12 @@ void expSystem::updateUI()
 				TFT_YELLOW);
 
 			mylcd.setFont(Arial_18_Bold);   // Arial_16);
-			mylcd.Set_Text_colour(0);
-			mylcd.Set_Draw_color(TFT_YELLOW);
+			mylcd.setTextColor(0);
+			mylcd.setDrawColor(TFT_YELLOW);
 
 			for (int i=0; i<NUM_PEDALS; i++)
 			{
-				mylcd.printf_justified(
+				mylcd.printfJustified(
 					i*pedal_width,
 					pedal_rect.ys + 5,
 					pedal_width,
@@ -758,7 +758,7 @@ void expSystem::updateUI()
 					thePedals.getPedal(i)->getName());
 
 				if (i && i<NUM_PEDALS)
-					mylcd.Draw_Line(
+					mylcd.drawLine(
 						i*pedal_width,
 						pedal_rect.ys + PEDAL_TEXT_AREA_HEIGHT,
 						i*pedal_width,
@@ -777,9 +777,9 @@ void expSystem::updateUI()
 				int v = pedal->getDisplayValue();
 
 				mylcd.setFont(Arial_40_Bold);   // Arial_40);
-				mylcd.Set_Text_colour(TFT_WHITE);
+				mylcd.setTextColor(TFT_WHITE);
 
-				mylcd.printf_justified(
+				mylcd.printfJustified(
 					12+i*pedal_width,
 					pedal_rect.ys + PEDAL_TEXT_AREA_HEIGHT + 7,
 					100,
@@ -809,21 +809,21 @@ void expSystem::updateUI()
 
 		draw_title = false;
         mylcd.setFont(Arial_16_Bold);
-        mylcd.Set_Text_Cursor(5,10);
-        mylcd.Set_Text_colour(TFT_YELLOW);
+        mylcd.setCursor(5,10);
+        mylcd.setTextColor(TFT_YELLOW);
         mylcd.print(m_title);
 
 		// horizontal line
 
-        mylcd.Set_Draw_color(TFT_YELLOW);
-	    mylcd.Draw_Line(0,36,mylcd.Get_Display_Width()-1,36);
+        mylcd.setDrawColor(TFT_YELLOW);
+	    mylcd.drawLine(0,36,mylcd.width()-1,36);
 
 		// midi indicator frames
 
-        mylcd.Set_Draw_color(TFT_WHITE);
+        mylcd.setDrawColor(TFT_WHITE);
 		for (int i=0; i<NUM_PORTS; i++)
 		{
-			mylcd.Fill_Circle(
+			mylcd.fillCircle(
 				INDICATOR_X + (i/2)*INDICATOR_PAIR_SPACING + (i&1)*INDICATOR_SPACING,
 				INDICATOR_Y,
 				INDICATOR_RADIUS + 1);
@@ -843,19 +843,19 @@ void expSystem::updateUI()
 			TFT_DARKGREY :
 			TFT_YELLOW;
 
-		mylcd.Fill_Rect(
+		mylcd.fillRect(
 			BATTERY_X,
 			BATTERY_Y,
 			BATTERY_WIDTH,
 			BATTERY_HEIGHT,
 			battery_frame_color);
-		mylcd.Fill_Rect(
+		mylcd.fillRect(
 			BATTERY_X + BATTERY_WIDTH -1,
 			BATTERY_Y + (BATTERY_HEIGHT/4),
 			4,
 			(BATTERY_HEIGHT/2),
 			battery_frame_color);
-		mylcd.Fill_Rect(
+		mylcd.fillRect(
 			BATTERY_X + BATTERY_FRAME,
 			BATTERY_Y + BATTERY_FRAME,
 			BATTERY_WIDTH - 2*BATTERY_FRAME,
@@ -873,7 +873,7 @@ void expSystem::updateUI()
 		int left_int = left_width;
 		int right_int = right_width;
 
-		mylcd.Fill_Rect(
+		mylcd.fillRect(
 			BATTERY_X + BATTERY_FRAME,
 			BATTERY_Y + BATTERY_FRAME,
 			left_int,
@@ -881,7 +881,7 @@ void expSystem::updateUI()
 			color);
 
 		if (right_int > 0)
-			mylcd.Fill_Rect(
+			mylcd.fillRect(
 				BATTERY_X + BATTERY_FRAME + left_int,
 				BATTERY_Y + BATTERY_FRAME,
 				right_int,
@@ -918,8 +918,8 @@ void expSystem::updateUI()
 					out ? TFT_RED : TFT_GREEN :
 					0;
 
-				mylcd.Set_Draw_color(color);
-				mylcd.Fill_Circle(
+				mylcd.setDrawColor(color);
+				mylcd.fillCircle(
 					INDICATOR_X + cable_pair*INDICATOR_PAIR_SPACING + out*INDICATOR_SPACING,
 					INDICATOR_Y,
 					INDICATOR_RADIUS);
@@ -935,8 +935,8 @@ void expSystem::updateUI()
 		{
 			last_tempo = m_tempo;
 			mylcd.setFont(Arial_14_Bold);
-			mylcd.Set_Text_colour(TFT_WHITE);
-			mylcd.printf_justified(
+			mylcd.setTextColor(TFT_WHITE);
+			mylcd.printfJustified(
 				10,
 				200,
 				50,

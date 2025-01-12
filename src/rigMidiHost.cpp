@@ -292,7 +292,7 @@ void rigMidiHost::drawBox(int string, int box32, int vel16)
 		box32 >= SENS_START_GREEN ?
 			(on ? SENS_COLOR_GREEN : SENS_COLOR_DARK_GREEN) :
 			(on ? SENS_COLOR_YELLOW : SENS_COLOR_DARK_YELLOW);
-	mylcd.Fill_Rect(
+	mylcd.fillRect(
 		SENS_LEFT + box32 * SENS_BOX_X_OFFSET,
 		SENS_TOP + string * SENS_ROW_Y_OFFSET,
 		SENS_BOX_WIDTH,
@@ -324,7 +324,7 @@ void rigMidiHost::updateUI()	// draw
 			{
 				float pct = ((float)last_velocity[i]) / 127.0;
 				int x = (((float)SENS_WIDTH-SENS_MIDI_VEL_WIDTH) * pct);
-				mylcd.Fill_Rect(
+				mylcd.fillRect(
 					SENS_LEFT + x,
 					SENS_TOP + i * SENS_ROW_Y_OFFSET - 1, // one pixel above
 					SENS_MIDI_VEL_WIDTH,
@@ -341,7 +341,7 @@ void rigMidiHost::updateUI()	// draw
 			{
 				float pct = ((float)velocity[i]) / 127.0;
 				int x = (((float)SENS_WIDTH-SENS_MIDI_VEL_WIDTH) * pct);
-				mylcd.Fill_Rect(
+				mylcd.fillRect(
 					SENS_LEFT + x,
 					SENS_TOP + i * SENS_ROW_Y_OFFSET - 1, // one pixel above
 					SENS_MIDI_VEL_WIDTH,

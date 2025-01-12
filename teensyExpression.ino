@@ -10,10 +10,13 @@
 #include "src/buttons.h"
 #include "src/expSystem.h"
 #include "src/myMidiHost.h"
-#include "src/myTouchScreen.h"
+
 
 #define TOUCH_DRAW_TEST  0
 
+#if TOUCH_DRAW_TEST
+    #include "src/myTouchScreen.h"
+#endif
 
 //-----------------------------------------------------------
 // setup
@@ -80,16 +83,16 @@ void setup()
 
     initMyTFT();
 
-    mylcd.Set_Text_Back_colour(0);
-    mylcd.Set_Text_colour(TFT_WHITE);
+    mylcd.setTextBackColor(0);
+    mylcd.setTextColor(TFT_WHITE);
     mylcd.setFont(Arial_16);
-    mylcd.Set_Text_Cursor(5,5);
+    mylcd.setCursor(5,5);
     mylcd.print("teensyExpression ");
     mylcd.print(TEENSY_EXPRESSION_VERSION);
     mylcd.println(" started ... ");
-    mylcd.Set_Text_colour(TFT_YELLOW);
 
     int do_delay = 2000;
+    mylcd.setTextColor(TFT_YELLOW);
 
     if (prefs_reset)
     {
@@ -161,7 +164,7 @@ void loop()
         static elapsedMillis clear_it = 0;
         if (!cleared && clear_it > 350)
         {
-            mylcd.Fill_Screen(0);
+            mylcd.fillScreen(TFT_BLACK);
             clear_it = 0;
             cleared = 1;
         }
@@ -173,8 +176,9 @@ void loop()
             cleared = 0;
             clear_it = 0;
             mylcd.setDefaultFont();
-            mylcd.Set_Text_Size(3);
-            mylcd.Print_String("o",x,y);
+            mylcd.setTextSize(3);
+            mylcd.setCursor(x,y)
+            mylcd.print("o");
         }
 
     #endif

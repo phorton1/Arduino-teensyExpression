@@ -476,7 +476,7 @@ void configSystem::updateUI()
 			scroll_top = option_num - OPTIONS_PER_PAGE + 1;
 		if (scroll_top != m_scroll_top)
 		{
-			mylcd.Fill_Rect(0,TOP_OFFSET,TFT_WIDTH,TFT_HEIGHT-TOP_OFFSET,0);
+			mylcd.fillRect(0,TOP_OFFSET,TFT_WIDTH,TFT_HEIGHT-TOP_OFFSET,0);
 			m_scroll_top = scroll_top;
 			draw_all = true;
 			//display(0,"new m_scroll_top=%d",m_scroll_top);
@@ -490,7 +490,7 @@ void configSystem::updateUI()
         display_menu = cur_menu;
         draw_all = true;
 
-        mylcd.Fill_Screen(0);
+        mylcd.fillScreen(0);
 
         if (cur_option->pParent == rootOption)
             theSystem.setTitle(name());
@@ -530,12 +530,12 @@ void configSystem::updateUI()
 				// don't need to draw black on a full redraw
 
 				if (color != TFT_BLACK || !draw_all)
-					mylcd.Fill_Rect(0,y,TFT_WIDTH,LINE_HEIGHT-HIGHLIGHT_OFFSET,color);
+					mylcd.fillRect(0,y,TFT_WIDTH,LINE_HEIGHT-HIGHLIGHT_OFFSET,color);
 
 				uint16_t fc = enabled ? TFT_YELLOW : TFT_DARKGREY;
 
-				mylcd.Set_Text_colour(fc);
-				mylcd.Set_Text_Cursor(LEFT_OFFSET,y + TEXT_OFFSET);
+				mylcd.setTextColor(fc);
+				mylcd.setCursor(LEFT_OFFSET,y + TEXT_OFFSET);
 				mylcd.print(num+1,DEC);
 				mylcd.print(". ");
 				mylcd.print(opt->getTitle());
@@ -546,7 +546,7 @@ void configSystem::updateUI()
 			{
 				uint16_t fc = enabled ? TFT_WHITE : TFT_DARKGREY;
 
-				mylcd.printf_justified(
+				mylcd.printfJustified(
 					MID_OFFSET,
 					y + TEXT_OFFSET,
 					MID_OFFSET - RIGHT_OFFSET,

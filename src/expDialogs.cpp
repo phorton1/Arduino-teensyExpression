@@ -49,7 +49,7 @@ void yesNoDialog::updateUI()
     {
         m_draw_needed = 0;
         mylcd.setFont(Arial_16_Bold);
-        mylcd.printfv_justified(
+        mylcd.printfvJustified(
             60,
             100,
             360,
@@ -60,6 +60,8 @@ void yesNoDialog::updateUI()
             false,
             m_format,
             m_params);
+
+
     }
 }
 

@@ -201,8 +201,8 @@ bool songMachine::load(const char *song_name)
     init();
 
     mylcd.setFont(Arial_18_Bold);
-    mylcd.Set_Text_colour(TFT_CYAN);
-    mylcd.Print_String(song_name,song_title_rect.xs+5,song_title_rect.ys+4);
+    mylcd.setTextColor(TFT_CYAN);
+    mylcd.drawString(song_name,song_title_rect.xs+5,song_title_rect.ys+4);
 
     if (songParser::openSongFile(song_name) &&
         songParser::parseSongText(m_pBaseRig))
@@ -451,8 +451,8 @@ void songMachine::updateUI()
     {
         fillRect(song_title_rect,TFT_BLACK);
         mylcd.setFont(Arial_18_Bold);
-        mylcd.Set_Text_colour(TFT_CYAN);
-        mylcd.Print_String(songParser::getTheSongName(),song_title_rect.xs+5,song_title_rect.ys+4);
+        mylcd.setTextColor(TFT_CYAN);
+        mylcd.drawString(songParser::getTheSongName(),song_title_rect.xs+5,song_title_rect.ys+4);
     }
 
     // state
@@ -475,7 +475,7 @@ void songMachine::updateUI()
             m_state & SONG_STATE_RUNNING ? "running" : "";
 
         #if 1
-            mylcd.print_justified(
+            mylcd.printJustified(
                 song_state_rect.xs,
                 song_state_rect.ys,
                 song_state_rect.width()-5,
@@ -486,9 +486,9 @@ void songMachine::updateUI()
                 true,
                 (char *)msg);
         #else
-            mylcd.Set_Text_colour(color);
+            mylcd.setTextColor(color);
             fillRect(song_state_rect,TFT_BLACK);
-            mylcd.Print_String(
+            mylcd.drawString(
                 msg,
                 song_state_rect.xs,
                 song_state_rect.ys+4);
@@ -509,7 +509,7 @@ void songMachine::updateUI()
             mylcd.setFont(i?Arial_24:Arial_20_Bold);
             #if 1
                 const char *msg = m_last_show_msg[i] ? m_last_show_msg[i] : "";
-                mylcd.print_justified(
+                mylcd.printJustified(
                     song_msg_rect[i].xs+5,
                     song_msg_rect[i].ys,
                     song_msg_rect[i].width()-5,
@@ -520,9 +520,9 @@ void songMachine::updateUI()
                     true,
                     (char *) msg);
             #else
-                mylcd.Set_Text_colour(m_last_show_color[i]);
+                mylcd.setTextColor(m_last_show_color[i]);
                 fillRect(song_msg_rect[i],TFT_BLACK);
-                mylcd.Print_String(
+                mylcd.drawString(
                     m_last_show_msg[i] ? m_last_show_msg[i] : "",
                     song_msg_rect[i].xs+5,
                     song_msg_rect[i].ys+5);

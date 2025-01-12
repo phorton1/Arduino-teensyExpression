@@ -98,7 +98,7 @@ void rigTest::updateUI()
 
         mylcd.setFont(Arial_28);
 
-        mylcd.printf_justified(
+        mylcd.printfJustified(
             0,
             60,
             480,

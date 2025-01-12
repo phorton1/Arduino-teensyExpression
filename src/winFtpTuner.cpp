@@ -158,12 +158,12 @@ void winFtpTuner::drawCircle(int string, int fret, bool pressed)
 	center_y += FRETBOARD_Y;
 
 	// display(0,"drawCircle(%d,%d,%d)",string,fret,pressed);
-	mylcd.Set_Draw_color(pressed ? PRESSED_COLOR : ((fret == 0 || fret > NUM_INTERVALS) ? FRET_COLOR : FRETBOARD_COLOR));
-	mylcd.Fill_Circle(center_x,center_y,CIRCLE_DIAMETER / 2);
+	mylcd.setDrawColor(pressed ? PRESSED_COLOR : ((fret == 0 || fret > NUM_INTERVALS) ? FRET_COLOR : FRETBOARD_COLOR));
+	mylcd.fillCircle(center_x,center_y,CIRCLE_DIAMETER / 2);
 
 	if (!pressed)
 	{
-		mylcd.Fill_Rect(
+		mylcd.fillRect(
 			center_x - CIRCLE_DIAMETER/2,
 			center_y,
 			CIRCLE_DIAMETER + 1,
@@ -175,11 +175,11 @@ void winFtpTuner::drawCircle(int string, int fret, bool pressed)
 
 void winFtpTuner::drawTunerPointer(int tuner_x, int color)
 {
-	mylcd.Set_Draw_color(color);
+	mylcd.setDrawColor(color);
 
 	#define TRIANGLE_WIDTH 4
 
-	// mylcd.Draw_Line(
+	// mylcd.drawLine(
 	// 	tuner_x,
 	// 	TUNER_FRAME_Y + TUNER_FRAME_MARGIN,
 	// 	TUNER_MID_X,
@@ -187,14 +187,14 @@ void winFtpTuner::drawTunerPointer(int tuner_x, int color)
 
 	int mid_x = tuner_x + (TUNER_MID_X - tuner_x) / 2;
 
-	mylcd.Fill_Triangle(
+	mylcd.fillTriangle(
 		tuner_x,
 		TUNER_FRAME_Y + TUNER_FRAME_MARGIN,
 		mid_x - TRIANGLE_WIDTH,
 		TUNER_MID_Y,
 		mid_x + TRIANGLE_WIDTH,
 		TUNER_MID_Y);
-	mylcd.Fill_Triangle(
+	mylcd.fillTriangle(
 		TUNER_MID_X,
 		TUNER_FRAME_Y + TUNER_FRAME_HEIGHT - TUNER_FRAME_MARGIN,
 		mid_x - TRIANGLE_WIDTH,
@@ -204,12 +204,12 @@ void winFtpTuner::drawTunerPointer(int tuner_x, int color)
 
 
 	#if 0
-		mylcd.Draw_Line(
+		mylcd.drawLine(
 			tuner_x-1,
 			TUNER_FRAME_Y + TUNER_FRAME_MARGIN * 2,
 			TUNER_MID_X-1,
 			TUNER_FRAME_Y + TUNER_FRAME_HEIGHT - 1 - TUNER_FRAME_MARGIN);
-		mylcd.Draw_Line(
+		mylcd.drawLine(
 			tuner_x+1,
 			TUNER_FRAME_Y + TUNER_FRAME_MARGIN * 2,
 			TUNER_MID_X+1,
@@ -231,19 +231,19 @@ void winFtpTuner::updateUI()	// draw
 		// fretboard
 		//----------------------------------
 
-		mylcd.Fill_Rect(		// board
+		mylcd.fillRect(		// board
 			FRETBOARD_X,
 			FRETBOARD_Y,
 			FRETBOARD_WIDTH,
 			FRETBOARD_HEIGHT,
 			FRETBOARD_COLOR);
-		mylcd.Fill_Rect(		// left bridge
+		mylcd.fillRect(		// left bridge
 			FRETBOARD_X,
 			FRETBOARD_Y,
 			BRIDGE_WIDTH,
 			FRETBOARD_HEIGHT,
 			FRET_COLOR);
-		mylcd.Fill_Rect(		// right bridge
+		mylcd.fillRect(		// right bridge
 			FRETBOARD_X + FRETBOARD_WIDTH - 1 - BRIDGE_WIDTH,
 			FRETBOARD_Y,
 			BRIDGE_WIDTH,
@@ -255,7 +255,7 @@ void winFtpTuner::updateUI()	// draw
 		int x = FRETBOARD_X + BRIDGE_WIDTH + INTERVAL_WIDTH - FRET_WIDTH/2;
 		for (int i=0; i<NUM_INTERVALS-1; i++)
 		{
-			mylcd.Fill_Rect(
+			mylcd.fillRect(
 				x,
 				FRETBOARD_Y,
 				FRET_WIDTH,
@@ -269,7 +269,7 @@ void winFtpTuner::updateUI()	// draw
 		int y = FRETBOARD_Y + (STRING_SPACING/2);
 		for (int i=0; i<NUM_STRINGS; i++)
 		{
-			mylcd.Fill_Rect(
+			mylcd.fillRect(
 				FRETBOARD_X,
 				y,
 				FRETBOARD_WIDTH,
@@ -280,7 +280,7 @@ void winFtpTuner::updateUI()	// draw
 
 		// tuner frame
 
-		mylcd.Set_Draw_color(TFT_WHITE);
+		mylcd.setDrawColor(TFT_WHITE);
 		mylcd.drawBorder(
 			TUNER_FRAME_X,
 			TUNER_FRAME_Y,
@@ -289,7 +289,7 @@ void winFtpTuner::updateUI()	// draw
 			2,
 			TFT_WHITE);
 		// zero tick
-		mylcd.Draw_Line(
+		mylcd.drawLine(
 			TUNER_MID_X,
 			TUNER_FRAME_Y,
 			TUNER_MID_X,
@@ -299,12 +299,12 @@ void winFtpTuner::updateUI()	// draw
 		#define TICK_SPACE   (((TUNER_FRAME_WIDTH-TUNER_FRAME_MARGIN*2)/2) / NUM_TICKS_PER_SIDE)
 		for (int i=0; i<NUM_TICKS_PER_SIDE; i++)
 		{
-			mylcd.Draw_Line(
+			mylcd.drawLine(
 				TUNER_MID_X - TICK_SPACE*i,
 				TUNER_FRAME_Y,
 				TUNER_MID_X - TICK_SPACE*i,
 				TUNER_FRAME_Y + TUNER_FRAME_MARGIN - 1);
-			mylcd.Draw_Line(
+			mylcd.drawLine(
 				TUNER_MID_X + TICK_SPACE*i,
 				TUNER_FRAME_Y,
 				TUNER_MID_X + TICK_SPACE*i,
@@ -343,12 +343,12 @@ void winFtpTuner::updateUI()	// draw
 	if (full_draw || t_note != last_tuner_note)
 	{
 		if (last_tuner_note != -1)
-			mylcd.Fill_Rect(TUNER_NOTE_X,TUNER_NOTE_Y,TUNER_NOTE_WIDTH,TUNER_NOTE_HEIGHT,0);
+			mylcd.fillRect(TUNER_NOTE_X,TUNER_NOTE_Y,TUNER_NOTE_WIDTH,TUNER_NOTE_HEIGHT,0);
 		if (t_note != -1)
 		{
 	        mylcd.setFont(Arial_48);
-			mylcd.Set_Text_Cursor(TUNER_NOTE_X + 5,TUNER_NOTE_Y + 5);
-			mylcd.Set_Text_colour(TFT_WHITE);
+			mylcd.setCursor(TUNER_NOTE_X + 5,TUNER_NOTE_Y + 5);
+			mylcd.setTextColor(TFT_WHITE);
             mylcd.print(noteName(t_note));
 		}
 		last_tuner_note = t_note;

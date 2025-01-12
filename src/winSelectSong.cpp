@@ -190,14 +190,14 @@ void winSelectSong::updateUI()	// draw
 
 		int i = 0;
 		mylcd.setDefaultFont();
-		mylcd.Set_Text_Size(2);
+		mylcd.setTextSize(2);
 
-		mylcd.Set_Text_colour(TFT_WHITE);
+		mylcd.setTextColor(TFT_WHITE);
 
 		while (i<NUM_TEXT_LINES && last_top_line+i < num_text_lines)
 		{
 			char *line = &show_song_text[line_map[last_top_line+i]];
-			mylcd.Print_String(line,0,client_rect.ys + 5 + i * TEXT_LINE_HEIGHT);
+			mylcd.drawString(line,0,client_rect.ys + 5 + i * TEXT_LINE_HEIGHT);
 			i++;
 		}
 		return;
@@ -248,9 +248,9 @@ void winSelectSong::updateUI()	// draw
 				bc = TFT_BLUE;
 			}
 
-			mylcd.Set_Text_colour(fc);
-			mylcd.Fill_Rect(20,y,client_rect.width()-40,LINE_HEIGHT,bc);
-			mylcd.Print_String(songParser::getSongName(i),25,y+5);
+			mylcd.setTextColor(fc);
+			mylcd.fillRect(20,y,client_rect.width()-40,LINE_HEIGHT,bc);
+			mylcd.drawString(songParser::getSongName(i),25,y+5);
 		}
 		y += LINE_HEIGHT;
 	}

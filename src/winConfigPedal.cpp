@@ -395,8 +395,8 @@ void winConfigPedal::showSelectedItem(int item, int selected)
     }
 
     mylcd.setFont(Arial_16_Bold);
-    mylcd.Fill_Rect(x,y,w,h,bc);
-    mylcd.printf_justified(
+    mylcd.fillRect(x,y,w,h,bc);
+    mylcd.printfJustified(
         x,	// x+5,
         y+5,	// y+7,
         w,	// w-10,
@@ -452,18 +452,18 @@ void winConfigPedal::updateUI()
 
     if (full_redraw)
     {
-        mylcd.Fill_Rect(0,Y_OFFSET,480,320-Y_OFFSET,0);
+        mylcd.fillRect(0,Y_OFFSET,480,320-Y_OFFSET,0);
 
         mylcd.setFont(Arial_12_Bold);
         int text_y = Y_OFFSET + 3 * RIGHT_LINE_HEIGHT;
-        mylcd.printf_justified(RIGHT_COL,text_y,RIGHT_WIDTH,RIGHT_LINE_HEIGHT,
+        mylcd.printfJustified(RIGHT_COL,text_y,RIGHT_WIDTH,RIGHT_LINE_HEIGHT,
             LCD_JUST_CENTER,
             TFT_YELLOW,
             0,
             false,
             "CALIB");
         text_y += 4*RIGHT_LINE_HEIGHT;
-        mylcd.printf_justified(RIGHT_COL,text_y,RIGHT_WIDTH,RIGHT_LINE_HEIGHT,
+        mylcd.printfJustified(RIGHT_COL,text_y,RIGHT_WIDTH,RIGHT_LINE_HEIGHT,
             LCD_JUST_CENTER,
             TFT_YELLOW,
             0,
@@ -483,7 +483,7 @@ void winConfigPedal::updateUI()
 
         int text_y = Y_OFFSET + 4*RIGHT_LINE_HEIGHT;
         if (!full_redraw)
-            mylcd.Fill_Rect(RIGHT_COL,text_y,RIGHT_WIDTH,2*RIGHT_LINE_HEIGHT,0);
+            mylcd.fillRect(RIGHT_COL,text_y,RIGHT_WIDTH,2*RIGHT_LINE_HEIGHT,0);
         int color = m_in_calibrate ? TFT_GREEN : TFT_YELLOW;
 
         if (calib_changed && !(m_cur_mode & PEDAL_MODE_AUTO))
@@ -495,7 +495,7 @@ void winConfigPedal::updateUI()
         }
 
         mylcd.setFont(m_in_calibrate ? Arial_12_Bold : Arial_12);
-        mylcd.printf_justified(RIGHT_COL,text_y,RIGHT_WIDTH,RIGHT_LINE_HEIGHT,
+        mylcd.printfJustified(RIGHT_COL,text_y,RIGHT_WIDTH,RIGHT_LINE_HEIGHT,
             LCD_JUST_CENTER,
             color,
             0,
@@ -504,7 +504,7 @@ void winConfigPedal::updateUI()
             m_cur_mode & PEDAL_MODE_AUTO ? 0 : getPrefPedalCalibMin(m_pedal_num));
         text_y += RIGHT_LINE_HEIGHT;
 
-        mylcd.printf_justified(RIGHT_COL,text_y,RIGHT_WIDTH,RIGHT_LINE_HEIGHT,
+        mylcd.printfJustified(RIGHT_COL,text_y,RIGHT_WIDTH,RIGHT_LINE_HEIGHT,
             LCD_JUST_CENTER,
             color,
             0,
@@ -531,13 +531,13 @@ void winConfigPedal::updateUI()
     if (full_redraw || select_changed || redraw_curve)
     {
         int text_y = Y_OFFSET;
-        mylcd.Fill_Rect(RIGHT_COL,text_y,RIGHT_WIDTH,RIGHT_LINE_HEIGHT*2,0);
+        mylcd.fillRect(RIGHT_COL,text_y,RIGHT_WIDTH,RIGHT_LINE_HEIGHT*2,0);
         if (m_cur_item >= NUM_FIXED_ITEMS)
         {
             int cur_point = m_cur_item-NUM_FIXED_ITEMS;
 
             mylcd.setFont(Arial_12);
-            mylcd.printf_justified(RIGHT_COL,text_y,RIGHT_WIDTH,RIGHT_LINE_HEIGHT,
+            mylcd.printfJustified(RIGHT_COL,text_y,RIGHT_WIDTH,RIGHT_LINE_HEIGHT,
                 LCD_JUST_CENTER,
                 TFT_YELLOW,
                 0,
@@ -546,7 +546,7 @@ void winConfigPedal::updateUI()
                 points[cur_point].x);
             text_y += RIGHT_LINE_HEIGHT;
 
-            mylcd.printf_justified(RIGHT_COL,text_y,RIGHT_WIDTH,RIGHT_LINE_HEIGHT,
+            mylcd.printfJustified(RIGHT_COL,text_y,RIGHT_WIDTH,RIGHT_LINE_HEIGHT,
                 LCD_JUST_CENTER,
                 TFT_YELLOW,
                 0,
@@ -577,8 +577,8 @@ void winConfigPedal::updateUI()
                 prev0->x != cur0->x ||
                 prev0->y != cur0->y))
             {
-                mylcd.Set_Draw_color(TFT_BLACK);
-                mylcd.Fill_Circle(
+                mylcd.setDrawColor(TFT_BLACK);
+                mylcd.fillCircle(
                     X_OFFSET + 2*prev0->x,
                     Y_OFFSET + (CHART_MAX-2*prev0->y),
                     6);
@@ -587,8 +587,8 @@ void winConfigPedal::updateUI()
 
         if (last_pedal_x != -1)
         {
-            mylcd.Set_Draw_color(TFT_BLACK);
-            mylcd.Fill_Circle(
+            mylcd.setDrawColor(TFT_BLACK);
+            mylcd.fillCircle(
                 X_OFFSET + 2*last_pedal_x,
                 Y_OFFSET + (CHART_MAX-2*last_pedal_value),
                 6);
@@ -597,26 +597,26 @@ void winConfigPedal::updateUI()
 
         // grid left w/ticks
 
-        mylcd.Set_Draw_color(TFT_WHITE);
-        mylcd.Draw_Line(X_OFFSET, Y_OFFSET,             X_OFFSET,           Y_OFFSET+CHART_MAX);
+        mylcd.setDrawColor(TFT_WHITE);
+        mylcd.drawLine(X_OFFSET, Y_OFFSET,             X_OFFSET,           Y_OFFSET+CHART_MAX);
         for (int i=0; i<16; i++)
         {
             int y = Y_OFFSET + i * 16;
-            mylcd.Draw_Line(X_OFFSET, y, X_OFFSET+9, y);
+            mylcd.drawLine(X_OFFSET, y, X_OFFSET+9, y);
         }
 
         // grid center
 
-        mylcd.Draw_Line(X_OFFSET, Y_OFFSET+CHART_MAX,   X_OFFSET+CHART_MAX, Y_OFFSET+CHART_MAX);  // bottom
-        mylcd.Draw_Line(X_OFFSET, Y_OFFSET+CHART_MAX,   X_OFFSET+CHART_MAX, Y_OFFSET);            // diagonal
+        mylcd.drawLine(X_OFFSET, Y_OFFSET+CHART_MAX,   X_OFFSET+CHART_MAX, Y_OFFSET+CHART_MAX);  // bottom
+        mylcd.drawLine(X_OFFSET, Y_OFFSET+CHART_MAX,   X_OFFSET+CHART_MAX, Y_OFFSET);            // diagonal
 
         // grid right w/ticks
 
-        mylcd.Draw_Line(X_OFFSET+CHART_MAX, Y_OFFSET,   X_OFFSET+CHART_MAX,   Y_OFFSET+CHART_MAX);
+        mylcd.drawLine(X_OFFSET+CHART_MAX, Y_OFFSET,   X_OFFSET+CHART_MAX,   Y_OFFSET+CHART_MAX);
         for (int i=0; i<16; i++)
         {
             int y = Y_OFFSET + i * 16;
-            mylcd.Draw_Line(X_OFFSET+CHART_MAX-9, y, X_OFFSET+CHART_MAX, y);
+            mylcd.drawLine(X_OFFSET+CHART_MAX-9, y, X_OFFSET+CHART_MAX, y);
         }
 
         //----------------------------------
@@ -632,8 +632,8 @@ void winConfigPedal::updateUI()
             if (prev_points[0].x &&
                 prev_points[0].x != 255)
             {
-                mylcd.Set_Draw_color(TFT_BLACK);
-                mylcd.Draw_Line(
+                mylcd.setDrawColor(TFT_BLACK);
+                mylcd.drawLine(
                     X_OFFSET,
                     Y_OFFSET + CHART_MAX - 2*prev_points[0].y,
                     X_OFFSET + 2*prev_points[0].x ,
@@ -644,8 +644,8 @@ void winConfigPedal::updateUI()
 
             if (points[0].x)
             {
-                mylcd.Set_Draw_color(TFT_YELLOW);
-                mylcd.Draw_Line(
+                mylcd.setDrawColor(TFT_YELLOW);
+                mylcd.drawLine(
                     X_OFFSET,
                     Y_OFFSET + CHART_MAX - 2*points[0].y,
                     X_OFFSET + 2*points[0].x ,
@@ -676,16 +676,16 @@ void winConfigPedal::updateUI()
                     prev1->x != 255 &&
                     prev1->y != 255)
                 {
-                    mylcd.Set_Draw_color(TFT_BLACK);
-                    mylcd.Draw_Line(
+                    mylcd.setDrawColor(TFT_BLACK);
+                    mylcd.drawLine(
                         X_OFFSET + 2*prev0->x ,
                         Y_OFFSET + CHART_MAX - 2*prev0->y,
                         X_OFFSET + 2*prev1->x ,
                         Y_OFFSET + CHART_MAX - 2*prev1->y);
                 }
 
-                mylcd.Set_Draw_color(TFT_YELLOW);
-                mylcd.Draw_Line(
+                mylcd.setDrawColor(TFT_YELLOW);
+                mylcd.drawLine(
                     X_OFFSET + 2*cur0->x ,
                     Y_OFFSET + CHART_MAX - 2*cur0->y,
                     X_OFFSET + 2*cur1->x ,
@@ -706,8 +706,8 @@ void winConfigPedal::updateUI()
 
             if (prev_points[max_point].x < 127)
             {
-                mylcd.Set_Draw_color(TFT_BLACK);
-                mylcd.Draw_Line(
+                mylcd.setDrawColor(TFT_BLACK);
+                mylcd.drawLine(
                     X_OFFSET + 2*prev_points[max_point].x,
                     Y_OFFSET + CHART_MAX - 2*prev_points[max_point].y,
                     X_OFFSET + CHART_MAX,
@@ -718,8 +718,8 @@ void winConfigPedal::updateUI()
 
             if (points[max_point].x < 127)
             {
-                mylcd.Set_Draw_color(TFT_YELLOW);
-                mylcd.Draw_Line(
+                mylcd.setDrawColor(TFT_YELLOW);
+                mylcd.drawLine(
                     X_OFFSET + 2*points[max_point].x,
                     Y_OFFSET + CHART_MAX - 2*points[max_point].y,
                     X_OFFSET + CHART_MAX,
@@ -739,15 +739,15 @@ void winConfigPedal::updateUI()
                 i == m_cur_point ? TFT_RED :
                 i == m_cur_item-NUM_FIXED_ITEMS ? TFT_GREEN : TFT_YELLOW;
 
-            mylcd.Set_Draw_color(fill_color);
-            mylcd.Fill_Circle(
+            mylcd.setDrawColor(fill_color);
+            mylcd.fillCircle(
                 X_OFFSET + 2*cur0->x,
                 Y_OFFSET + (CHART_MAX-2*cur0->y),
                 6);
         }
 
-        mylcd.Set_Draw_color(TFT_CYAN);
-        mylcd.Fill_Circle(
+        mylcd.setDrawColor(TFT_CYAN);
+        mylcd.fillCircle(
             X_OFFSET + 2*pedal_x,
             Y_OFFSET + (CHART_MAX-2*pedal_value),
             6);
@@ -762,10 +762,10 @@ void winConfigPedal::updateUI()
         last_pedal_value != pedal_value)
     {
         int text_y = Y_OFFSET + 8 * RIGHT_LINE_HEIGHT;
-        mylcd.Fill_Rect(RIGHT_COL,text_y,RIGHT_WIDTH,3*RIGHT_LINE_HEIGHT,0);
+        mylcd.fillRect(RIGHT_COL,text_y,RIGHT_WIDTH,3*RIGHT_LINE_HEIGHT,0);
 
         mylcd.setFont(Arial_12);
-        mylcd.printf_justified(RIGHT_COL,text_y,RIGHT_WIDTH,RIGHT_LINE_HEIGHT,
+        mylcd.printfJustified(RIGHT_COL,text_y,RIGHT_WIDTH,RIGHT_LINE_HEIGHT,
             LCD_JUST_CENTER,
             TFT_YELLOW,
             0,
@@ -774,7 +774,7 @@ void winConfigPedal::updateUI()
             raw_value);
         text_y += RIGHT_LINE_HEIGHT;
 
-        mylcd.printf_justified(RIGHT_COL,text_y,RIGHT_WIDTH,RIGHT_LINE_HEIGHT,
+        mylcd.printfJustified(RIGHT_COL,text_y,RIGHT_WIDTH,RIGHT_LINE_HEIGHT,
             LCD_JUST_CENTER,
             TFT_YELLOW,
             0,
@@ -783,7 +783,7 @@ void winConfigPedal::updateUI()
             pedal->getRawValuePct());
         text_y += RIGHT_LINE_HEIGHT;
 
-        mylcd.printf_justified(RIGHT_COL,text_y,RIGHT_WIDTH,RIGHT_LINE_HEIGHT,
+        mylcd.printfJustified(RIGHT_COL,text_y,RIGHT_WIDTH,RIGHT_LINE_HEIGHT,
             LCD_JUST_CENTER,
             TFT_YELLOW,
             0,
@@ -793,7 +793,7 @@ void winConfigPedal::updateUI()
         text_y += 2*RIGHT_LINE_HEIGHT;
 
         mylcd.setFont(Arial_16_Bold);
-        mylcd.printf_justified(RIGHT_COL,text_y,RIGHT_WIDTH,RIGHT_LINE_HEIGHT,
+        mylcd.printfJustified(RIGHT_COL,text_y,RIGHT_WIDTH,RIGHT_LINE_HEIGHT,
             LCD_JUST_CENTER,
             TFT_YELLOW,
             0,
@@ -812,8 +812,8 @@ void winConfigPedal::updateUI()
         int bar_y = Y_OFFSET + CHART_MAX + 1;
         int bar_h = 320 - bar_y + 1;
 
-        mylcd.Fill_Rect(X_OFFSET-1,bar_y,pedal_x*2+3,bar_h,TFT_CYAN);
-        mylcd.Fill_Rect(X_OFFSET+pedal_x*2+3,bar_y,CHART_MAX-pedal_x*2-3,bar_h,0);
+        mylcd.fillRect(X_OFFSET-1,bar_y,pedal_x*2+3,bar_h,TFT_CYAN);
+        mylcd.fillRect(X_OFFSET+pedal_x*2+3,bar_y,CHART_MAX-pedal_x*2-3,bar_h,0);
 
     }
 

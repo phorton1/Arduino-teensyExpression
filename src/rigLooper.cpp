@@ -308,14 +308,24 @@ void rigLooper::begin(bool warm)
 	theButtons.setButtonType(SONG_MACHINE_BUTTON,BUTTON_EVENT_CLICK | BUTTON_EVENT_LONG_CLICK | BUTTON_MASK_USER_DRAW, 0);
 
 	// If poly_mode was changed (in OldRig) reset it here
+	// prh 2025-01-12 - There is some kind of a timing issue here
+	// - startup hangs if this code is included;
+	// - debugging output in sendFTPCommandAndValue doesn't help
+	// - the system *seems* to work if this is commented out
+	// - I don't really use this poly_mode stuff but it *should* work anyways
 
-	if (m_last_set_poly_mode == -1 ||
-		((bool)m_last_set_poly_mode) != ftp_poly_mode)
+	if (0)
 	{
-		bool use_poly_mode = !synth_patch[m_cur_patch_num].mono_mode;
-		m_last_set_poly_mode = use_poly_mode;
-		sendFTPCommandAndValue(FTP_CMD_POLY_MODE,m_last_set_poly_mode);
+		if (m_last_set_poly_mode == -1 ||
+			((bool)m_last_set_poly_mode) != ftp_poly_mode)
+		{
+			bool use_poly_mode = !synth_patch[m_cur_patch_num].mono_mode;
+			m_last_set_poly_mode = use_poly_mode;
+			sendFTPCommandAndValue(FTP_CMD_POLY_MODE,m_last_set_poly_mode);
+		}
 	}
+
+	display(0,"testing",0);
 
 	// switch to quick mode after all the buttons are set
 
@@ -1067,7 +1077,7 @@ void rigLooper::updateUI()
 				int region_left = REL_VOL_LEFT_SPACE + i * (REL_VOL_BAR_WIDTH + REL_VOL_IN_BETWEEN_SPACE);
 
 		        mylcd.setFont(Arial_20_Bold);
-				mylcd.printf_justified(
+				mylcd.printfJustified(
 					region_left,
 					REL_VOL_TEXT_Y,
 					REL_VOL_BAR_WIDTH,
@@ -1086,7 +1096,7 @@ void rigLooper::updateUI()
 
 				// draw the black portion
 
-				mylcd.Fill_Rect(
+				mylcd.fillRect(
 					region_left,
 					REL_VOL_BAR_START,
 					REL_VOL_BAR_WIDTH,
@@ -1095,7 +1105,7 @@ void rigLooper::updateUI()
 
 				// draw the green portion
 
-				mylcd.Fill_Rect(
+				mylcd.fillRect(
 					region_left,
 					REL_VOL_BAR_START + black_h,
 					REL_VOL_BAR_WIDTH,
@@ -1112,7 +1122,7 @@ void rigLooper::updateUI()
 
 	else
 	{
-		mylcd.Set_Text_Back_colour(TFT_BLACK);
+		mylcd.setTextBackColor(TFT_BLACK);
 
 		// GUITAR BUTTONS
 
@@ -1160,15 +1170,15 @@ void rigLooper::updateUI()
 				fillRect(synth_rect,TFT_BLACK);
 
 			mylcd.setFont(Arial_32_Bold);
-			mylcd.Set_Text_colour(TFT_CYAN);
-			mylcd.Print_String(
+			mylcd.setTextColor(TFT_CYAN);
+			mylcd.drawString(
 				synth_patch[m_cur_patch_num].short_name,
 				synth_rect.xs+5,
 				synth_rect.ys+5);
 
 			mylcd.setFont(Arial_18_Bold);
-			mylcd.Set_Text_colour(TFT_MAGENTA);
-			mylcd.Print_String(
+			mylcd.setTextColor(TFT_MAGENTA);
+			mylcd.drawString(
 				synth_patch[m_cur_patch_num].long_name,
 				synth_rect.xs+5,
 				synth_rect.ys+43);
@@ -1181,7 +1191,7 @@ void rigLooper::updateUI()
 		{
 			m_last_displayed_poly_mode = ftp_poly_mode;
 			mylcd.setFont(Arial_18_Bold);
-			mylcd.printf_justified(
+			mylcd.printfJustified(
 				synth_rect.xe - 60,
 				synth_rect.ys + 10,
 				50,
@@ -1202,7 +1212,7 @@ void rigLooper::updateUI()
 	//----------------------------
 	// show the rest of the stuff subject only to songMachine state
 
-	mylcd.Set_Text_Back_colour(TFT_BLACK);
+	mylcd.setTextBackColor(TFT_BLACK);
 
 	// SONG BUTTON
 

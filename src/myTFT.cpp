@@ -1,8 +1,15 @@
+//-----------------------------------------
+// myTFT.h - CHEAP TFT and TOUCH SCREEN
+//-----------------------------------------
+// Cheap Ardino 3.5" 320x480 TFT's
+// Uses my modified version of LCDWIKI, which
+// I was not using the myLCDWici TouchScreen.
+// I had denormalized that into the TeensyExpression source.
+
 #include "myTFT.h"
-#include "defines.h"
 
 
-LCDWIKI_KBV mylcd(
+myLcdDevice mylcd(
     ILI9486,
     TFT_CS,
     TFT_CD_RS,
@@ -22,9 +29,9 @@ void initMyTFT()
         TFT_DATA5,
         TFT_DATA6,
         TFT_DATA7);
-    mylcd.Init_LCD();
-    mylcd.Set_Rotation(1);
+    mylcd.begin();
+    mylcd.setRotation(1);
     // mylcd.Set_Text_Mode(0);
     // starts with default my "m_use_bc=1"
-    mylcd.Fill_Screen(0);
+    mylcd.fillScreen(TFT_BLACK);
 }
