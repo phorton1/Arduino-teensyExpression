@@ -15,11 +15,12 @@ screw3_tight,		mm, 2.8 mm,					standard hole into which M3 screw threads tightly
 screw3_loose,		mm, 3.2 mm,					holes a M3 fits through easily
 screw3_head_room,	mm, 6 mm,					holes in bottom that screw heads fit into
 screw3_sink,		mm,	3.0 mm,					counter sink depth for M3 screw head
+laser_cut_m3		mm,	1.5 mm,					tight M3 in medium plywood (for short screws)
 
 ______BASICS_________,,0,
 overall_width,		mm, 237 mm,
 overall_depth,		mm, 299 mm,
-base_thick,			mm, ply_thick,
+base_thick,			mm, ply_medium,
 frame_spacing,		mm, 45 mm,					buttons are arranged in a square grid
 level_inc,			mm, 10 mm,					the levels differ by 10 mm
 assy_tolerance,		mm,	0.4mm,					tolerance for assembled parts
