@@ -57,7 +57,7 @@ pedalManager thePedals;
 //-----------
 // The only difference between a "serial" pedal and a
 // "normal" pedal is that the serial data is sent out
-// to the rPi over Serial3, wheras normally it is sent
+// to the rPi over SERIAL_DEVICE, wheras normally it is sent
 // to the iPad over USB midi.
 
 

@@ -11,6 +11,19 @@
 #define FTP_PORT_HOST           1
 #define FTP_PORT_REMOTE         2
 
+
+// Enumeration of DEBUG_DEVICEs
+
+#define DEBUG_DEVICE_OFF		0
+#define DEBUG_DEVICE_USB		1
+#define DEBUG_DEVICE_SERIAL		2
+
+// Enumeration of ports for FILE_SYSTEM
+
+#define FILE_SYS_DEVICE_USB	    	0
+#define FILE_SYS_DEVICE_SERIAL		1
+
+
 #define TEENSY_EXPRESSION1_PREF_VERSION   237
 
 //--------------------------------------------------------------------------------

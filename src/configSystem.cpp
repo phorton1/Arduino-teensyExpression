@@ -228,7 +228,7 @@ void reboot(int num)
     if (dbgSerial == &Serial)
         Serial.end();
     else
-        Serial3.end();
+        SERIAL_DEVICE.end();
 
     for (int i=0; i<21; i++)
     {

@@ -3,8 +3,8 @@
 
 #define TEENSY_EXPRESSION_VERSION  "v1.1"
 
-#define NEW_DESIGN          0
-    // 2023-07-29 Redesigned Everything
+#define SERIAL_DEVICE	   Serial3
+	// the serial port to use for our 'Serial' device
 
 #define NUM_PORTS           8       // ports defined in midiQueue.h
 #define NUM_PEDALS          4

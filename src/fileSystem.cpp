@@ -1,66 +1,109 @@
-// abstracted file system for use with serial IO protocol
+//----------------------------------------------------------
+// fileSystem.cpp
+//----------------------------------------------------------
+// GET USES 20K of stack!!
+// Abstracted file system for use with serial IO protocol
 //
-// We are using the sdFat library downloaded from https://github.com/greiman/SdFat
-// which is in our Arduino/libraries directory, NOT either of the ones from the
-// teensyDuino or original Arduino installations.
+// OLD NOTE:
 //
-// A block is 512 bytes and "kBytes" is block_count/2
+// prh - I was getting an error when starting the system from a cold power up.
+// it was working ok from a compile (ctrl-I in Komodo) right after the TeensyLoader
+// put the program on the teensy, but not on a subsequent cold-powerup.
+// I "fixed" it by increasing BUSY_TIMEOUT_MICROS from 500000 to 1000000
+// in /Arduino/libraries/SdFat/src/SdCard/SdioTeensy.cpp.
+//
+// VERSION2 NOTES
+//
+// In TE1 was using a slighly modified version of the sdFat library v1.1.2 that I
+// downloaded from https://github.com/greiman/SdFat 3 years ago in my libraries
+// folder.  It was working well with my old version 1.53 of teensyDuino ...
+// The only mod I had made was mentioned above.
+//
+// I was worried about my teensy3.6's, they're being discontinued, and I have two brand new 4.1's.
+// But the 4.1 is not supported by that old version of SdFat.  To get SdFat for 4.1's, it was
+// "recommended" that one upgrades the teensyDuino to a newer version which includes
+// SdFat (and SD) libraries ...
+//
+// So I went through the hassle of upgrading teensyDuino to v1.58.
+// A nice change with the new teensyDuino was that I also was able to do away
+// with my usb_desc.prh scheme and use a somewhat approved method of overriding
+// the USB definitions.
+//
+// With teensyDuino 1.58 I got SdFat v2.1.2 in the Program Files (x86)
+// folder as part of the deal. So, I saved off and removed my old SdFat library,
+// and endeavored to build with the new SdFat library. I immediatly found that
+// SdFat v2.1.2 is a complete rewrite from the old version and I had to figure
+// out what objects to use just to get it basically working:
+//
+//		SdFat32 instead of the old SdFatSdio for the SD type
+//		File32 instead of the old File for files
+//		DirFat_t instead the old dir_t for directory entries
+//      ... I still haven't figured out directory entries and datetime stamps
+//
+// I got it basically working with the teensy3.6 (then made new PCB's and
+// fixed the bad connector problem), and then noticed that new SdFat library
+// has the opposite problem of the one I 'fixed' in the old library. It
+// fails to initialze the SD card on a soft reboot (after a compile/upload),
+// and now requiires me to unplug and replug in the teensy each time I want
+// to test the program.
+//
+// So I made the compile conditional based on a USE_OLD_FAT define.
+// I moved the SdFat and SD libraries from Program Files (x86) and put
+// them in my libraries folder and saved them off elsewhere.
+// I can now place either the 'new' or 'old' SdFat library in my
+// libraries folder, adjust the #define, and build against either one.
+// And I verified that the old one still works on either kind of reboot.
+// Howevber,
+//
+//--------------------------------------------------------------------------------
+// I CANNOT HAVE BOTH SDFAT LIBRARIES IN MY LIBRARIES FOLDER AT THE SAME TIME.
+//--------------------------------------------------------------------------------
+// SO I NEED A GOOD PLACE TO STORE THEM, esp since one is under source control
+// and I am tempted to modify them, and /junk is not a good place for them.
+// So they are in:     /zip/_teensy/_SdFat_libraries
 
 
 #include "fileSystem.h"
 #include "prefs.h"
 #include <myDebug.h>
-#include <Base64.h>
 
-#define dbg_tfs    2
-    // This debugging *may* affect timing.
-    // It "works" when this is on (0), but "not" when 1 (debugging turned off)
+#define dbg_ts    1
+	// 0 = show timestamp operations
+	// -1 = show callback setting
 
-
-
-SdFatSdio SD;
-    // SdFatSdio uses a traditional DMA SDIO implementation.
-    // SdFatSdioEX SD; // SdFatSdioEX uses extended multi-block transfers without DMA.
-    // Note the difference is speed and busy yield time.
-    // Teensy 3.5 & 3.6 SDIO: 4 to 5 times the throughput using the 4-bit SDIO mode compared to the 1-bit SPI mode
-    //
-    // prh - I was getting an error when starting the system from a cold power up.
-    // it was working ok from a compile (ctrl-I in Komodo) right after the TeensyLoader
-    // put the program on the teensy, but not on a subsequent cold-powerup.
-    // I "fixed" it by increasing BUSY_TIMEOUT_MICROS from 500000 to 1000000
-    // in /Arduino/libraries/SdFat/src/SdCard/SdioTeensy.cpp.
-
-Stream *s_Serial = 0;
-    // The serial port to send commands to.
-    // Determined by preference.
+#if USE_OLD_FAT
+	SdFatSdio SD;
+#else
+	SdFat32 SD;
+#endif
 
 
-// state of current put
-
-File write_file;
-uint32_t write_size;
-uint32_t write_offset;
-uint32_t write_checksum;
-char write_ts[30];  // overused for dtCallback
-
-// buffer for use by getDateTimeStamp
-
+char write_timestamp[32];
 char static_timestamp[32];
+	// buffers for use by getTimeStamp and dtCallback
 
+bool has_file_system;
+bool has_sd_card;
+
+bool hasFileSystem() { return has_file_system; }
+bool hasSDCard()     { return has_sd_card; }
 
 
 //---------------------------------------------
 // debugging
 //---------------------------------------------
 
-#define LIST_DIRECTORY_AT_STARTUP  0
+#define LIST_DIRECTORY_AT_STARTUP  0	// USE_OLD_FAT
+
 #if LIST_DIRECTORY_AT_STARTUP
 
-    void printDirectory(File dir, int numTabs)
+	#define dbg_print_dir  1
+
+    void printDirectory(myFile_t dir, int numTabs = 0)
     {
         while(true)
         {
-            File entry = dir.openNextFile();
+            myFile_t entry = dir.openNextFile();
             if (!entry)
                 break;
 
@@ -73,11 +116,11 @@ char static_timestamp[32];
                 my_error("Could not get dir_entry for %s",filename);
                 return;
             }
-            display(0,"dir_entry   cdate(%d) ctime(%d) c10ths(%d)",
+            display_level(dbg_print_dir,numTabs + 1,"    cdate(%d) ctime(%d) c10ths(%d)",
                 dir_entry.creationDate,dir_entry.creationTime,dir_entry.creationTimeTenths);
-            display(0,"            adate(%d) wdate(%d) wtime(%d)",
+            display_level(dbg_print_dir,numTabs + 1,"    adate(%d) wdate(%d) wtime(%d)",
                 dir_entry.lastAccessDate,dir_entry.lastWriteDate,dir_entry.lastWriteTime);
-            display(0,"            attr(0x%02x), size(%d)",
+            display_level(dbg_print_dir,,numTabs + 1"    attr(0x%02x), size(%d)",
                 dir_entry.attributes,dir_entry.fileSize);
 
             uint16_t year = FAT_YEAR(dir_entry.creationDate);
@@ -95,7 +138,8 @@ char static_timestamp[32];
                 second += 1;
             }
 
-            display(0,"date(%02d,%02d,%02d) time(%02d:%02d:%02d.%02d)",
+			char time_buf[36];
+			sprintf(time_buf,"%04d-%02d-%02d %02d:%02d:%02d.%02d",
                 year,
                 month,
                 day,
@@ -104,21 +148,24 @@ char static_timestamp[32];
                 second,
                 hundredths);
 
-            for (uint8_t i=0; i<numTabs; i++)
-            {
-                Serial.print('\t');
-            }
+			char tab_buf[24];
+			memset(tab_buf,32,24);
+			if (numTabs > 4)
+				tab_buf[16] = 0;
+			tab_buf[ (4-numTabs) * 4 ] = 0;
 
             if (entry.isDirectory())
             {
-                display(0,"%s/",filename);
+                display(0,":%-32s%s         %s",filename,tab_buf,time_buf);
                 printDirectory(entry, numTabs+1);
             }
             else
             {
-                display(0,"\t\t%s    %d",
+                display_level(0,numTabs + 1,"%-32s%s%-08d  %s",
                     filename,
-                    entry.size());
+					tab_buf,
+                    entry.size(),
+					time_buf);
             }
 
             entry.close();
@@ -132,42 +179,71 @@ char static_timestamp[32];
 // INIT
 //---------------------------------------------
 
-// static
-bool fileSystem::init()
+bool initFileSystem()
 {
+	uint8_t dd = getPref8(PREF_DEBUG_PORT);			// prh - change from TE2, was:  prefs.DEBUG_DEVICE;
+	uint8_t fsd = getPref8(PREF_FILE_SYSTEM_PORT);	// prh - change from TE2, was:  prefs.FILE_SYS_DEVICE;
 
-	// There will eventually be a preference that
-	// tells TE which Serial port to use for the
-	// fileSystem.
+	// prh - change from TE2, below, to use new TE1 FILE_SYS_DEVICE defines
+    //		warning(0,"FILE_SYS_DEVICE %s",
+	//			fsd == OUTPUT_DEVICE_SERIAL ? "is SERIAL" :
+	//			fsd == OUTPUT_DEVICE_USB 	? "is USB" :
+	//			fsd == OUTPUT_DEVICE_OFF 	? "is OFF!!" :
+	//			dd == DEBUG_DEVICE_SERIAL 	? "follows DEBUG_DEVICE which is SERIAL" :
+	//			dd == DEBUG_DEVICE_USB 		? "follows DEBUG_DEVICE which is USB" :
+	//			"follows DEBUG_DEVICE which is OFF" );
 
-    if (getPref8(PREF_FILE_SYSTEM_PORT))
-    {
-        display(0,"FILE SYSTEM RUNNING ON Serial3 (alternate port)",0);
-        s_Serial = &Serial3;
-    }
-    else
-    {
-        display(0,"FILE SYSTEM RUNNING ON USB Serial (main port)",0);
-        s_Serial = &Serial;
-    }
+    warning(0,"FILE_SYS_DEVICE %s",
+		fsd == FILE_SYS_DEVICE_SERIAL ? "is SERIAL" :
+		fsd == FILE_SYS_DEVICE_USB 	? "is USB" :
+		dd == DEBUG_DEVICE_SERIAL 	? "follows DEBUG_DEVICE which is SERIAL" :
+		dd == DEBUG_DEVICE_USB 		? "follows DEBUG_DEVICE which is USB" :
+		"follows DEBUG_DEVICE which is OFF" );
 
-    if (!SD.begin())
-    {
-        my_error("Could not initialize SD",0);
+#if USE_OLD_FAT
+	SdioCard *card = SD.card();
+	has_file_system = SD.begin();
+	has_sd_card = has_file_system || card->begin();
+#else
+	SDFat32Card *card = SD.card();
+	has_file_system = SD.begin(BUILTIN_SDCARD);
+	has_sd_card = has_file_system || card)->begin();
+#endif
+
+	if (!has_sd_card)
+	{
+        my_error("NO SD CARD!!",0);
         return false;
     }
+	if (!has_file_system)
+	{
+        warning(0,"NO fileSystem found!",0);
+    }
 
-    #if 0   // SHOW CID
+   #if 0   // SHOW CID
 
-        // detailed SD card debugging
-        // prh - I could not effing figure out how to get the volumeLabel from the (?) MBR
+		delay(1000);
+
+		uint8_t type = card->type();
+		uint32_t blocks = card->cardCapacity();
+			// 'sectors' == 'blocks' == 512 bytes each
+		display(0,"fileSystem: type(%d)=%s  blocks/sectors=%lu",
+			type,
+			type == SD_CARD_TYPE_SDHC ? "SDHC" :
+			type == SD_CARD_TYPE_SD2 ? "SDV2" :
+			type == SD_CARD_TYPE_SD1 ? "SDV1" :
+			"NO SDCARD",
+			blocks);
 
         cid_t cid;
-        if (!SD.card()->readCID(&cid))
-        {
-            my_error("Could not readCID()",0);
-            return false;
-        }
+		memset(&cid,0,sizeof(cid_t));
+
+		// readCID returns true, with no information
+		// if card->begin() not called.  I think on the teensy
+		// it just returns the memory that is gotten in card.begin()
+
+        if (!card->readCID(&cid))
+			warning(0,"Could not read SDCard cid",0);
 
         // unsigned char mid;                  // manufacturer id
         // char oid[2];                        // OEM/Application ID
@@ -178,6 +254,12 @@ bool fileSystem::init()
         // unsigned char mdt_year_high : 4;    //  Manufacturing date year high digit
         // unsigned char mdt_month : 4;        // Manufacturing date month
         // unsigned char mdt_year_low : 4;     // Manufacturing date year low digit
+
+		if (!cid.pnm[0]) cid.pnm[0] = ' ';
+		if (!cid.pnm[1]) cid.pnm[1] = ' ';
+		if (!cid.pnm[2]) cid.pnm[2] = ' ';
+		if (!cid.pnm[3]) cid.pnm[3] = ' ';
+		if (!cid.pnm[4]) cid.pnm[4] = ' ';
 
         display(0,"fileSystem: Mfr(0x%02x) OEM_ID(0x%02x,0x%02x) Product(%c%c%c%c%c) Version(%d.%d) SN(0x%08x)",
             cid.mid,
@@ -204,7 +286,7 @@ bool fileSystem::init()
             block_count);
     #endif  // SHOW_SIZE_DETAILS
 
-    #if  1  // SHOW_HUMAN_READABLE_SPACE_USED
+    #if  1  // SHOW_HUMAN_READABLE_SPACE_USED ('real' GB same as Windows)
         uint32_t gb_free = 10 * getFreeMB() / 1024;
         uint32_t gb_total = 10 * getTotalMB() / 1024;
         uint32_t gb_used = gb_total - gb_free;
@@ -213,13 +295,12 @@ bool fileSystem::init()
     #endif
 
     #if LIST_DIRECTORY_AT_STARTUP
-        File root = SD.open("/");
-        printDirectory(root, 0);
+        myFile_t root = SD.open("/");
+        printDirectory(root);
         root.close();
     #endif
 
-
-    return true;
+    return has_file_system;
 }
 
 
@@ -228,100 +309,169 @@ bool fileSystem::init()
 // API
 //------------------------------------------------------------
 
-uint32_t fileSystem::getFreeMB()
+#if USE_OLD_FAT
+	#define BYTES_PER_BLOCK  512
+	#define BLOCKS_PER_MB   2048
+#endif
+
+
+uint64_t getFreeBytes()
 {
-    int32_t free_cluster_count = SD.freeClusterCount();
-    uint8_t blocks_per_cluster = SD.blocksPerCluster();
-    if (free_cluster_count > 0)
-        return (free_cluster_count * blocks_per_cluster) / (1024*2);
-    return 0;
+	#if USE_OLD_FAT
+		uint64_t cluster_count = SD.freeClusterCount();
+		uint64_t blocks_per_cluster = SD.blocksPerCluster();
+		return cluster_count * blocks_per_cluster * BYTES_PER_BLOCK;
+	#else
+		uint32_t cluster_count32 = SD.freeClusterCount();
+		uint32_t bytes_per_cluster32 = SD.bytesPerCluster();
+		delay(100);
+		display(0,"free  count=%d  per=%d  shift=%d",cluster_count32,bytes_per_cluster32,SD.bytesPerClusterShift());
+		uint64_t cluster_count = cluster_count32;
+		uint64_t bytes_per_cluster = bytes_per_cluster32;
+		uint64_t total_bytes = cluster_count * bytes_per_cluster;
+		return total_bytes;
+	#endif
 }
 
 
-uint32_t fileSystem::getTotalMB()
+uint32_t getFreeMB()
 {
-    uint32_t cluster_count = SD.clusterCount();
-    uint8_t blocks_per_cluster = SD.blocksPerCluster();
-    return (cluster_count * blocks_per_cluster) / (1024*2);
+	#if USE_OLD_FAT
+		uint32_t cluster_count = SD.freeClusterCount();
+		uint32_t blocks_per_cluster = SD.blocksPerCluster();
+		return (cluster_count * blocks_per_cluster) / BLOCKS_PER_MB;
+	#else
+		uint32_t cluster_count32 = SD.freeClusterCount();
+		uint32_t bytes_per_cluster32 = SD.bytesPerCluster();
+		delay(100);
+		display(0,"free  count=%d  per=%d  shift=%d",cluster_count32,bytes_per_cluster32,SD.bytesPerClusterShift());
+		uint64_t cluster_count = cluster_count32;
+		uint64_t bytes_per_cluster = bytes_per_cluster32;
+		uint64_t total_bytes = cluster_count * bytes_per_cluster;
+		return total_bytes / BYTES_PER_MB;
+	#endif
+}
+
+
+
+uint32_t getTotalMB()
+	// NOWHERE is there an example of how to use these to determine the size of the file system.
+	// bytesPerClusterShift() is really unclear.
+	// On my 32GB card, cluserCount() returns 953948 and bytesPerCluster returns 32768.
+	// Interestingly, multiplying these gives 31,258,968,064, which agrees with the
+	// total bytes for the volume given by the Properties in Windows, without using
+	// bytesPerClusterShift(), wtf ever that is.
+{
+	#if USE_OLD_FAT
+		uint32_t cluster_count = SD.clusterCount();
+		uint32_t blocks_per_cluster = SD.blocksPerCluster();
+		return (cluster_count * blocks_per_cluster) / BLOCKS_PER_MB;
+	#else
+		uint32_t cluster_count32 = SD.clusterCount();
+		uint32_t bytes_per_cluster32 = SD.bytesPerCluster();
+		delay(100);
+		display(0,"total count=%d  per=%d  shift=%d",cluster_count32,bytes_per_cluster32,SD.bytesPerClusterShift());
+		uint64_t cluster_count = cluster_count32;
+		uint64_t bytes_per_cluster = bytes_per_cluster32;
+		uint64_t total_bytes = cluster_count * bytes_per_cluster;
+		return total_bytes / BYTES_PER_MB;
+	#endif
 }
 
 
 //---------------------------------------------
-// private methods
+// utilities
 //---------------------------------------------
 
-const char *getDateTimeStamp(File *entry, const char *filename)
+const char *getTimeStamp(myFile_t *file)
 {
-    dir_t dir_entry;
-    if (!entry->dirEntry(&dir_entry))
+    myDir_t dir_entry;
+    static_timestamp[0] = 0;
+
+    if (!file->dirEntry(&dir_entry))
     {
+		char filename[255];
+		file->getName(filename, sizeof(filename));
         my_error("Could not get dir_entry for %s",filename);
-        static_timestamp[0] = 0;
-        return static_timestamp;
+        return "";
     }
 
-    uint16_t year = FAT_YEAR(dir_entry.creationDate);
-    uint16_t month = FAT_MONTH(dir_entry.creationDate);
-    uint16_t day = FAT_DAY(dir_entry.creationDate);
-    uint16_t hour = FAT_HOUR(dir_entry.creationTime);
-    uint16_t minute = FAT_MINUTE(dir_entry.creationTime);
-    uint16_t second = FAT_SECOND(dir_entry.creationTime);
-    uint16_t hundredths = dir_entry.creationTimeTenths;
-        // according to comment this actually hundredths ...
-    if (hundredths >= 100)
-    {
-        hundredths -= 100;
-        second += 1;
-    }
+	#if USE_OLD_FAT 	// PRH PRH PRH - this needs to be reworked
+		uint16_t year = FAT_YEAR(dir_entry.creationDate);
+		uint16_t month = FAT_MONTH(dir_entry.creationDate);
+		uint16_t day = FAT_DAY(dir_entry.creationDate);
+		uint16_t hour = FAT_HOUR(dir_entry.creationTime);
+		uint16_t minute = FAT_MINUTE(dir_entry.creationTime);
+		uint16_t second = FAT_SECOND(dir_entry.creationTime);
+		uint16_t hundredths = dir_entry.creationTimeTenths;
+			// according to comment this actually hundredths ...
+		if (hundredths >= 100)
+		{
+			hundredths -= 100;
+			second += 1;
+		}
 
-    sprintf(static_timestamp,"%d-%02d-%02d %02d:%02d:%02d",
-        year,month,day,hour,minute,second);
+		sprintf(static_timestamp,"%d-%02d-%02d %02d:%02d:%02d",
+			year,month,day,hour,minute,second);
+	#endif
+
     return static_timestamp;
 }
 
 
-
-void setTimeStamp(File the_file, char *ts)
+const char *getTimeStamp(const char *path)
 {
-    char *year = &ts[0];
-    ts[4] = 0;
+	myFile_t file = SD.open(path);
+	if (!file)
+	{
+		my_error("Could not open %s to getTimeStamp",path);
+		return "";
+	}
+	const char *rslt = getTimeStamp(&file);
+	file.close();
+	return rslt;
+}
 
-    char *month = &ts[5];
-    ts[7] = 0;
 
-    char *day = &ts[8];
-    ts[10] = 0;
+static int bufToNum(const char *ts, int offset, int length)
+{
+	char buf[6];
+	memcpy(buf,&ts[offset],length);
+	buf[length] = 0;
+	return atoi(buf);
+}
 
-    char *hour = &ts[11];
-    ts[13] = 0;
 
-    char *minute = &ts[14];
-    ts[16] = 0;
+void setTimeStamp(myFile_t the_file, const char *ts)
+{
+    display_level(dbg_ts,4,"setTimeStamp(%04d,%02d,%02d,%02d,%02d,%02d)",
+        bufToNum(ts,0,4),	// year
+        bufToNum(ts,5,2),	// month
+        bufToNum(ts,8,2),	// day
+        bufToNum(ts,11,2),	// hour
+        bufToNum(ts,14,2),	// minute
+        bufToNum(ts,17,2));	// second)
 
-    char *second = &ts[17];
-    ts[19] = 0;
-
-    display(dbg_tfs,"setTimeStamp(%s,%s,%s,%s,%s,%s)",year,month,day,hour,minute,second);
 
     the_file.timestamp(
         T_ACCESS | T_CREATE | T_WRITE,
-        atoi(year),
-        atoi(month),
-        atoi(day),
-        atoi(hour),
-        atoi(minute),
-        atoi(second));
+        bufToNum(ts,0,4),	// year
+        bufToNum(ts,5,2),	// month
+        bufToNum(ts,8,2),	// day
+        bufToNum(ts,11,2),	// hour
+        bufToNum(ts,14,2),	// minute
+        bufToNum(ts,17,2));	// second)
 }
 
 
 
-void dtCallback(uint16_t* date, uint16_t* time)
+static void dtCallback(uint16_t* date, uint16_t* time)
     // this call back function must be used on diretories
     // instead of setTimeStamp() above. It overuses the
-    // global write_ts variable to hold the value for
+    // global write_timestamp variable to hold the value for
     // the callback.
 {
-    char *ts = write_ts;
+    char *ts = write_timestamp;
 
     char *year = &ts[0];
     ts[4] = 0;
@@ -341,7 +491,7 @@ void dtCallback(uint16_t* date, uint16_t* time)
     char *second = &ts[17];
     ts[19] = 0;
 
-    display(dbg_tfs,"dtCallback(%s,%s,%s,%s,%s,%s)",year,month,day,hour,minute,second);
+    display_level(dbg_ts+1,4,"dtCallback(%s,%s,%s,%s,%s,%s)",year,month,day,hour,minute,second);
 
     *date = FAT_DATE(atoi(year),atoi(month),atoi(day));
     *time = FAT_TIME(atoi(hour),atoi(minute),atoi(second));
@@ -349,592 +499,15 @@ void dtCallback(uint16_t* date, uint16_t* time)
 }
 
 
-//==================================================
-// handleFileCommand()
-//==================================================
-
-#define RECURSIVE_LIST   1
-
-#if RECURSIVE_LIST
-
-
-
-    void doListRecursive(char *full_name, bool recurse, int level, File the_dir)
-    {
-        char dir_name[255];
-        the_dir.getName(dir_name, sizeof(dir_name));
-        display(dbg_tfs,"doListRecursive(%s,%d,%d,%s)",full_name,recurse,level,dir_name);
-
-        const char *ts = getDateTimeStamp(&the_dir,dir_name);
-
-        s_Serial->print("file_reply:Directory Listing ");
-        s_Serial->print(ts);
-        s_Serial->print(",");
-        s_Serial->println(full_name);
-
-        File entry = the_dir.openNextFile();
-        while (entry)
-        {
-            char filename[255];
-            entry.getName(filename, sizeof(filename));
-
-            if (entry.isDirectory())
-            {
-                const char *ts = getDateTimeStamp(&entry,filename);
-
-                s_Serial->print("file_reply:");
-                s_Serial->print(ts);
-                s_Serial->print(",");
-                s_Serial->print(filename);
-                s_Serial->print("/");
-                s_Serial->print("\r\n");
-            }
-            else
-            {
-                uint32_t size = entry.size();
-                const char *ts = getDateTimeStamp(&entry,filename);
-
-                s_Serial->print("file_reply:");
-                s_Serial->print(ts);
-                s_Serial->print(',');
-                s_Serial->print(size);
-                s_Serial->print(',');
-                s_Serial->print(filename);
-                s_Serial->print("\r\n");
-            }
-
-            entry = the_dir.openNextFile();
-
-        }   // while (entry)
-
-        // rewind if recurse
-
-        if (recurse)
-        {
-            the_dir.rewindDirectory();
-            File entry = the_dir.openNextFile();
-            while (entry)
-            {
-                if (entry.isDirectory())
-                {
-                    entry.getName(dir_name, sizeof(dir_name));
-
-                    char full_path[255];
-                    strcpy(full_path,full_name);
-                    strcat(full_path,"/");
-                    strcat(full_path,dir_name);
-
-                    doListRecursive(full_path,recurse,level+1,entry);
-                }
-                entry = the_dir.openNextFile();
-            }
-
-        }
-    }
-#endif  // RECURSIVE_LIST
-
-
-
-
-#define MAX_DECODED_BUF   10240
-    // the decoded base64 will always be less than the raw base64
-    // and 10240 is agreed upon between console.pm and teensyExpression.
-unsigned char decode_buf[MAX_DECODED_BUF];
-
-
-void fileSystem::handleFileCommand(const char *command, const char *param)
+bool mkDirTS(const char *path, const char *ts)
 {
-    // DIRECTORY LIST
-
-     display(dbg_tfs-1,"handleFileCommand %s - %s",command);
-
-    if (!strcmp(command,"list"))
-    {
-        // send a blank response if the directory does not exist
-
-        #if RECURSIVE_LIST
-
-            char *recurse = (char *) param;
-            char *dir_name = recurse;
-            while (*dir_name && *dir_name != ',') dir_name++;
-            if (*dir_name == ',') *dir_name++ = 0;
-
-            display(dbg_tfs,"list command %s - %s",recurse,dir_name);
-
-            File the_dir = SD.open(dir_name);
-            if (the_dir)
-            {
-                doListRecursive(dir_name,*recurse=='1',0,the_dir);
-            }
-
-        #else
-            const char *dir_name = param;
-            File the_dir = SD.open(dir_name);
-            if (the_dir)
-            {
-                const char *ts = getDateTimeStamp(&the_dir,dir_name);
-
-                s_Serial->print("file_reply:Directory Listing ");
-                s_Serial->print(ts);
-                s_Serial->print(",");
-                s_Serial->println(dir_name);
-
-                File entry = the_dir.openNextFile();
-                while (entry)
-                {
-                    char filename[255];
-                    entry.getName(filename, sizeof(filename));
-
-                    if (entry.isDirectory())
-                    {
-                        const char *ts = getDateTimeStamp(&entry,filename);
-
-                        s_Serial->print("file_reply:");
-                        s_Serial->print(ts);
-                        s_Serial->print(",");
-                        s_Serial->print(filename);
-                        s_Serial->print("/");
-                        s_Serial->print("\r\n");
-                    }
-                    else
-                    {
-                        uint32_t size = entry.size();
-
-                        const char *ts = getDateTimeStamp(&entry,filename);
-                        s_Serial->print("file_reply:");
-                        s_Serial->print(ts);
-                        s_Serial->print(',');
-                        s_Serial->print(size);
-                        s_Serial->print(',');
-                        s_Serial->print(filename);
-                        s_Serial->print("\r\n");
-                    }
-
-                    entry = the_dir.openNextFile();
-
-                }   // while (entry)
-            }   // if the_dir
-
-        #endif  // !RECURSIVE_LIST
-    }   // list command
-
-
-    // MAKE DIRECTORY
-
-    else if (!strcmp(command,"mkdir"))
-    {
-        char *path = (char *) param;
-        char *ts = path;
-        while (*ts && *ts != ',') ts++;
-        if (*ts == ',') *ts++ = 0;
-
-        display(dbg_tfs,"fileSystem::mkdir(%s,%s)",path,ts);
-        if (SD.exists(path))
-        {
-            s_Serial->print("file_reply:");
-            s_Serial->print("ERROR - directory_already_exists ");
-            s_Serial->print(path);
-            s_Serial->print("\r\n");
-        }
-        else
-        {
-            display(dbg_tfs,"fileSystem::mkdir(%s) calling SD.mkdir()",param);
-
-            // this snippet is how you have to set the timestamp on a directory
-
-            strcpy(write_ts,ts);
-            FatFile::dateTimeCallback(dtCallback);
-            int rslt = SD.mkdir(path);
-            FatFile::dateTimeCallbackCancel();
-
-            if (rslt)
-            {
-                #if 0   // as this does not work
-                    File the_dir = SD.open(path);
-                    if (the_dir)
-                    {
-                        setTimeStamp(the_dir,ts);
-                        the_dir.close();
-                    }
-                #endif
-
-                s_Serial->print("file_reply:");
-                s_Serial->print("OK - created_directory ");
-            }
-            else
-            {
-                s_Serial->print("file_reply:");
-                s_Serial->print("ERROR - could_not_create_directory ");
-            }
-            s_Serial->print(param);
-            s_Serial->print("\r\n");
-        }
-    }   // mkdir command
-
-
-    // GET FILE
-
-    else if (!strcmp(command,"get"))
-    {
-        const char *filename = param;
-        display(dbg_tfs,"fileSystem::get(%s)",filename);
-        File the_file = SD.open(filename);
-
-        // The result will be
-        // file_reply:FILE $ts,$size,$entry and a bunch of
-        // file_reply:BASE64_ENCODED_FILE lines
-        // file_reply:CHECKSUM %d
-        // file_reply_end
-
-        if (the_file)
-        {
-            char filename[255];
-            the_file.getName(filename, sizeof(filename));
-            const char *ts = getDateTimeStamp(&the_file,filename);
-            uint32_t size = the_file.size();
-
-            s_Serial->print("file_reply:FILE ");
-            s_Serial->print(ts);
-            s_Serial->print(",");
-            s_Serial->print(size);
-            s_Serial->print(",");
-            s_Serial->print(filename);
-            s_Serial->print("\r\n");
-
-            #define BUF_BYTES   80
-            #define BASE64_BYTES   120      // at least 4/3ds the size of buf bytes
-
-            unsigned char buf[BUF_BYTES];
-            char b64_buf[BASE64_BYTES];
-
-            uint32_t file_off = 0;
-            uint32_t check_sum = 0;
-            bool ok = 1;
-
-            while (size)
-            {
-                uint32_t bytes_to_read = size;
-                if (bytes_to_read > BUF_BYTES) bytes_to_read = BUF_BYTES;
-                uint32_t got_bytes = the_file.read(buf,bytes_to_read);
-
-                // got_bytes = 2;
-                // to test error handling
-
-                if (got_bytes != bytes_to_read)
-                {
-                    my_error("got %d bytes while attempting to read %d bytes at offset %d",got_bytes,bytes_to_read,file_off);
-                    s_Serial->print("file_reply:ERROR got ");
-                    s_Serial->print(got_bytes);
-                    s_Serial->print(" bytes while attempting to read ");
-                    s_Serial->print(bytes_to_read);
-                    s_Serial->print(" bytes at offset ");
-                    s_Serial->print(file_off);
-                    s_Serial->print("\r\n");
-                    ok = 0;
-                    break;
-                }
-
-                for (uint32_t i=0; i<got_bytes; i++)
-                {
-                    check_sum += buf[i];
-                }
-
-                int enc_len = base64_encode(b64_buf,(char *)buf,bytes_to_read);
-                b64_buf[enc_len] = 0;
-
-                s_Serial->print("file_reply:");
-                s_Serial->print(b64_buf);
-                s_Serial->print("\r\n");
-
-                size -= bytes_to_read;
-                file_off += bytes_to_read;
-            }
-
-            the_file.close();
-
-            if (ok)
-            {
-                s_Serial->print("file_reply:CHECKSUM ");
-                s_Serial->print(check_sum);
-                s_Serial->print("\r\n");
-            }
-        }
-        else
-        {
-            display(0,"error could not open file: %s - returning empty result",filename);
-        }
-    }   // get command
-
-
-    //-----------------------------------------------
-    // put is handled in 3 parts
-    //-----------------------------------------------
-    // file_command:put
-    // file_command:base_64 and
-    // file_command:checksum
-
-    else if (!strcmp(command,"put"))
-    {
-        // parse out the ts, size, dir, and full filename
-
-        char *ts = (char *) param;
-        char *sz = ts;
-        while (*sz && *sz != ',') sz++;
-        if (*sz == ',')
-            *sz++ = 0;
-        char *dir = sz;
-        while (*dir && *dir != ',') dir++;
-        if (*dir == ',')
-            *dir++ = 0;
-        char *filename = dir;
-        while (*filename && *filename != ',') filename++;
-        if (*filename == ',')
-            *filename++ = 0;
-
-        display(dbg_tfs,"put ts=%s sz=%s dir=%s filename=%s",ts,sz,dir,filename);
-
-        write_size = atoi(sz);
-        write_offset = 0;
-        write_checksum = 0;
-        strcpy(write_ts,ts);
-
-        display(dbg_tfs,"write_size=%d",write_size);
-
-        // make sure the directory exists
-
-        bool ok = 1;
-
-        if (*dir)
-        {
-            if (SD.exists(dir))
-            {
-                File the_dir = SD.open(dir);
-                if (!the_dir.isDirectory())
-                {
-                    my_error("NOT A DIRECTORY (is a file): %s",dir);
-                    s_Serial->print("file_reply:ERROR NOT A DIRECTORY .. is a file - ");
-                    s_Serial->print(dir);
-                    s_Serial->print("\r\n");
-                    ok = 0;
-                }
-                else
-                {
-                    display(dbg_tfs,"directory %s exists",dir);
-                }
-                the_dir.close();
-            }
-            else
-            {
-                // prepare for setting timestamp in below call
-                // cannot call setTimeStamp() on dirs
-
-                strcpy(write_ts,ts);
-                FatFile::dateTimeCallback(dtCallback);
-                bool rslt = SD.mkdir(dir);
-                FatFile::dateTimeCallbackCancel();
-
-                if (!rslt)
-                {
-                    my_error("COULD NOT CREATE DIRECTORY: %s",dir);
-                    s_Serial->print("file_reply:ERROR - COULD NOT CREATE DIRECTORY ");
-                    s_Serial->print(dir);
-                    s_Serial->print("\r\n");
-                    ok = 0;
-                }
-            }
-        }
-
-        // OPEN the new file
-
-        if (ok)
-        {
-            SD.remove(filename);
-
-            write_file = SD.open(filename, FILE_WRITE);
-            if (!write_file)
-            {
-                my_error("COULD NOT CREATE FILE %s",filename);
-                s_Serial->print("file_reply:ERROR - COULD NOT OPEN FILE ");
-                s_Serial->print(filename);
-                s_Serial->print("\r\n");
-                ok = 0;
-            }
-        }
-
-        // return the first OK
-
-        if (ok)
-        {
-            s_Serial->print("file_reply:OK PUT STARTED");
-            #if 0
-                s_Serial->print(ts);
-                s_Serial->print(",");
-                s_Serial->print(size);
-                s_Serial->print(",");
-                s_Serial->print(filename);
-            #endif
-
-            s_Serial->print("\r\n");
-        }
-    }   // part 1 of 3 of put command
-
-    else if (!strcmp(command,"BASE64"))
-    {
-        display(dbg_tfs,"base64 offset=%d",write_offset);
-
-        int decoded_size = base64_decode((char *)decode_buf,(char *)param,strlen(param));
-        int bytes_written = write_file.write(decode_buf,decoded_size);
-
-        if (bytes_written != decoded_size)
-        {
-            my_error("write fail got(%d) expected(%d) offset(%d)",bytes_written,decoded_size,write_offset);
-            s_Serial->print("file_reply:ERROR - write fail got=");
-            s_Serial->print(bytes_written);
-            s_Serial->print(" expected=");
-            s_Serial->print(decoded_size);
-            s_Serial->print(" at offset=");
-            s_Serial->print(write_offset);
-            s_Serial->print("\r\n");
-        }
-        else
-        {
-            for (int i=0; i<decoded_size; i++)
-                write_checksum += decode_buf[i];
-            write_offset += decoded_size;
-
-            s_Serial->print("file_reply:OK PUT CONTINUE offset=");
-            s_Serial->print(write_offset);
-            s_Serial->print("\r\n");
-        }
-    }   // BASE64 - part 2 of 3 of put command
-
-    else if (!strcmp(command,"CHECKSUM"))
-    {
-        uint32_t got = atoi(param);
-        display(dbg_tfs,"CHECKSUM got=%d calculated=%d",got,write_checksum);
-        if (got == write_checksum)
-        {
-            s_Serial->print("file_reply:OK CHECKSUM ");
-            s_Serial->print(got);
-            s_Serial->print("==");
-            s_Serial->print(write_checksum);
-            s_Serial->print("\r\n");
-        }
-        else
-        {
-            s_Serial->print("file_reply:ERROR CHECKSUM FAIL got(");
-            s_Serial->print(got);
-            s_Serial->print(") != calculated(");
-            s_Serial->print(write_checksum);
-            s_Serial->print(")\r\n");
-        }
-
-        setTimeStamp(write_file,write_ts);
-        write_file.close();
-
-    }   // CHECKSUM - part 3 of 3 of put command
-
-
-    // DELETE FILE OR DIRETORY
-
-    else if (!strcmp(command,"delete"))
-    {
-        display(dbg_tfs,"delete %s",param);
-        File the_file = SD.open(param);
-        if (the_file)
-        {
-            bool rslt;
-            bool is_dir = the_file.isDirectory();
-
-            if (is_dir)
-            {
-                rslt = the_file.rmRfStar();
-            }
-            else
-            {
-                the_file.close();
-                rslt = SD.remove(param);
-            }
-
-            if (rslt)
-            {
-                s_Serial->print("file_reply:OK DELETE ");
-                s_Serial->print(is_dir);
-                s_Serial->print("\r\n");
-            }
-            else
-            {
-                s_Serial->print("file_reply:ERROR - ");
-                s_Serial->print(is_dir?"rmRfStar(":"remove(");
-                s_Serial->print(param);
-                s_Serial->print(") failed!");
-                s_Serial->print("\r\n");
-            }
-        }
-        else
-        {
-            s_Serial->print("file_reply:ERROR - could not open '");
-            s_Serial->print(param);
-            s_Serial->print("'for deletion");
-            s_Serial->print("\r\n");
-        }
-
-    }   // delete command
-
-    // RENAME file or directory
-
-	else if (!strcmp(command,"rename"))
-    {
-        char *old_path = (char *) param;
-        char *new_path = old_path;
-        while (*new_path && *new_path != ',') new_path++;
-        if (*new_path == ',') *new_path++ = 0;
-        display(dbg_tfs,"rename(%s) to '%s'",old_path,new_path);
-
-        File the_file = SD.open(old_path);
-        if (the_file)
-        {
-            uint32_t size = the_file.size();
-            bool is_dir = the_file.isDirectory();
-            const char *ts = getDateTimeStamp(&the_file,old_path);
-            the_file.close();
-
-            display(dbg_tfs,"rename is_dir=%d size=%d ts=%s",is_dir,size,ts);
-
-            if (SD.rename(old_path,new_path))
-            {
-                s_Serial->print("file_reply:OK RENAME ");
-                s_Serial->print(is_dir);
-                s_Serial->print(",");
-                s_Serial->print(size);
-                s_Serial->print(",");
-                s_Serial->print(ts);
-                s_Serial->print("\r\n");
-            }
-            else
-            {
-                s_Serial->print("file_reply:ERROR - rename '");
-                s_Serial->print(old_path);
-                s_Serial->print("' to '");
-                s_Serial->print(new_path);
-                s_Serial->print("' FAILED");
-                s_Serial->print("\r\n");
-            }
-        }
-        else
-        {
-            s_Serial->print("file_reply:ERROR - could not open '");
-            s_Serial->print(old_path);
-            s_Serial->print("' for renaming");
-            s_Serial->print("\r\n");
-        }
-    }
-
-
-    s_Serial->print("file_reply_end");
-    s_Serial->print("\r\n");
-
+	strcpy(write_timestamp,ts);
+	FatFile::dateTimeCallback(dtCallback);
+	int rslt = SD.mkdir(path);
+	FatFile::dateTimeCallbackCancel();
+	return rslt;
 }
+
 
 
 

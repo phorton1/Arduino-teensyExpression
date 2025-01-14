@@ -35,15 +35,15 @@ void setup()
 
     // start the hardware serial port
 
-    Serial3.begin(115200);
+    SERIAL_DEVICE.begin(115200);
     elapsedMillis serial_started = 0;
-    while (serial_started<1000 && !Serial3) {}
+    while (serial_started<1000 && !SERIAL_DEVICE) {}
 
     #if 1
-        if (Serial3)
+        if (SERIAL_DEVICE)
         {
             delay(1000);
-            Serial3.println("hello from teensyExpression.ino() setup() " TEENSY_EXPRESSION_VERSION " Serial3 port");
+            SERIAL_DEVICE.println("hello from teensyExpression.ino() setup() " TEENSY_EXPRESSION_VERSION " SERIAL_DEVICE port");
         }
     #endif
 
@@ -55,7 +55,7 @@ void setup()
     uint8_t serial_debug_pref = getPref8(PREF_DEBUG_PORT);
     if (serial_debug_pref == 2)
     {
-        dbgSerial = &Serial3;
+        dbgSerial = &SERIAL_DEVICE;
     }
     else if (!serial_debug_pref)
     {
@@ -110,7 +110,7 @@ void setup()
     }
     else if (serial_debug_pref == 2)
     {
-        const char *msg = "    DEBUG_OUTPUT to hardware Serial3!";
+        const char *msg = "    DEBUG_OUTPUT to hardware SERIAL_DEVICE!";
         warning(0,"%s",msg);
         mylcd.println(msg);
         do_delay = 5000;
