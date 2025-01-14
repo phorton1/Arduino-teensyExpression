@@ -64,7 +64,7 @@ void setDefaultPrefs()
     _setDefaultPref8(PREF_FILE_SYSTEM_PORT,  0,1,   0,  file_system_ports);         // MainUSB or AlternateSerial port
 
     _setDefaultPref8(PREF_SPOOF_FTP,         0,1,   0,  off_on);                    // off, on - default(off)
-    _setDefaultPref8(PREF_FTP_PORT,          0,2,   2,  off_host_remote);           // off, Host, Remote, default(Remote)
+    _setDefaultPref8(PREF_FTP_PORT,          0,2,   0,  off_host_remote);   // 2025-01-14 was: 2,  off_host_remote);           // off, Host, Remote, default(Remote)
 
     //---------------
     // pedals

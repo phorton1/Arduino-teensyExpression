@@ -22,6 +22,12 @@
 #define dbg_exp   0
 	// 1 still shows midi messages
 	// 0 shows SERIAL_DEVICE issues
+#define dbg_file_command 0
+	// 0 = show file command processing
+	// -1 = more detail
+	// -2 = most detail
+#define dbg_raw_midi 	0
+	// 0 = show (untested) raw midi from serial device
 
 #define GET_TEMPO_FROM_CLOCK           	0
 #define BATTERY_CHECK_TIME  			30000
@@ -746,12 +752,6 @@ static void initParseCommand(parseCommand_t *pcmd)
 	memset(pcmd,0,sizeof(parseCommand_t));
 }
 
-
-
-
-// PRH PRH
-#define dbg_file_command -2
-#define dbg_raw_midi 0
 
 static void handleChar(bool is_serial, char c)
 {
