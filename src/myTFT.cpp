@@ -30,7 +30,7 @@ void initMyTFT()
         TFT_DATA6,
         TFT_DATA7);
     mylcd.begin();
-    mylcd.setRotation(1);
+    mylcd.setRotation(3);
     // mylcd.Set_Text_Mode(0);
     // starts with default my "m_use_bc=1"
     mylcd.fillScreen(TFT_BLACK);
