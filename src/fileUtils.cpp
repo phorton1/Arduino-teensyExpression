@@ -31,11 +31,6 @@
 	// on the stack, so with these defines, the absolute minimum
 	// THREAD_STACK_SIZE is 5K
 
-#define MAX_DIRECTORY_BUF   4096
-	// maximum size of a directory listing returned by _list
-#define MAX_FILE_REPLY		1024
-	// allocated on stack!
-
 
 //---------------------------------------------
 // commands and queues
@@ -339,42 +334,43 @@ int getNextEntry(Stream *fsd, int req_num, textEntry_t *the_entry, const char **
 	if (!**ptr)
 		return 0;
 
-	// we set all 3 fields or fail
-	// there is a tab after each entry
+	// We must get six fields or we fail, but note that
+	// we skip the unix MODE,USER,GROUP fields while parsing.
+	// There is always a \t or \r after each entry.
 
 	int num_params = 0;
 	char *out = the_entry->size;
-
 	while (**ptr)
 	{
-		if (**ptr == '\t' ||
-			**ptr == '\r')
+		char c = *(*ptr)++;
+
+		if (c == '\t' ||
+			c == '\r')
 		{
-			*out = 0;
 			num_params++;
-			if (num_params == 1)
-				out  = the_entry->ts;
-			else if (num_params == 2)
-				out = the_entry->entry;
-			else if (num_params == 3 && *(out-1) == '/')
-				// get rid of terminating '/' on dir entries
+			if (out) *out = 0;
+			bool is_cr = (c == '\r');
+			// get rid of terminating '/' on dir entries
+			if (num_params == 6 && *(out-1) == '/')
 			{
 				the_entry->is_dir = 1;
 				*(out-1) = 0;
 			}
+			if (is_cr) break;
 
-			bool is_cr = (**ptr == '\r');
-			(*ptr)++;
-			if (is_cr)
-				break;
+			out = 0;
+			if (num_params == 1)
+				out  = the_entry->ts;
+			else if (num_params == 5)
+				out = the_entry->entry;
 		}
-		else
+		else if (out)
 		{
-			*out++ = *(*ptr)++;
+			*out++ = c;
 		}
 	}
 
-	if (num_params != 3)
+	if (num_params != 6)
 	{
 		fileReplyError(fsd,req_num,"Incorrect number of fields(%d) in fileEntry",num_params);
 		return -1;
