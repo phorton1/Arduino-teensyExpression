@@ -2,9 +2,8 @@
 // fileCommand.cpp
 //----------------------------------------------------------
 // contains fileCommand() and associated methods
-// PRH - fileCommand() needs to send FILE and BASE64 progress messags,
-// and/or I can try to re-implement the 'bestReport' scheme in
-// Session.pm.
+// The source code files fileXXXX.cpp and h are the same in TE1 and TE2.
+// They have NOT been made into a submodule yet, so must be manually normalized.
 
 #include "fileSystem.h"
 #include "prefs.h"
@@ -871,35 +870,6 @@ static bool _putDir(
 }
 
 
-// prh 2025-01-14
-// added this method instead of modifying usb_desc.c to get the
-// actual teensy serial number, which will NOT be prefixed by "FTP" or "TE"
-// at this time.
-
-#include "usb_names.h"
-
-#define MAX_SERIAL_NUMBER 10
-extern struct usb_string_descriptor_struct usb_string_serial_number;
-	// extern and define into usb_desc.c
-
-const char *getUSBSerialNum()
-	// return the USB Serial Number as a null termianted C string
-{
-	static char buffer[MAX_SERIAL_NUMBER+1];
-	char *out = buffer;
-	uint16_t *in = &usb_string_serial_number.wString[0];
-	int len = usb_string_serial_number.bLength - 4;
-
-	while (len && *in)
-	{
-		*out++ = *((char *) in++);
-	}
-	*out = 0;
-	return buffer;
-}
-
-
-
 
 //=========================================================
 // fileCommand()
@@ -910,12 +880,7 @@ void fileCommand(int req_num)
 	// the buf we are passed must be freed when done!!
 {
     display_level(dbg_hdr+1,1,"fileCommand(%d)",req_num);
-
-	// prh - change from TE2, was:  Stream *fsd = ACTIVE_FILE_SYS_DEVICE;
-	Stream *fsd = &Serial;
-	if (getPref8(PREF_FILE_SYSTEM_PORT) == FILE_SYS_DEVICE_SERIAL)
-		fsd = &SERIAL_DEVICE;
-
+	Stream *fsd = ACTIVE_FILE_SYS_DEVICE;
 
 	// get and parse the command buffer
 	// command must be freed after this

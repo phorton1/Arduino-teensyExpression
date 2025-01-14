@@ -6,6 +6,19 @@
 #define SERIAL_DEVICE	   Serial3
 	// the serial port to use for our 'Serial' device
 
+// "compatability layer" for fileXXX.h and cpp
+// which are normalized between TE1 and TE2
+
+#define ACTIVE_FILE_SYS_DEVICE ((getPref8(PREF_FILE_SYSTEM_PORT) == FILE_SYS_DEVICE_SERIAL) ? \
+	((Stream *)&SERIAL_DEVICE) : \
+	((Stream *)&Serial))
+extern "C" {
+	extern const char *getUSBSerialNum();	// usb_desc.c
+}
+
+
+// TE1 specific defines
+
 #define NUM_PORTS           8       // ports defined in midiQueue.h
 #define NUM_PEDALS          4
 #define NUM_BUTTON_COLS     5

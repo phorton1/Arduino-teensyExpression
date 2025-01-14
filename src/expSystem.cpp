@@ -241,6 +241,17 @@ void expSystem::begin()
     activateRig(rig_num);
         // show the first window
 
+	// this warning message, and placement of initFileSystem()
+	// is slightly different between TE1 and TE1
+
+	uint8_t dd = getPref8(PREF_DEBUG_PORT);
+	uint8_t fsd = getPref8(PREF_FILE_SYSTEM_PORT);
+    warning(0,"FILE_SYS_DEVICE %s",
+		fsd == FILE_SYS_DEVICE_SERIAL ? "is SERIAL" :
+		fsd == FILE_SYS_DEVICE_USB 	? "is USB" :
+		dd == DEBUG_DEVICE_SERIAL 	? "follows DEBUG_DEVICE which is SERIAL" :
+		dd == DEBUG_DEVICE_USB 		? "follows DEBUG_DEVICE which is USB" :
+		"follows DEBUG_DEVICE which is OFF" );
 	if (!initFileSystem())	// fileSystem::init())
 	{
         mylcd.setTextColor(TFT_YELLOW);

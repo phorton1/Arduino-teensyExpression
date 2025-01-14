@@ -1,7 +1,9 @@
 //-------------------------------------------------------------
 // fileSystem.h
 //-------------------------------------------------------------
-// abstracted file system for use with serial IO protocol
+// Abstracted file system for use with serial IO protocol.
+// The source code files fileXXXX.cpp and h are the same in TE1 and TE2.
+// They have NOT been made into a submodule yet, so must be manually normalized.
 
 #pragma once
 

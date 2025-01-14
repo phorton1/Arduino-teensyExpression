@@ -2,6 +2,8 @@
 // fileFormat.cpp
 //---------------------------------------------
 // http://www.sdcard.org/consumers/formatter/
+// The source code files fileXXXX.cpp and h are the same in TE1 and TE2.
+// They have NOT been made into a submodule yet, so must be manually normalized.
 
 #include "fileSystem.h"
 #include <myDebug.h>

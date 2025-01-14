@@ -1,9 +1,11 @@
 //----------------------------------------------------------
 // fileSystem.cpp
 //----------------------------------------------------------
-// GET USES 20K of stack!!
 // Abstracted file system for use with serial IO protocol
+// The source code files fileXXXX.cpp and h are the same in TE1 and TE2.
+// They have NOT been made into a submodule yet, so must be manually normalized.
 //
+// GET USES 20K of stack!!
 // OLD NOTE:
 //
 // prh - I was getting an error when starting the system from a cold power up.
@@ -181,24 +183,7 @@ bool hasSDCard()     { return has_sd_card; }
 
 bool initFileSystem()
 {
-	uint8_t dd = getPref8(PREF_DEBUG_PORT);			// prh - change from TE2, was:  prefs.DEBUG_DEVICE;
-	uint8_t fsd = getPref8(PREF_FILE_SYSTEM_PORT);	// prh - change from TE2, was:  prefs.FILE_SYS_DEVICE;
 
-	// prh - change from TE2, below, to use new TE1 FILE_SYS_DEVICE defines
-    //		warning(0,"FILE_SYS_DEVICE %s",
-	//			fsd == OUTPUT_DEVICE_SERIAL ? "is SERIAL" :
-	//			fsd == OUTPUT_DEVICE_USB 	? "is USB" :
-	//			fsd == OUTPUT_DEVICE_OFF 	? "is OFF!!" :
-	//			dd == DEBUG_DEVICE_SERIAL 	? "follows DEBUG_DEVICE which is SERIAL" :
-	//			dd == DEBUG_DEVICE_USB 		? "follows DEBUG_DEVICE which is USB" :
-	//			"follows DEBUG_DEVICE which is OFF" );
-
-    warning(0,"FILE_SYS_DEVICE %s",
-		fsd == FILE_SYS_DEVICE_SERIAL ? "is SERIAL" :
-		fsd == FILE_SYS_DEVICE_USB 	? "is USB" :
-		dd == DEBUG_DEVICE_SERIAL 	? "follows DEBUG_DEVICE which is SERIAL" :
-		dd == DEBUG_DEVICE_USB 		? "follows DEBUG_DEVICE which is USB" :
-		"follows DEBUG_DEVICE which is OFF" );
 
 #if USE_OLD_FAT
 	SdioCard *card = SD.card();

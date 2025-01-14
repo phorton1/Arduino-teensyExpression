@@ -726,6 +726,31 @@ void setFishmanFTPDescriptor()
 
 
 
+
+// prh 2025-01-14
+// added this method instead without modifying the actual teensy serial number,
+// so TE1 serial number will NOT be prefixed by "FTP" or "TE" at this time.
+
+#define MAX_SERIAL_NUMBER 10
+
+const char *getUSBSerialNum()
+	// return the USB Serial Number as a null termianted C string
+{
+	static char buffer[MAX_SERIAL_NUMBER+1];
+	char *out = buffer;
+	uint16_t *in = &usb_string_serial_number.wString[0];
+	int len = usb_string_serial_number.bLength - 4;
+
+	while (len && *in)
+	{
+		*out++ = *((char *) in++);
+	}
+	*out = 0;
+	return buffer;
+}
+
+
+
 // **************************************************************
 //   Endpoint Configuration
 // **************************************************************
