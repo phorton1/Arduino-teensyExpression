@@ -50,6 +50,8 @@ class expWindow
             // only used for enumerated rigs in the config window
         virtual uint32_t getId()    { return 0; }
 
+        virtual void onSerialMidiEvent(int cc_num, int value) {}
+            // made public for common handleSerial() method
 
     protected:
 
@@ -66,7 +68,7 @@ class expWindow
         virtual bool onRotaryEvent(int num, int val)  { return false; }
         // virtual bool onPedalEvent(int num, int val)   { return false; }
         virtual void onButtonEvent(int row, int col, int event) {}
-        virtual void onSerialMidiEvent(int cc_num, int value) {}
+
 
         virtual void updateUI() {}
         virtual void timer_handler()  {}
@@ -126,7 +128,6 @@ class expSystem
 
         void addRig(expWindow *pRig);
         void startWindow(expWindow *win, bool warm);
-        void handleSerialData();
         static void timer_handler();
         static void critical_timer_handler();
 

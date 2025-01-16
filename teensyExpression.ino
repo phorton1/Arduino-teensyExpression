@@ -10,6 +10,7 @@
 #include "src/buttons.h"
 #include "src/expSystem.h"
 #include "src/myMidiHost.h"
+#include "src/fileSystem.h"
 
 
 #define TOUCH_DRAW_TEST  0
@@ -137,6 +138,7 @@ void setup()
     initLEDs();
     clearLEDs();
     showLEDs();
+
     theSystem.begin();
 
     display(0,"system running ...",0);
@@ -152,6 +154,8 @@ void setup()
 
 void loop()
 {
+    freeFileCommands();
+    
     theSystem.updateUI();
         // see expSystem.cpp
 
