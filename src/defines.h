@@ -173,37 +173,18 @@ typedef struct
 // 3rd and 4th 5 pin connectors on back in FACING order
 // The kicad files show the NEW rotary board setup.
 
-#if 0		// NEW ROTARY BOARD DESIGN
+							// pin 1 3V on 3rd connector facing
+#define ROTARY_4B   12      // pin 2
+#define ROTARY_4A   11      // pin 3
+#define ROTARY_3B   10      // pin 4
+#define ROTARY_3A   9       // pin 5
 
-								// pin 1 3V on 3rd connector facing
-	#define ROTARY_4B   12      // pin 2
-	#define ROTARY_4A   11      // pin 3
-	#define ROTARY_3B   10      // pin 4
-	#define ROTARY_3A   9       // pin 5
+							// pin 1 GND on 4th connector facing
+#define ROTARY_2B   6       // pin 2
+#define ROTARY_2A   4       // pin 3
+#define ROTARY_1B   3       // pin 4
+#define ROTARY_1A   2       // pin 5
 
-								// pin 1 GND on 4th connector facing
-	#define ROTARY_2B   6       // pin 2
-	#define ROTARY_2A   4       // pin 3
-	#define ROTARY_1B   3       // pin 4
-	#define ROTARY_1A   2       // pin 5
-
-#else		// old rotary perf board
-
-	// these definitions work with the old teensyExpression
-
-								// pin 1 3V on 3rd connector facing
-	#define ROTARY_1B   12      // pin 2   // was 4
-	#define ROTARY_1A   11      // pin 3
-	#define ROTARY_2B   10      // pin 4
-	#define ROTARY_2A   9       // pin 5
-
-								// pin 1 GND on 4th connector facing
-	#define ROTARY_3B   6       // pin 2	// was 2
-	#define ROTARY_3A   4       // pin 3
-	#define ROTARY_4A   3       // pin 4	// was 1 reversed
-	#define ROTARY_4B   2       // pin 5
-
-#endif
 
 
 //-----------------------------------------------

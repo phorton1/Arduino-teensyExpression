@@ -34,9 +34,9 @@ typedef struct
 rotary_t rotary[NUM_ROTARY] =
 {
     {0, ROTARY_1A, ROTARY_1B, 0, 127, DEFAULT_INC_DEC, DEFAULT_INPUT_VOL},
-    {0, ROTARY_2A, ROTARY_2B, 0, 127, DEFAULT_INC_DEC, DEFAULT_OUT_VOL },
+    {0, ROTARY_2B, ROTARY_2A, 0, 127, DEFAULT_INC_DEC, DEFAULT_OUT_VOL },
     {0, ROTARY_3A, ROTARY_3B, 0, 127, DEFAULT_INC_DEC, DEFAULT_THRU_VOL  },
-    {0, ROTARY_4A, ROTARY_4B, 0, 127, DEFAULT_INC_DEC, DEFAULT_MIX_VOL  }
+    {0, ROTARY_4B, ROTARY_4A, 0, 127, DEFAULT_INC_DEC, DEFAULT_MIX_VOL  }
 };
 
 
@@ -67,8 +67,8 @@ void initRotary()
 {
     for (int i=0; i<4; i++)
     {
-        pinMode(rotary[i].pinA,INPUT_PULLDOWN);
-        pinMode(rotary[i].pinB,INPUT_PULLDOWN);
+        pinMode(rotary[i].pinA,INPUT);  // _PULLDOWN);
+        pinMode(rotary[i].pinB,INPUT);  // _PULLDOWN);
         // init to current state
         rotary[i].pollA = digitalRead(rotary[i].pinA);
     }
@@ -120,5 +120,8 @@ void pollRotary()
 {
     for (int i=0; i<NUM_ROTARY; i++)
         if (_pollRotary(i))
+        {
             theSystem.rotaryEvent(i,rotary[i].value);
+        }
 }
+
