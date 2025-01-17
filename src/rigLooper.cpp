@@ -325,8 +325,6 @@ void rigLooper::begin(bool warm)
 		}
 	}
 
-	display(0,"testing",0);
-
 	// switch to quick mode after all the buttons are set
 
 	resetDisplay();
