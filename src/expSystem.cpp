@@ -1,3 +1,10 @@
+//---------------------------------------------------
+// expSystem.cpp
+//---------------------------------------------------
+// There are exactly two current "rigs" .. the rig_looper,
+// and the config_system, on top of which "modal windows"
+// may be opened.
+
 
 #include <myDebug.h>
 #include "expSystem.h"
@@ -13,18 +20,13 @@
 #include "midiQueue.h"
 #include "fileSystem.h"
 #include "configSystem.h"
-
 #include "rigLooper.h"
-#include "rigTest.h"
-#include "rigMidiHost.h"
 
 
 #define dbg_exp   0
 	// 1 still shows midi messages
 	// 0 shows SERIAL_DEVICE issues
 
-
-#define GET_TEMPO_FROM_CLOCK           	0
 #define BATTERY_CHECK_TIME  			30000
 #define MIDI_ACTIVITY_TIMEOUT 			90
 
@@ -75,7 +77,7 @@
 //--------------------------------
 
 expSystem theSystem;
-const char *rig_names[MAX_EXP_RIGS];
+	// global static object
 
 int_rect tft_rect(0,0,479,319);				// full screen
 int_rect title_rect(0,0,479,35);			// not including line
@@ -117,7 +119,6 @@ int_rect song_msg_rect[2];
 
 // virtual
 void expWindow::endModal(uint32_t param)
-	// currently
 {
     // called by modal windows when they end themselves
 	theSystem.endModal(this,param);
@@ -132,25 +133,13 @@ void expWindow::endModal(uint32_t param)
 
 expSystem::expSystem()
 {
-	m_tempo = 0;
-
-    m_num_rigs = 0;
-    m_cur_rig_num = -1;
-    m_prev_rig_num = 0;
-
+	m_cur_rig = 0;
 	m_num_modals = 0;
-
 	last_battery_level = 0;
-
-	// moved
-	// battery_time = BATTERY_CHECK_TIME;
 
 	draw_pedals = 1;
 	draw_title = 1;
 	m_title = 0;
-
-	for (int i=0; i<MAX_EXP_RIGS; i++)
-		m_rigs[i] = 0;
 
 	song_msg_rect[0].assign(
 		client_rect.xs,
@@ -178,13 +167,6 @@ void expSystem::begin()
 {
 	display(dbg_exp,"expSystem::begin()",0);
 
-    addRig(new configSystem());
-    addRig(new rigLooper());
-    // addRig(new rigNew());
-    // addRig(new rigOld());
-	addRig(new rigTest());
-    addRig(new rigMidiHost());
-
 	song_msg_rect[0].assign(
 		client_rect.xs,
 		song_title_rect.ye + 10,
@@ -202,58 +184,22 @@ void expSystem::begin()
 		midi_activity[i] = millis();
 		last_midi_activity[i] = 0;
 	}
-	for (int i=0; i<m_num_rigs; i++)
-		rig_names[i] = m_rigs[i]->short_name();
-
-	setPrefMax(PREF_RIG_NUM,m_num_rigs-1);
-	setPrefStrings(PREF_RIG_NUM,rig_names);
 
     theButtons.init();
 	thePedals.init();
 	initRotary();
 
-    // set the brightness from prefs
+	// activate the looper "rig"
+	
+    activateRig(&rig_looper);
 
-    setLEDBrightness(getPref8(PREF_BRIGHTNESS));
-
-    // get rig_num from prefs and activate it
-
-    int rig_num = getPref8(PREF_RIG_NUM);
-    if (rig_num >= m_num_rigs)
-        rig_num = m_num_rigs - 1;
-
-    // rig_num = 0;
-        // override prefs setting
-        // for working on a particular rig
+	// start the timers
 
     m_timer.priority(EXP_TIMER_PRIORITY);
     m_timer.begin(timer_handler,EXP_TIMER_INTERVAL);
 
     m_critical_timer.priority(EXP_CRITICAL_TIMER_PRIORITY);
     m_critical_timer.begin(critical_timer_handler,EXP_CRITICAL_TIMER_INTERVAL);
-        // start the timer
-
-    activateRig(rig_num);
-        // show the first window
-
-	// this warning message, and placement of initFileSystem()
-	// is slightly different between TE1 and TE1
-
-	uint8_t dd = getPref8(PREF_DEBUG_PORT);
-	uint8_t fsd = getPref8(PREF_FILE_SYSTEM_PORT);
-    warning(0,"FILE_SYS_DEVICE %s",
-		fsd == FILE_SYS_DEVICE_SERIAL ? "is SERIAL" :
-		fsd == FILE_SYS_DEVICE_USB 	? "is USB" :
-		dd == DEBUG_DEVICE_SERIAL 	? "follows DEBUG_DEVICE which is SERIAL" :
-		dd == DEBUG_DEVICE_USB 		? "follows DEBUG_DEVICE which is USB" :
-		"follows DEBUG_DEVICE which is OFF" );
-	if (!initFileSystem())	// fileSystem::init())
-	{
-        mylcd.setTextColor(TFT_YELLOW);
-        mylcd.println("");
-        mylcd.println("expSystem: COULD NOT START FILE SYSTEM!!");
-		delay(10000);
-	}
 
 	display(dbg_exp,"returning from expSystem::begin()",0);
 }
@@ -263,43 +209,19 @@ void expSystem::begin()
 // Rig management
 //-------------------------------------------------
 
-void expSystem::addRig(expWindow *pRig)
+void expSystem::activateRig(expWindow *the_rig)
+	// switches between "rig_looper" and "config_system"
+	// which are special expWindows
 {
-    if (m_num_rigs >= MAX_EXP_RIGS + 1)
-    {
-        my_error("TOO MANY RIGS! %d",m_num_rigs+1);
-        return;
-    }
-    m_rigs[m_num_rigs++] = pRig;
-}
+	display(dbg_exp,"activateRig(%s)",the_rig->name());
+    if (m_cur_rig)
+		m_cur_rig->end();			// deactivate previous rig
 
-
-void expSystem::activateRig(int new_rig_num)
-{
-	display(dbg_exp,"activateRig(%d)",new_rig_num);
-
-    if (new_rig_num >= m_num_rigs)
-    {
-        my_error("attempt to activate illegal rig number %d",new_rig_num);
-        return;
-    }
-
-    // deactivate previous rig
-
-    if (m_cur_rig_num >= 0)
-    {
-        getCurRig()->end();
-        m_prev_rig_num = m_cur_rig_num;
-    }
-
-	// start the new rig
-
-    m_cur_rig_num = new_rig_num;
-	startWindow(getCurRig(),false);
-
-    // add the system long click handler
+	m_cur_rig = the_rig;
+	startWindow(m_cur_rig,false);	// start the new rig
 
 	theButtons.getButton(0,THE_SYSTEM_BUTTON)->addLongClickHandler();
+	    // add the system long click handler
 }
 
 
@@ -332,12 +254,9 @@ void expSystem::startModal(expWindow *win)
 		my_error("NUMBER OF MODAL WINDOWS EXCEEDED",m_num_modals);
 		return;
 	}
-
 	if (!m_num_modals)
-		getCurRig()->end();
-
+		m_cur_rig->end();
 	m_modal_stack[m_num_modals++] = win;
-
 	startWindow(win,false);
 }
 
@@ -352,17 +271,12 @@ void expSystem::swapModal(expWindow *win, uint32_t param)
 		startModal(win);
 		return;
 	}
-
 	expWindow *old = getTopModalWindow();
 	old->end();
-
 	m_modal_stack[m_num_modals-1] = win;
 	startWindow(win,true);
-
-	// old->onEndModal(old,param);
 	if (old->m_flags & WIN_FLAG_DELETE_ON_END)
 		delete old;
-
 }
 
 
@@ -386,16 +300,14 @@ void expSystem::endModal(expWindow *win, uint32_t param)
 	m_num_modals--;
 	expWindow *new_win = m_num_modals ?
 		getTopModalWindow() :
-		getCurRig();
-
+		m_cur_rig;
 	startWindow(new_win,true);
-	if (!m_num_modals && m_cur_rig_num)
+	if (!m_num_modals)
 	{
 		// reset the system button handler
 		theButtons.getButton(0,THE_SYSTEM_BUTTON)->addLongClickHandler();
 		draw_pedals = 1;
 	}
-
 	new_win->onEndModal(win,param);
 	if (win->m_flags & WIN_FLAG_DELETE_ON_END)
 		delete win;
@@ -413,39 +325,32 @@ void expSystem::rotaryEvent(int num, int value)
 	if (m_num_modals)
 		getTopModalWindow()->onRotaryEvent(num,value);
 	else
-		getCurRig()->onRotaryEvent(num,value);
+		m_cur_rig->onRotaryEvent(num,value);
 }
 
 
 
 void expSystem::buttonEvent(int row, int col, int event)
-{
-
-	int num = row * NUM_BUTTON_COLS + col;
-
 	// modal windows get the event directly
-
+	// whereas we check for the config mode from rig_looper
+{
+	int num = row * NUM_BUTTON_COLS + col;
 	if (m_num_modals)
 	{
 		getTopModalWindow()->onButtonEvent(row,col,event);
 	}
 
-    // intercept long click on THE_SYSTEM_BUTTON
-	// from rigs to go to the configSystem ...
-
+	// start the config_system ...
 	else if (num == THE_SYSTEM_BUTTON &&
- 			 m_cur_rig_num &&
+ 			 m_cur_rig == &rig_looper &&
 			 event == BUTTON_EVENT_LONG_CLICK)
 	{
 		setLED(THE_SYSTEM_BUTTON,LED_PURPLE);
-		activateRig(0);
+		activateRig(&config_system);
 	}
-
-	// else let the current rig have it
-
 	else
 	{
-		getCurRig()->onButtonEvent(row,col,event);
+		m_cur_rig->onButtonEvent(row,col,event);
 	}
 }
 
@@ -455,48 +360,16 @@ void expSystem::buttonEvent(int row, int col, int event)
 // timer handlers
 //-----------------------------------------
 
-
 // static
 void expSystem::critical_timer_handler()
 {
     uint32_t msg = usb_midi_read_message();  // read from device
-
     if (msg)
     {
 		int pindex = (msg >> 4) & PORT_INDEX_MASK;
 		theSystem.midiActivity(pindex);
 			// the message comes in on port index 0 or 1
 			// PORT_INDEX_DUINO_INPUT0 or PORT_INDEX_DUINO_INPUT1
-
-		// MIDI CLOCK MESSAGES
-		// This experimental code is very processor intensive to
-		// get the MIDI tempo from incoming midi clock messages.
-		// It is defined out in my current 'production' code.
-
-		#if GET_TEMPO_FROM_CLOCK
-			if (((msg >> 8) & 0xff) == 0xF8)
-			{
-				static int beat_counter = 0;
-				static elapsedMillis bpm_millis = 0;
-				if (beat_counter == 24)  // every 24 messages = 1 beat
-				{
-					float millis = bpm_millis;
-					float bpm = 60000 / millis  + 0.5;
-						// I *think* this is rock solid with Quantiloop
-						// without rounding, if it's truncated to 1 decimal place
-					theSystem.m_tempo = bpm;
-						// I am going to use the nearest integer value
-						// so if I change the tempo once, I can only
-						// approximately return to the original tempo
-						// which is the case anyways cuz of audio_bus's
-						// implementation ...
-					bpm_millis = 0;
-					beat_counter = 0;
-				}
-				beat_counter++;
-			}
-		#endif 	// GET_TEMPO_FROM_CLOCK
-
 
 		// we only write through to the midi host if we are spoofing
 
@@ -522,8 +395,6 @@ void expSystem::critical_timer_handler()
 }
 
 
-
-
 // static
 void expSystem::timer_handler()
 {
@@ -547,14 +418,14 @@ void expSystem::timer_handler()
 	if (theSystem.m_num_modals)
 		theSystem.getTopModalWindow()->timer_handler();
 	else
-	    theSystem.getCurRig()->timer_handler();
+	    theSystem.m_cur_rig->timer_handler();
 }
 
 
 void handleCommonMidiSerial(uint8_t *midi_buf)
 	// externed in common fileSystem.h
 {
-	theSystem.getCurRig()->onSerialMidiEvent(midi_buf[2],midi_buf[3]);
+	theSystem.m_cur_rig->onSerialMidiEvent(midi_buf[2],midi_buf[3]);
 }
 
 
@@ -585,7 +456,7 @@ void expSystem::updateUI()
 
 	expWindow *win = m_num_modals ?
 		getTopModalWindow() :
-		getCurRig();
+		m_cur_rig;
 
 	//----------------------------------
 	// PEDALS
@@ -761,7 +632,6 @@ void expSystem::updateUI()
 		last_battery_level = ftp_battery_level;
 	}
 
-
 	// MIDI INDICATORS (always if changed)
 	// remap from by output-cable  Di0,Di1,Do0,Do1,Hi0,Hi1,Ho0,Ho1
 	// to by cable-output:         Di0,Do0, Di1,Do1,  Hi0,Ho0, Hi1,Ho1
@@ -797,33 +667,10 @@ void expSystem::updateUI()
 		}
 	}
 
-	// tempo
-
-	#if GET_TEMPO_FROM_CLOCK
-		static int last_tempo = 0;
-		if (m_tempo != last_tempo)
-		{
-			last_tempo = m_tempo;
-			mylcd.setFont(Arial_14_Bold);
-			mylcd.setTextColor(TFT_WHITE);
-			mylcd.printfJustified(
-				10,
-				200,
-				50,
-				30,
-				LCD_JUST_CENTER,
-				TFT_WHITE,
-				TFT_BLACK,
-				true,
-				"%d",
-				m_tempo);
-			display(0,"m_tempo=%d",m_tempo);
-		}
-	#endif
-
 	// call the current window's updateUI method
 
-	win->updateUI();
+	if (win)
+		win->updateUI();
 
 }	// expSystem::updateUI()
 

@@ -4,14 +4,7 @@
 #include "myLEDS.h"
 #include "commonDefines.h"
 #include "songParser.h"
-#include "rigBase.h"
-
-// prh - the machine should keep track of what buttons are available
-// at any given time and respond to the WHITE presses of unused ones
-// by setting them back to BLACK.
-
-// prh - Add CLIP_VOLUME layer_num, volume [,delay]
-// and change LOOPER_CLIP to CLIP_MUTE
+#include "rigLooper.h"
 
 
 #define dbg_machine   	0			// 0 dumps program, -1 for meaningful debugging
@@ -20,14 +13,12 @@
 #define MIN_TIME_TWEEN_VOL_CMD_MILLIS    40         // at least 3 buffers on the looper
 
 
-songMachine *theSongMachine = 0;
+songMachine song_machine;
 
 
 songMachine::songMachine()
 {
-    m_pBaseRig = 0;
     init();
-    theSongMachine = this;
 }
 
 
@@ -54,11 +45,10 @@ void songMachine::error_msg(const char *format, ...)
     va_list var;
     va_start(var, format);
     vsprintf(error_display_buffer,format,var);
-    theSongMachine->m_show_msg[1] = error_display_buffer;
-    theSongMachine->m_show_color[1] = TFT_ORANGE;
-    theSongMachine->m_state |= SONG_STATE_ERROR;
+    song_machine.m_show_msg[1] = error_display_buffer;
+    song_machine.m_show_color[1] = TFT_ORANGE;
+    song_machine.m_state |= SONG_STATE_ERROR;
 }
-
 
 
 //------------------------------------------
@@ -205,7 +195,7 @@ bool songMachine::load(const char *song_name)
     mylcd.drawString(song_name,song_title_rect.xs+5,song_title_rect.ys+4);
 
     if (songParser::openSongFile(song_name) &&
-        songParser::parseSongText(m_pBaseRig))
+        songParser::parseSongText())
     {
         if (dbg_machine <= 0)
         {
@@ -430,7 +420,7 @@ void songMachine::updateUI()
 
     // don't update the UI if in quick mode
 
-    if (!m_pBaseRig || !m_pBaseRig->songUIAvailable())
+    if (rig_looper.songUIAvailable())
         return;
 
     // invariant flasher
@@ -771,8 +761,7 @@ void songMachine::doSongOp(int op)
         }
 
         case TOKEN_GUITAR_EFFECT_NONE:
-            if (m_pBaseRig)
-                m_pBaseRig->clearGuitarEffects(false);
+            rig_looper.clearGuitarEffects(false);
             break;
 
         case TOKEN_GUITAR_EFFECT_DISTORT:
@@ -782,55 +771,45 @@ void songMachine::doSongOp(int op)
         {
             int effect_num = op - TOKEN_GUITAR_EFFECT_DISTORT;
             int value = songParser::getCode(m_code_ptr++);
-            if (m_pBaseRig)
-                m_pBaseRig->setGuitarEffect(effect_num, value);
+            rig_looper.setGuitarEffect(effect_num, value);
             break;
         }
 
         case TOKEN_SYNTH_PATCH:
-            if (m_pBaseRig)
-                m_pBaseRig->setPatchNumber(songParser::getCode(m_code_ptr++));
+            rig_looper.setPatchNumber(songParser::getCode(m_code_ptr++));
             break;
 
         case TOKEN_CLEAR_LOOPER:
-            if (m_pBaseRig)
-                m_pBaseRig->clearLooper(false);
+            rig_looper.clearLooper(false);
             break;
 
         case TOKEN_LOOPER_STOP:
-            if (m_pBaseRig)
-                m_pBaseRig->stopLooper();
+            rig_looper.stopLooper();
             break;
         case TOKEN_LOOPER_STOP_IMMEDIATE:
-            if (m_pBaseRig)
-                m_pBaseRig->stopLooperImmediate();
+            rig_looper.stopLooperImmediate();
             break;
         case TOKEN_LOOP_IMMEDIATE:
-            if (m_pBaseRig)
-                m_pBaseRig->loopImmediate();
+            rig_looper.loopImmediate();
             break;
         case TOKEN_DUB_MODE:
-            if (m_pBaseRig)
-                m_pBaseRig->toggleDubMode();
+            rig_looper.toggleDubMode();
             break;
         case TOKEN_LOOPER_SET_START_MARK:
-            if (m_pBaseRig)
-                m_pBaseRig->setStartMark();
+            rig_looper.setStartMark();
             break;
 
         case TOKEN_LOOPER_TRACK:
         {
 			int track_num = songParser::getCode(m_code_ptr++)-1;
-            if (m_pBaseRig)
-                m_pBaseRig->selectTrack(track_num);
+            rig_looper.selectTrack(track_num);
             break;
         }
         case TOKEN_LOOPER_CLIP:
         {
             int layer_num = songParser::getCode(m_code_ptr++)-1;
             int mute_value = songParser::getCode(m_code_ptr++);
-            if (m_pBaseRig)
-                m_pBaseRig->setClipMute(layer_num,mute_value);
+            rig_looper.setClipMute(layer_num,mute_value);
             break;
         }
 

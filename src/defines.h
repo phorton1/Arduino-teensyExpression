@@ -1,5 +1,8 @@
-#ifndef __defines_h__
-#define __defines_h__
+//--------------------------------
+// defines.h
+//--------------------------------
+
+#pragma once
 
 #define TEENSY_EXPRESSION_VERSION  "v1.1"
 
@@ -308,4 +311,3 @@ public:
 
 
 
-#endif  // !__defines_h__

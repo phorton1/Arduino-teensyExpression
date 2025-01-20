@@ -329,7 +329,7 @@ I have not seen any comparable hardware that sells for less than $200.
 In fact, a box similar to this would probably retail in the $400-$500
 price range, and some go for as much as $1500 to $2000.
 I couldn't find what I wanted in the way of a foot controller
-for running the FTP in conjunction with SampleTank, Tonestack, and Quantiloop,
+for running the FTP in conjunction with SampleTank and Tonestack
 on Audiobus, on an iPad, so I built this.
 
 Of course, it took several weeks of 3D design work, prototyping, and

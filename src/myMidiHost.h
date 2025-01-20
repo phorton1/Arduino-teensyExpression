@@ -1,5 +1,8 @@
-#ifndef __myMidiHost_h__
-#define __myMidiHost_h__
+//-------------------------------
+// midiHost.h
+//-------------------------------
+
+#pragma once
 
 #include <Arduino.h>
 #include <USBHost_t36.h>
@@ -31,4 +34,3 @@ class myMidiHostDevice : public MIDIDevice
 extern myMidiHostDevice midi_host;
 
 
-#endif  // __myMidiHost_h__

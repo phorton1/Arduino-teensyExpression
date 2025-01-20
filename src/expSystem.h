@@ -1,14 +1,15 @@
-#ifndef __exp_system_h__
-#define __exp_system_h__
+//--------------------------------
+// expSystem.h
+//--------------------------------
+
+#pragma once
 
 #include "defines.h"
 #include <Arduino.h>        // for intevalTimer
 
-#define MAX_EXP_RIGS        10
-#define MAX_MODAL_STACK     10
+#define MIDI_ACTIVITY_INLINE        1
 
-
-class expSystem;
+#define MAX_MODAL_STACK             10
 
 #define WIN_FLAG_DELETE_ON_END      0x00010000
     // window will be deleted after call to endModal
@@ -16,6 +17,7 @@ class expSystem;
     // window calls theSystem.setTitle() itself
 #define WIN_FLAG_SHOW_PEDALS        0x00002000
     // window calls theSystem.setTitle() itself
+
 
 // globally defined screen regions
 
@@ -34,6 +36,8 @@ extern int_rect song_state_rect;            // shows the current songmachine sta
 extern int_rect song_msg_rect[2];           // the two regions for user defined DISPLAY messages
 
 
+class expSystem;
+    // forward
 
 class expWindow
     // base class for rigs, modal windows, and the configSystem
@@ -81,12 +85,9 @@ class expWindow
             // called by modal windows when they end themselves
 
         uint32_t m_flags;
-
 };
 
 
-
-#define MIDI_ACTIVITY_INLINE  1
 
 class expSystem
 {
@@ -98,12 +99,9 @@ class expSystem
         void begin();
         void updateUI();
 
-        void activateRig(int i);
+        void activateRig(expWindow *the_rig);
 
-        int getNumRigs()         { return m_num_rigs; }
-        int getCurRigNum()       { return m_cur_rig_num; }
-        int getPrevRigNum()      { return m_prev_rig_num; }
-        expWindow *getCurRig()   { return m_rigs[m_cur_rig_num]; }
+        expWindow   *m_cur_rig;
 
         // void pedalEvent(int num, int val);
         void rotaryEvent(int num, int val);
@@ -122,24 +120,14 @@ class expSystem
             void midiActivity(int port_num);
         #endif
 
-        int getTempo()      { return m_tempo; }
-
     private:
-
-        void addRig(expWindow *pRig);
+        
         void startWindow(expWindow *win, bool warm);
         static void timer_handler();
         static void critical_timer_handler();
 
         IntervalTimer m_timer;
         IntervalTimer m_critical_timer;
-
-        int m_num_rigs;
-        int m_cur_rig_num;
-        int m_prev_rig_num;
-        expWindow *m_rigs[MAX_EXP_RIGS + 1];
-            // 1 extra for rig #0 which is overloaded
-            // as the configSystem window.
 
         volatile int m_num_modals;
         expWindow *m_modal_stack[MAX_MODAL_STACK];
@@ -151,13 +139,9 @@ class expSystem
 
         unsigned midi_activity[NUM_PORTS];
         bool last_midi_activity[NUM_PORTS];
-
-        int m_tempo;
 };
 
 
 extern expSystem theSystem;
     // in expSystem.cpp
 
-
-#endif // !__exp_system_h__

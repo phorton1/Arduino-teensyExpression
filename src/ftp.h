@@ -1,5 +1,8 @@
-#ifndef __ftp_h__
-#define __ftp_h__
+//--------------------------------
+// ftp.h
+//--------------------------------
+
+#pragma once
 
 #include <Arduino.h>
 
@@ -109,5 +112,3 @@ void initQueryFTP();
     //
     // After that this method does nothing.
 
-
-#endif  // !__ftp_h__

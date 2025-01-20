@@ -1,5 +1,8 @@
-#ifndef _winFtpTuner_h_
-#define _winFtpTuner_h_
+//-------------------------------
+// winFtpTuner.h
+//-------------------------------
+
+#pragma once
 
 #include "expSystem.h"
 
@@ -33,4 +36,3 @@ class winFtpTuner : public expWindow
         void drawTunerPointer(int tuner_x, int color);
 };
 
-#endif      // !_winFtpTuner_h_

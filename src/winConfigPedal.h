@@ -1,5 +1,8 @@
-#ifndef __winConfigPedal_h__
-#define __winConfigPedal_h__
+//-------------------------------
+// winConfigPedal.h
+//-------------------------------
+
+#pragma once
 
 #include "prefs.h"
 #include "expSystem.h"
@@ -64,4 +67,3 @@ class winConfigPedal : public expWindow
 };
 
 
-#endif  // !__winConfigPedal_h__

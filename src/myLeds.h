@@ -1,6 +1,8 @@
+//-------------------------------
+// myLeds.h
+//-------------------------------
 
-#ifndef __myleds_h__
-#define __myleds_h__
+#pragma once
 
 #define LED_NONE   0
 
@@ -39,5 +41,3 @@ extern void showLEDs(bool force=false);
 extern void LEDFancyStart();
 
 
-
-#endif  // !__myleds_h__

@@ -1,21 +1,10 @@
 //--------------------------------------------------------------
 // winConfigPedal.cpp
 //--------------------------------------------------------------
-// 2023-08-24 - There is some wonkiness in here that causes the machine to reboot.
-//    I wanna figure it out and fix it before porting this kind of functionality to TE2.
-//    So for now, this comment is an analysis of existing behavior.
 //
-// On this version there were 4 types of pedals:
+// There were 2 types of pedals:
 //		Normal - sends MIDI CC's
 //      Serial - sends Serial Midi CC's
-//      Smart  - Normal + PEDAL_MODE_AUTO bit
-//		Smart-Serial - Serial + PEDAL_MODE_AUTO bit
-//
-//		The PEDAL_MODE_AUTO is implemented in Pedals.cpp to communicate
-//      with the Arduino AutoPedal.ino program via my one wire serial protocol.
-//      Those pedals can then "follow" the volumes set in the songMachine.
-//      None of this appears to an issue right now, I'm just documenting it
-//      for completeness.
 //
 // Navigation:  There is an arrow pad, an upper left BLUE button, and
 //    upper right ORANGE and GREEN buttons.
@@ -31,14 +20,6 @@
 //    Upper Left Blue - This is intended to cycle through Pedals
 //       as they are all one set of changes as far as the system
 //       is concerned.
-//
-// Crashes:
-//
-//    Pressing the Blue button while in Calibration mode currently crashes.
-//    Fix: the fix was merely to set m_in_calibrate = 0 when switching pedals.
-//
-
-
 
 #include <myDebug.h>
 #include "winConfigPedal.h"
@@ -262,7 +243,6 @@ void winConfigPedal::onButtonEvent(int row, int col, int event)
         {
             m_cur_mode = (m_cur_mode + 1) % 4;
             setPrefPedalMode(m_pedal_num,m_cur_mode);
-            thePedals.getPedal(m_pedal_num)->setPedalMode();
             thePedals.getPedal(m_pedal_num)->invalidate();
             setPrefPedalCurve(m_pedal_num, m_cur_curve);
             setEditPoints();
@@ -277,27 +257,16 @@ void winConfigPedal::onButtonEvent(int row, int col, int event)
         }
         else if (m_cur_item == ITEM_CALIBRATE)
         {
-            if (m_cur_mode & PEDAL_MODE_AUTO)
-            {
-                if (!m_in_calibrate)
-                {
-                    m_in_calibrate = 1;
-                    thePedals.getPedal(m_pedal_num)->autoCalibrate();      // send calibrate command
-                }
-            }
-            else
-            {
-                if (m_in_calibrate)
-                {
-                    m_in_calibrate = 0;
-                }
-                else
-                {
-                    m_in_calibrate = 1;
-                    setPrefPedalCalibMin(m_pedal_num,1023);
-                    setPrefPedalCalibMax(m_pedal_num,0);
-                }
-            }
+			if (m_in_calibrate)
+			{
+				m_in_calibrate = 0;
+			}
+			else
+			{
+				m_in_calibrate = 1;
+				setPrefPedalCalibMin(m_pedal_num,1023);
+				setPrefPedalCalibMax(m_pedal_num,0);
+			}
             m_display_curve = -1;
             clearPrevPoints();
         }
@@ -475,18 +444,12 @@ void winConfigPedal::updateUI()
     bool calib_changed = m_in_calibrate && raw_value != last_raw_value;
     if (full_redraw || calib_changed)
     {
-        if (m_in_calibrate && (m_cur_mode & PEDAL_MODE_AUTO) && !thePedals.getPedal(m_pedal_num)->inAutoCalibrate())
-        {
-            display(0,"ending auto calibrate",0);
-            m_in_calibrate = 0;
-        }
-
-        int text_y = Y_OFFSET + 4*RIGHT_LINE_HEIGHT;
+       int text_y = Y_OFFSET + 4*RIGHT_LINE_HEIGHT;
         if (!full_redraw)
             mylcd.fillRect(RIGHT_COL,text_y,RIGHT_WIDTH,2*RIGHT_LINE_HEIGHT,0);
         int color = m_in_calibrate ? TFT_GREEN : TFT_YELLOW;
 
-        if (calib_changed && !(m_cur_mode & PEDAL_MODE_AUTO))
+        if (calib_changed)
         {
             if (raw_value < getPrefPedalCalibMin(m_pedal_num))
                 setPrefPedalCalibMin(m_pedal_num,raw_value + CALIB_SAFETY_MARGIN);
@@ -501,7 +464,7 @@ void winConfigPedal::updateUI()
             0,
             false,
             "%d",
-            m_cur_mode & PEDAL_MODE_AUTO ? 0 : getPrefPedalCalibMin(m_pedal_num));
+            getPrefPedalCalibMin(m_pedal_num));
         text_y += RIGHT_LINE_HEIGHT;
 
         mylcd.printfJustified(RIGHT_COL,text_y,RIGHT_WIDTH,RIGHT_LINE_HEIGHT,
@@ -510,7 +473,7 @@ void winConfigPedal::updateUI()
             0,
             false,
             "%d",
-            m_cur_mode & PEDAL_MODE_AUTO ? 127 : getPrefPedalCalibMax(m_pedal_num));
+            getPrefPedalCalibMax(m_pedal_num));
     }
 
     // selected item

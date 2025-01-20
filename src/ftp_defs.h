@@ -1,6 +1,8 @@
-#ifndef _ftp_defs_h_
-#define _ftp_defs_h_
+//--------------------------------
+// ftp_defs.h
+//--------------------------------
 
+#pragma once
 
 // "CC" vslues (psram1)
 
@@ -591,5 +593,3 @@ const uint8_t FTP_CODE_PATCH_NAME  = 0x43;  // a 25 byte informative packet with
 
 
 
-
-#endif // !_ftp_defs_h_

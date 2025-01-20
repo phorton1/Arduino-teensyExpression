@@ -1,3 +1,8 @@
+//-------------------------------
+// myTouchScreen.h
+//-------------------------------
+// currently unused
+
 #pragma once
 
 // Resistive touch screen on Cheap Ardino 3.5" 320x480 TFT's

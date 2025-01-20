@@ -1,5 +1,8 @@
-#ifndef _winSelectSong_h_
-#define _winSelectSong_h_
+//-------------------------------
+// winSelectSong.h
+//-------------------------------
+
+#pragma once
 
 #include "expSystem.h"
 
@@ -36,10 +39,6 @@ class winSelectSong : public expWindow
         int top_song;
         int selected_song;
         int last_selected_song;
-
-
-
 };
 
 
-#endif      // !_winSelectSong_h_

@@ -464,36 +464,20 @@ when exiting configuration mode by *long pressing* the
 
 #### - Special Behavior for Loop Pedal set to Serial.
 
-The pedal type can be set to **Normal**, **Serial**,
-or one of several experimental **Auto** modes.
-
-The *experimental auto modes* are for my personal use with
-another ongoing project ... an automated foot pedal, that
-I have yet to finish and/or publish.
+The pedal type can be set to **Normal** or **Serial**.
 
 The **normal** setting will send out typical MIDI CC
 messages (as determined in pedals.cpp) for the various
 pedals.
 
 In the **normal** setting, the *Looper Rig* **LOOP pedal**
-and buttons are setup to work with the program **Quantiloop** running
+and buttons are setup to work with a looper program running
 on the iPad with (my certain) known CC numbers.
 
 However, if the **LOOP pedal** type is changed to **serial**, then
 the Looper rig expects to control and communicate with my
 **[bare metal rPi Looper](https://github.com/phorton1/circle-prh-apps-Looper)**
 via serial commands out the 1/8" jack on the back of the box.
-
-My rPi Looper has specific capabilities thst are not available
-in Quantiloop (or any other iPad based looper that I know of).
-
-Overusing the Loop Pedal's *type* in order to provide modal
-behavior to the Looper Rig is a *kludge*.
-
-However, I wanted to document this small detail.  If you happen
-to build both this teensExpression and an instance of my bare metal rPi looper,
-you will need to set the Loop Pedal type to Serial to get them
-to work together.
 
 
 **--------------------------------------------------------------------------------**

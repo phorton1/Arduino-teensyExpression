@@ -20,7 +20,7 @@ const char *default_off_usb_serial[]  = {"default","Off","USB","Serial"};
 const char *off_host_remote[]         = {"Off","Host","Remote"};
 const char *off_on_detail[]           = {"Off","On","Detail"};
 const char *curve_types[]             = {"linear","asympt","scurve"};
-const char *pedal_modes[]             = {"normal","serial","smart","smart-serial"};
+const char *pedal_modes[]             = {"normal","serial"};
 const char *file_system_ports[]       = {"Main USB", "Alt Serial"};
 
 
@@ -55,11 +55,6 @@ void setDefaultPrefs()
 {
     _setDefaultPref8(PREF_BRIGHTNESS,        1,100, 30);    // 1..100 - default(30)
 
-    // use the existing max and strings for PREF_RIG_NUM
-    // which gets setup in expSystem::begin()
-
-    _setDefaultPref8(PREF_RIG_NUM,         0,pref_max[PREF_RIG_NUM], 1, pref_strings[PREF_RIG_NUM]);
-        // 0..0 - default(1) .. better be some patches!
     _setDefaultPref8(PREF_DEBUG_PORT,        0,2,   1,  off_usb_serial);            // off, USB, Serial - default(USB)
     _setDefaultPref8(PREF_FILE_SYSTEM_PORT,  0,1,   0,  file_system_ports);         // MainUSB or AlternateSerial port
 
@@ -83,7 +78,7 @@ void setDefaultPrefs()
         int use_mode = (i == 1) ? PEDAL_MODE_SERIAL : PEDAL_MODE_NORMAL;
             // for now I am trying the loop pedal as serial
 
-        _setDefaultPref8 (PREF_PEDAL(i) + PREF_PEDAL_MODE_OFFSET,         0,2,      use_mode, pedal_modes);    // 0=normal, 1=serial, 2=smart-normal, 3=smart serial
+        _setDefaultPref8 (PREF_PEDAL(i) + PREF_PEDAL_MODE_OFFSET,         0,2,      use_mode, pedal_modes);    // 0=normal, 1=serial
         _setDefaultPref8 (PREF_PEDAL(i) + PREF_PEDAL_CURVE_TYPE_OFFSET,   0,2,      0,curve_types);     // 0=linear, 1=asymptotic, 2=scurve - default(0) == num_points
         _setDefaultPref16(PREF_PEDAL(i) + PREF_PEDAL_CALIB_MIN_OFFSET,    0,1023,   0);                 // default 0
         _setDefaultPref16(PREF_PEDAL(i) + PREF_PEDAL_CALIB_MAX_OFFSET,    0,1023,   PEDAL_CALIB_WITH_1K_OUTPUT_RESISTOR);    // default 890 (1023)

@@ -2,61 +2,54 @@
 #define __rigLooper_h__
 
 #include "expSystem.h"
-#include "rigBase.h"
 #include "commonDefines.h"
-    // LOOPER_NUM_TRACKS and LAYERS, TRACK_STATES, LOOP_COMMANDS, and common CC's
-    // denormalized H file common to circle-Looper and Arduino-teensyExpression projects
+
 
 #define RIGLOOPER_NUM_SYNTH_BANKS   2
 #define RIGLOOPER_NUM_SYNTH_PATCHES 12
 #define RIGLOOPER_NUM_GUITAR_EFFECTS 4
 
 
-class rigLooper : public rigBase
+class rigLooper : public expWindow
 {
     public:
 
         rigLooper();
 
-protected:
+        int findPatchByName(const char *patch_name);
+        void setPatchNumber(int patch_number);
 
-        // rigBase implementation
-        // support for songMachine
+        void clearGuitarEffects(bool display_only);
+        void setGuitarEffect(int effect_num, bool on);
 
-        virtual int findPatchByName(const char *patch_name);
-        virtual void setPatchNumber(int patch_number);
+        void clearLooper(bool display_only);
+        void selectTrack(int num);
+        void stopLooper();
+        void stopLooperImmediate();
+        void loopImmediate();
+        void toggleDubMode();
+        void setStartMark();
+        void setClipMute(int layer_num, bool on);
+        void setClipVolume(int layer_num, int val);
 
-        virtual void clearGuitarEffects(bool display_only);
-        virtual void setGuitarEffect(int effect_num, bool on);
+        bool songUIAvailable()      { return !m_quick_mode; }
 
-        virtual void clearLooper(bool display_only);
-        virtual void selectTrack(int num);
-        virtual void stopLooper();
-        virtual void stopLooperImmediate();
-        virtual void loopImmediate();
-        virtual void toggleDubMode();
-        virtual void setStartMark();
-        virtual void setClipMute(int layer_num, bool on);
-        virtual void setClipVolume(int layer_num, int val);
+        const char *name()          { return "Looper Rig"; }
+        const char *short_name()    { return "Looper Rig"; }
 
-        virtual bool songUIAvailable()      { return !m_quick_mode; }
-
-    private:
-
-        virtual const char *name()          { return "Looper Rig"; }
-        virtual const char *short_name()    { return "Looper Rig"; }
-
-        virtual void begin(bool warm);
-        virtual void updateUI();
-        virtual void onButtonEvent(int row, int col, int event);
-        virtual bool onRotaryEvent(int num, int val);
-        virtual void onSerialMidiEvent(int cc_num, int value);
-        virtual void onEndModal(expWindow *win, uint32_t param);
+        void begin(bool warm);
+        void updateUI();
+        void onButtonEvent(int row, int col, int event);
+        bool onRotaryEvent(int num, int val);
+        void onSerialMidiEvent(int cc_num, int value);
+        void onEndModal(expWindow *win, uint32_t param);
 
         void resetDisplay();
 
         void startQuickMode();
         void endQuickMode();
+
+    private:
 
         static int patch_to_button(int patch_num);
         static int bank_button_to_patch(int bank, int button_num);
@@ -64,7 +57,6 @@ protected:
         // STATE
 
         bool m_quick_mode;
-        bool m_quantiloop_mode;
         const char *m_pending_open_song;
 
         int  m_cur_bank_num;                     // synthesizer "bank" number (modal)
@@ -111,6 +103,7 @@ protected:
 };
 
 
+extern rigLooper rig_looper;
 
 
 #endif // !__rigLooper_h__

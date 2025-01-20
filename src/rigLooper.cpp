@@ -19,7 +19,6 @@
 
 #include "rigLooper.h"
 #include <myDebug.h>
-#include "oldRig_defs.h"
 #include "myLeds.h"
 #include "myTFT.h"
 #include "pedals.h"
@@ -27,18 +26,16 @@
 #include "midiQueue.h"
 #include "ftp.h"
 #include "ftp_defs.h"
+#include "rigDefs.h"
 #include "songMachine.h"
 #include "songParser.h"
 #include "winSelectSong.h"
 #include "winFTPTuner.h"
 
-// The difference between using Quantiloop and using the looper pedal can be detected using
-// the setting on Pedal(1).  If the loop pedal is serial, we are working with the Looper.
-// If not, we are working with Quantiloop.
 
 #define dbg_patch_buttons    	1
 #define dbg_serial_midi         1
-#define dbg_rig					1
+#define dbg_rig					0
 #define dbg_song_machine		1
 
 
@@ -174,21 +171,8 @@ const char *rigLooper::guitar_effect_name[RIGLOOPER_NUM_GUITAR_EFFECTS] = {
 };
 
 
-//--------------------
-// quantiloop
-//--------------------
-
-int quantiloop_track_ccs[NUM_BUTTON_COLS] =
-	// since they're not a rangeat this time
-{
-    QUANTILOOP_CC_TRACK1,
-    QUANTILOOP_CC_TRACK2,
-    QUANTILOOP_CC_TRACK3,
-    QUANTILOOP_CC_TRACK4,
-};
-
-
-
+rigLooper rig_looper;
+	// global static object
 
 //====================================================================
 // rigLooper
@@ -197,10 +181,9 @@ int quantiloop_track_ccs[NUM_BUTTON_COLS] =
 
 
 rigLooper::rigLooper() :
-	rigBase()
+	expWindow(WIN_FLAG_SHOW_PEDALS)
 {
     m_quick_mode = false;
-	m_quantiloop_mode = 0;
 	m_cur_bank_num = 0;
 	m_cur_patch_num = -1;    // 0..15
 	m_last_set_poly_mode = -1;
@@ -240,8 +223,7 @@ void rigLooper::resetDisplay()
         m_last_clip_vol[i] = -1;
 	}
 
-	if (theSongMachine)
-		theSongMachine->resetDisplay();
+	song_machine.resetDisplay();
 }
 
 
@@ -251,19 +233,11 @@ void rigLooper::resetDisplay()
 // begin()
 //============================================
 
-
-// virtual
 void rigLooper::begin(bool warm)
 {
+	display(dbg_rig,"rigLooper::begin(%d) called",warm);
+	
     expWindow::begin(warm);
-
-	int pedal_mode = getPrefPedalMode(PEDAL_LOOP);
-	m_quantiloop_mode = !(pedal_mode & PEDAL_MODE_SERIAL);
-	thePedals.setLoopPedalRelativeVolumeMode(m_quantiloop_mode);
-
-	if (!theSongMachine)
-		new songMachine();
-	theSongMachine->setBaseRig(this);
 
 	// the upper right hand button is the bank select button.
 	// it is blue for bank 0 and cyan for bank 1
@@ -292,8 +266,8 @@ void rigLooper::begin(bool warm)
 
 	// loop control buttons
 
-	int ud = m_quantiloop_mode ? 0 : BUTTON_MASK_USER_DRAW;
-	int color = m_quantiloop_mode ? LED_YELLOW : 0;
+	int ud = BUTTON_MASK_USER_DRAW;
+	int color = 0;
 
 	for (int i=0; i<LOOPER_NUM_TRACKS; i++)
 	{
@@ -334,6 +308,7 @@ void rigLooper::begin(bool warm)
 		startQuickMode();
 	}
 
+	display(dbg_rig,"rigLooper::begin(%d) returning",warm);
 }
 
 
@@ -370,8 +345,8 @@ void rigLooper::startQuickMode()
 
 	for (int track=0; track<LOOPER_NUM_TRACKS; track++)
 	{
-		int ud = m_quantiloop_mode ? 0 : BUTTON_MASK_USER_DRAW;
-		int color = m_quantiloop_mode ? LED_RED : 0;
+		int ud = BUTTON_MASK_USER_DRAW;
+		int color = 0;
 		theButtons.setButtonType(track + NUM_BUTTON_COLS * QUICK_ROW_ERASE_TRACK, BUTTON_EVENT_CLICK | BUTTON_EVENT_LONG_CLICK, ud, color);
 	}
 
@@ -393,7 +368,6 @@ void rigLooper::endQuickMode()
 // rigBase implementation to support songMachine
 //--------------------------------------------------
 
-// virtual
 int rigLooper::findPatchByName(const char *patch_name)
 {
 	char buf1[80];
@@ -412,7 +386,7 @@ int rigLooper::findPatchByName(const char *patch_name)
 	return -1;
 }
 
-// virtual
+
 void rigLooper::setPatchNumber(int patch_number)
 {
 	if (m_cur_patch_num != -1)
@@ -449,7 +423,7 @@ void rigLooper::setPatchNumber(int patch_number)
 }
 
 
-// virtual
+
 void rigLooper::setGuitarEffect(int effect_num, bool on)
 {
 	m_guitar_state[effect_num] = on;
@@ -463,7 +437,7 @@ void rigLooper::setGuitarEffect(int effect_num, bool on)
 }
 
 
-// virtual
+
 void rigLooper::clearGuitarEffects(bool display_only /* = false */)
 {
 	for (int i=0; i<RIGLOOPER_NUM_GUITAR_EFFECTS; i++)
@@ -481,7 +455,7 @@ void rigLooper::clearGuitarEffects(bool display_only /* = false */)
 }
 
 
-// virtual
+
 void rigLooper::clearLooper(bool display_only)
 {
 	display(dbg_song_machine,"rigLooper::clearLooper(%d)",display_only);
@@ -512,48 +486,19 @@ void rigLooper::clearLooper(bool display_only)
 
 	if (!display_only)
 	{
-		if (m_quantiloop_mode)
-		{
-			mySendDeviceControlChange(
-				QUANTILOOP_CC_CLEAR_ALL,
-				0x7f,
-				QUANTILOOP_CHANNEL);
-			mySendDeviceControlChange(
-				QUANTILOOP_CC_CLEAR_ALL,
-				0x00,
-				QUANTILOOP_CHANNEL);
-		}
-		else
-		{
-			sendSerialControlChange(LOOP_COMMAND_CC,LOOP_COMMAND_CLEAR_ALL,"LOOP BUTTON long click");
-		}
+		sendSerialControlChange(LOOP_COMMAND_CC,LOOP_COMMAND_CLEAR_ALL,"LOOP BUTTON long click");
 	}
 }
 
 
 
-// virtual
 void rigLooper::selectTrack(int num)
 {
 	display(dbg_song_machine,"rigLooper::selectTrack(%d)",num);
 	m_selected_track_num = num;
-	if (m_quantiloop_mode)
-	{
-		mySendDeviceControlChange(
-			quantiloop_track_ccs[num],
-			0x7f,
-			QUANTILOOP_CHANNEL);
-		mySendDeviceControlChange(
-			quantiloop_track_ccs[num],
-			0x00,
-			QUANTILOOP_CHANNEL);
-	}
-	else
-	{
-		int value = m_selected_track_num + LOOP_COMMAND_TRACK_BASE;
-		sendSerialControlChange(LOOP_COMMAND_CC,value,"rigLooper::selectTrack()");
+	int value = m_selected_track_num + LOOP_COMMAND_TRACK_BASE;
+	sendSerialControlChange(LOOP_COMMAND_CC,value,"rigLooper::selectTrack()");
 
-	}
 	for (int i=0; i<LOOPER_NUM_TRACKS_TIMES_LAYERS; i++)
 	{
         m_last_clip_mute[i] = -1;
@@ -561,121 +506,46 @@ void rigLooper::selectTrack(int num)
 	}
 }
 
-// virtual
+
 void rigLooper::stopLooper()
 {
-	if (m_quantiloop_mode)
-	{
-		// prh - stopLooper is even weirder than stopImmediate() in QUANTILOOP
-		// I have no idea whether it is playing or not and the semantic of "stop at next loop point"
-		// means that you need to know the state of the looper and press the correct
-		// track key ...
-
-		// for now we are ALSO mapping this to START/STOP immediate
-		// songMachine probably wont work very well if I have to switch back to Quantiloop
-
-		mySendDeviceControlChange(
-			QUANTILOOP_CC_STOP_START_IMMEDIATE,
-			0x7f,
-			QUANTILOOP_CHANNEL);
-		mySendDeviceControlChange(
-			QUANTILOOP_CC_STOP_START_IMMEDIATE,
-			0x00,
-			QUANTILOOP_CHANNEL);
-	}
-	else
-	{
-		sendSerialControlChange(LOOP_COMMAND_CC,LOOP_COMMAND_STOP,"rigLooper::stopLooper()");
-	}
+	sendSerialControlChange(LOOP_COMMAND_CC,LOOP_COMMAND_STOP,"rigLooper::stopLooper()");
 }
 
-//virtual
+
 void rigLooper::stopLooperImmediate()
 {
-	if (m_quantiloop_mode)
-	{
-		// prh - QUANTILOOP_CC_STOP_IMMEDIATE does not exist
-		// There is some confusion over how I would like to control quantilloop
-		// the most natural is to just press the STOP/START button, which is
-		// different than the semantic in the song machine.
-
-		mySendDeviceControlChange(
-			QUANTILOOP_CC_STOP_START_IMMEDIATE,
-			0x7f,
-			QUANTILOOP_CHANNEL);
-		mySendDeviceControlChange(
-			QUANTILOOP_CC_STOP_START_IMMEDIATE,
-			0x00,
-			QUANTILOOP_CHANNEL);
-	}
-	else
-	{
-		sendSerialControlChange(LOOP_COMMAND_CC,LOOP_COMMAND_STOP_IMMEDIATE,"rigLooper::stopLooperImmediate()");
-	}
+	sendSerialControlChange(LOOP_COMMAND_CC,LOOP_COMMAND_STOP_IMMEDIATE,"rigLooper::stopLooperImmediate()");
 }
 
-//virtual
+
 void rigLooper::loopImmediate()
 {
-	if (m_quantiloop_mode)
-	{
-		// prh - loopImmediate() not implemented for quantiloop
-	}
-	else
-	{
-		sendSerialControlChange(LOOP_COMMAND_CC,LOOP_COMMAND_LOOP_IMMEDIATE,"rigLooper::loopImmediate()");
-	}
+	sendSerialControlChange(LOOP_COMMAND_CC,LOOP_COMMAND_LOOP_IMMEDIATE,"rigLooper::loopImmediate()");
 }
 
-//virtual
+
 void rigLooper::toggleDubMode()
 {
-	if (m_quantiloop_mode)
-	{
-		mySendDeviceControlChange(
-			QUANTILOOP_CC_DUB_MODE,
-			0x7f,
-			QUANTILOOP_CHANNEL);
-		mySendDeviceControlChange(
-			QUANTILOOP_CC_DUB_MODE,
-			0x00,
-			QUANTILOOP_CHANNEL);
-	}
-	else
-	{
-		sendSerialControlChange(LOOP_COMMAND_CC,LOOP_COMMAND_DUB_MODE,"rigLooper::toggleDubMode()");
-		setLED(LOOP_DUB_BUTTON,0);
-		showLEDs();
-	}
+	sendSerialControlChange(LOOP_COMMAND_CC,LOOP_COMMAND_DUB_MODE,"rigLooper::toggleDubMode()");
+	setLED(LOOP_DUB_BUTTON,0);
+	showLEDs();
 }
 
 
-//virtual
+
 void rigLooper::setStartMark()
 {
-	if (m_quantiloop_mode)
-	{
-		// prh - setStartMark not implemented for quantiloop
-	}
-	else
-	{
-		sendSerialControlChange(LOOP_COMMAND_CC,LOOP_COMMAND_SET_LOOP_START,"temp song machine button");
-	}
+	sendSerialControlChange(LOOP_COMMAND_CC,LOOP_COMMAND_SET_LOOP_START,"temp song machine button");
 }
 
 
 
-// virtual
+
 void rigLooper::setClipMute(int layer_num, bool mute_on)
 {
 	display(dbg_song_machine,"rigLooper::setClipMute(%d,%d)",layer_num,mute_on);
-	if (m_quantiloop_mode)
-	{
-		thePedals.setRelativeLoopVolume(layer_num,
-			mute_on ? 0 : m_clip_vol[layer_num]);
-		m_clip_mute[layer_num] = mute_on;
-	}
-	else if (m_selected_track_num >= 0)
+	if (m_selected_track_num >= 0)
 	{
 		int clip_num = m_selected_track_num * LOOPER_NUM_LAYERS + layer_num;
 		sendSerialControlChange(CLIP_MUTE_BASE_CC+clip_num,mute_on,"rigLooper::setClipMute()");
@@ -687,20 +557,13 @@ void rigLooper::setClipMute(int layer_num, bool mute_on)
 	}
 }
 
-// virtual
+
 void rigLooper::setClipVolume(int layer_num, int val)
 {
 	display(dbg_rig,"rigLooper::setClipVolume(%d,%d)",layer_num,val);
 	if (val < 0) val = 0;
 	if (val > 127) val = 127;
-	if (m_quantiloop_mode)
-	{
-		m_clip_vol[layer_num] = val;
-		thePedals.setRelativeLoopVolume(layer_num,val);
-        int total_val = thePedals.getPedal(PEDAL_LOOP)->getDisplayValue();
-        thePedals.pedalEvent(PEDAL_LOOP,total_val);
-	}
-	else if (m_selected_track_num >= 0)
+	if (m_selected_track_num >= 0)
 	{
 		int clip_num = m_selected_track_num * LOOPER_NUM_LAYERS + layer_num;
 		sendSerialControlChange(CLIP_VOL_BASE_CC+clip_num,val,"rigLooper::setClipVolume()");
@@ -719,7 +582,7 @@ void rigLooper::setClipVolume(int layer_num, int val)
 //------------------------------------
 // rotary controllers
 
-// virtual
+
 bool rigLooper::onRotaryEvent(int num, int val)
 {
 	display(dbg_rig,"rigLooper::onRotaryEvent(%d,%d)",num,val);
@@ -729,20 +592,14 @@ bool rigLooper::onRotaryEvent(int num, int val)
 		num == 1 ? LOOPER_CONTROL_OUTPUT_GAIN :
 		num == 2 ? LOOPER_CONTROL_THRU_VOLUME :
 		LOOPER_CONTROL_MIX_VOLUME;
-
-	if (!m_quantiloop_mode)
-	{
-		// prh - no rotary events for quantiloop - should be relative volumes
-		sendSerialControlChange(control_num + LOOP_CONTROL_BASE_CC, val,"rigLooper Rotary Control");
-	}
-
+	sendSerialControlChange(control_num + LOOP_CONTROL_BASE_CC, val,"rigLooper Rotary Control");
 	return true;
 }
 
 
 
 
-// virtual
+
 void rigLooper::onSerialMidiEvent(int cc_num, int value)
 {
 	display(dbg_serial_midi+1,"rigLooper::SerialMidiEvent(0x%02x,0x%02x)",cc_num,value);
@@ -770,7 +627,7 @@ void rigLooper::onSerialMidiEvent(int cc_num, int value)
 	}
 	else if (cc_num == NOTIFY_LOOP)
 	{
-		theSongMachine->notifyLoop();
+		song_machine.notifyLoop();
 	}
 }
 
@@ -781,11 +638,11 @@ void rigLooper::onSerialMidiEvent(int cc_num, int value)
 // BUTTONS
 //---------------------------------------------------------------------------------
 
-// virtual
+
 void rigLooper::onButtonEvent(int row, int col, int event)
 {
 	int num = row * NUM_BUTTON_COLS + col;
-	int song_state = theSongMachine->getMachineState();
+	int song_state = song_machine.getMachineState();
 
 	// QUICK MODE
 
@@ -809,17 +666,12 @@ void rigLooper::onButtonEvent(int row, int col, int event)
 		row < QUICK_MODE_NUM_ROWS &&
 		col < QUICK_MODE_NUM_COLS)
 	{
-		int clip_num = m_quantiloop_mode ? col :
-			m_selected_track_num * LOOPER_NUM_LAYERS + col;
+		int clip_num = m_selected_track_num * LOOPER_NUM_LAYERS + col;
 
 		if (row == QUICK_ROW_ERASE_TRACK)
 		{
 			display(dbg_rig,"rigLooper ERASE TRACK(%d)",col);
-			if (m_quantiloop_mode)
-			{
-				// prh - send the cc command to erase quantiloop track %d
-			}
-			else if (event == BUTTON_EVENT_LONG_CLICK)
+			if (event == BUTTON_EVENT_LONG_CLICK)
 			{
 				sendSerialControlChange(LOOP_COMMAND_CC,LOOP_COMMAND_ERASE_TRACK_BASE+col,"ERASE_TRACK button click");
 			}
@@ -893,7 +745,7 @@ void rigLooper::onButtonEvent(int row, int col, int event)
 		{
 			clearLooper(false);
 			// also clear the song machine
-			theSongMachine->setMachineState(SONG_STATE_EMPTY);
+			song_machine.setMachineState(SONG_STATE_EMPTY);
 		}
 		else if (event == BUTTON_EVENT_CLICK)
 		{
@@ -903,11 +755,7 @@ void rigLooper::onButtonEvent(int row, int col, int event)
 			}
 			else if (num == LOOP_STOP_BUTTON)
 			{
-				if (m_quantiloop_mode)
-				{
-					stopLooper();
-				}
-				else if (m_stop_button_cmd == LOOP_COMMAND_STOP)
+				if (m_stop_button_cmd == LOOP_COMMAND_STOP)
 				{
 					stopLooper();
 				}
@@ -931,7 +779,7 @@ void rigLooper::onButtonEvent(int row, int col, int event)
 		else if (song_state &&
 				 !(song_state & (SONG_STATE_PAUSED | SONG_STATE_FINISHED | SONG_STATE_ERROR)))
 		{
-			theSongMachine->notifyPress(num - LOOP_FIRST_TRACK_BUTTON + 1);
+			song_machine.notifyPress(num - LOOP_FIRST_TRACK_BUTTON + 1);
 		}
 
 		// otherwise they are serial TRACK1..n commands to the looper
@@ -963,7 +811,7 @@ void rigLooper::onButtonEvent(int row, int col, int event)
 			setLED(num,0);
 			showLEDs();
 
-			if (!m_quantiloop_mode && !song_state)
+			if (!song_state)
 			{
 				sendSerialControlChange(LOOP_COMMAND_CC,LOOP_COMMAND_SET_LOOP_START,"temp song machine button");
 			}
@@ -973,7 +821,7 @@ void rigLooper::onButtonEvent(int row, int col, int event)
 			else if (song_state && !(song_state & (SONG_STATE_FINISHED | SONG_STATE_ERROR)))
 			{
 				song_state ^= SONG_STATE_PAUSED;
-				theSongMachine->setMachineState(song_state);
+				song_machine.setMachineState(song_state);
 
 				for (int i=0; i<LOOPER_NUM_TRACKS; i++)
 				{
@@ -992,8 +840,6 @@ void rigLooper::onButtonEvent(int row, int col, int event)
 //---------------------------------------------------------------------------------
 // Update UI sets both the LEDs, as well as the screen, for any changes in state
 
-
-// virtual
 void rigLooper::updateUI()
 {
 	// other stuff
@@ -1028,26 +874,22 @@ void rigLooper::updateUI()
 	{
 		// "enable" the erase track buttons if there's a track state
 
-		if (!m_quantiloop_mode)
+		for (int i=0; i<LOOPER_NUM_TRACKS; i++)
 		{
-			for (int i=0; i<LOOPER_NUM_TRACKS; i++)
+			if (m_last_erase_state[i] != m_track_state[i])
 			{
-				if (m_last_erase_state[i] != m_track_state[i])
-				{
-					m_last_erase_state[i] = m_track_state[i];
-					int color =
-						(m_track_state[i] & TRACK_STATE_RECORDING) ? LED_ORANGE :
-						m_track_state[i] ? LED_RED : 0;
-					setLED(QUICK_ROW_ERASE_TRACK,i,color);
-					leds_changed = true;
-				}
+				m_last_erase_state[i] = m_track_state[i];
+				int color =
+					(m_track_state[i] & TRACK_STATE_RECORDING) ? LED_ORANGE :
+					m_track_state[i] ? LED_RED : 0;
+				setLED(QUICK_ROW_ERASE_TRACK,i,color);
+				leds_changed = true;
 			}
 		}
 
 		for (int i=0; i<LOOPER_NUM_LAYERS; i++)
 		{
-			int clip_num = m_quantiloop_mode ? i :
-				m_selected_track_num * LOOPER_NUM_LAYERS + i;
+			int clip_num = m_selected_track_num * LOOPER_NUM_LAYERS + i;
 
 			if (m_last_clip_mute[clip_num] != m_clip_mute[clip_num])
 			{
@@ -1214,7 +1056,7 @@ void rigLooper::updateUI()
 
 	// SONG BUTTON
 
-	int song_state = theSongMachine->getMachineState();
+	int song_state = song_machine.getMachineState();
 	if (m_last_song_state != song_state)
 	{
 		m_last_song_state = song_state;
@@ -1229,7 +1071,7 @@ void rigLooper::updateUI()
 
 	// LOOPER BUTTONS
 
-	if (!m_quantiloop_mode && m_last_stop_button_cmd != m_stop_button_cmd)
+	if (m_last_stop_button_cmd != m_stop_button_cmd)
 	{
 		m_last_stop_button_cmd = m_stop_button_cmd;
 		int color =
@@ -1239,7 +1081,7 @@ void rigLooper::updateUI()
 		leds_changed = true;
 	}
 
-	if (!m_quantiloop_mode && m_last_dub_mode != m_dub_mode)
+	if (m_last_dub_mode != m_dub_mode)
 	{
 		m_last_dub_mode = m_dub_mode;
 		setLED(LOOP_DUB_BUTTON,m_dub_mode ? LED_ORANGE : 0);
@@ -1252,7 +1094,7 @@ void rigLooper::updateUI()
 	bool song_machine_inactive = !song_state ||
 		(song_state & (SONG_STATE_PAUSED | SONG_STATE_FINISHED | SONG_STATE_ERROR));
 
-	if (song_machine_inactive && !m_quantiloop_mode)
+	if (song_machine_inactive)
 	{
 		for (int i=0; i<LOOPER_NUM_TRACKS; i++)
 		{
@@ -1304,12 +1146,11 @@ void rigLooper::updateUI()
 
 	if (m_pending_open_song)
 	{
-		theSongMachine->load(m_pending_open_song);
+		song_machine.load(m_pending_open_song);
 		m_pending_open_song = 0;
 	}
 
-	if (theSongMachine)
-		theSongMachine->updateUI();
+	song_machine.updateUI();
 
 	if (leds_changed)
 		showLEDs();
@@ -1322,7 +1163,6 @@ void rigLooper::updateUI()
 // songMachine hooks
 //---------------------------
 
-// virtual
 void rigLooper::onEndModal(expWindow *win, uint32_t param)
 {
 	display(dbg_song_machine,"rigLooper::onEndModal(%08x,%08x)",(uint32_t)win,param);
@@ -1335,7 +1175,7 @@ void rigLooper::onEndModal(expWindow *win, uint32_t param)
 		}
 		else
 		{
-			theSongMachine->setMachineState(SONG_STATE_EMPTY);
+			song_machine.setMachineState(SONG_STATE_EMPTY);
 		}
 	}
 }

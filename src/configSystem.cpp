@@ -9,8 +9,9 @@
 #include "rotary.h"
 #include "expSystem.h"
 #include "configOptions.h"
-
 #include "expDialogs.h"
+#include "rigLooper.h"
+
 
 #define BUTTON_BRIGHTNESS_DOWN  0
 #define BUTTON_BRIGHTNESS_UP    1
@@ -46,7 +47,8 @@ void configPedal(int i)
 
 ENABLED_CONFIG(ftpPortOption,!getPref8(PREF_SPOOF_FTP));
 
-
+configSystem config_system;
+	// global static object
 
 //---------------------------------
 // pseudo static initialization
@@ -64,8 +66,6 @@ void createOptions()
 			0,
 			PREF_BRIGHTNESS,
 			setLEDBrightness);
-
-		new configOption(rootOption,"Rig", OPTION_TYPE_RIG_NUM, PREF_RIG_NUM);
 
 		configOption *optFTP = new configOption(rootOption,"FTP");
 		new configOption (optFTP,"Spoof FTP",	   OPTION_TYPE_NEEDS_REBOOT, PREF_SPOOF_FTP);
@@ -207,13 +207,6 @@ void configSystem::begin(bool warm)
 	theButtons.setButtonType(BUTTON_MOVE_RIGHT,	BUTTON_EVENT_PRESS);
 	theButtons.setButtonType(BUTTON_SELECT,	    BUTTON_EVENT_CLICK, 	LED_GREEN);
 
-    // setup the rig_num button row
-
-    int num_show = theSystem.getNumRigs()-1;
-    if (num_show >= MAX_SHOWN_RIGS) num_show = MAX_SHOWN_RIGS;
-    for (int i=0; i<num_show; i++)
-        theButtons.setButtonType(FIRST_RIG_BUTTON+i,BUTTON_TYPE_CLICK | BUTTON_MASK_USER_DRAW);
-
     showLEDs();
 
 	display(0,"configSystem::begin() finished",0);
@@ -323,7 +316,7 @@ void configSystem::onButtonEvent(int row, int col, int event)
 			// whereas there may be other ways to change the rig number
 			// so it *might* not have been saved since last time ...
 
-            theSystem.activateRig(theSystem.getPrevRigNum());
+            theSystem.activateRig(&rig_looper);
 
         }
     }
@@ -360,7 +353,7 @@ void configSystem::onButtonEvent(int row, int col, int event)
 			// 		delay(10000);
         }
 
-        theSystem.activateRig(getPref8(PREF_RIG_NUM));
+        theSystem.activateRig(&rig_looper);
     }
 
 	// do something
@@ -383,19 +376,6 @@ void configSystem::onButtonEvent(int row, int col, int event)
 			else if (cur_option->hasValue())
 			{
 				cur_option->incValue(1);
-
-				// highlight the rig quick key
-
-				if (cur_option->type & OPTION_TYPE_RIG_NUM)
-				{
-					int value = getPref8(PREF_RIG_NUM);
-					if (value && value <= MAX_SHOWN_RIGS)
-					// 	theButtons.select(FIRST_RIG_BUTTON+value-1,1);
-					// else
-					// 	theButtons.clearRadioGroup(GROUP_RIG_NUMS);
-					showLEDs();
-				}
-
 			}
 			else if (cur_option->m_setter_fxn)
 			{
@@ -416,11 +396,6 @@ void configSystem::onButtonEvent(int row, int col, int event)
 		{
 			int inc = num == BUTTON_BRIGHTNESS_UP ? 5 : -5;
 			optBrightness->setValue(getPref8(PREF_BRIGHTNESS) + inc);
-		}
-
-		else if (row == ROW_RIGS)
-		{
-			setPref8(PREF_RIG_NUM,col + 1);
 		}
 
 	}	// enabled
@@ -449,20 +424,6 @@ void configSystem::onButtonEvent(int row, int col, int event)
 void configSystem::updateUI()
 {
     bool draw_all = false;
-
-	// update the rig button colors
-
-	int rig_num = getPref8(PREF_RIG_NUM);
-	if (rig_num != m_last_selected_rig)
-	{
-		if (m_last_selected_rig>0 && m_last_selected_rig<=MAX_SHOWN_RIGS)
-			setLED(FIRST_RIG_BUTTON+m_last_selected_rig-1,0);
-		if (rig_num>0 && rig_num<=MAX_SHOWN_RIGS)
-			setLED(FIRST_RIG_BUTTON+rig_num-1,LED_BLUE);
-		m_last_selected_rig = rig_num;
-		showLEDs();
-	}
-
 
 	if (cur_option != m_last_display_option)
 	{

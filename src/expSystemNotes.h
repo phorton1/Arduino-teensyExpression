@@ -198,8 +198,6 @@
 //
 //      Brightness          nn                      default(50)
 //                  PREF_BRIGHTNESS
-//      Rig                name                    default(1=OldRig)
-//                  PREF_RIG_NUM
 //      FTP
 //          Mode            DEFAULT/MONO/POLY       default(255=take whatever is found on device, 1=poly, 0=mono)
 //                  PREF_FTP_POLY_MODE

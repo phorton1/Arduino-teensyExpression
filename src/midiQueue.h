@@ -1,5 +1,8 @@
-#ifndef _midiQueue_h_
-#define _midiQueue_h_
+//-------------------------------
+// midiQueue.h
+//-------------------------------
+
+#pragma once
 
 #include "defines.h"
 
@@ -232,6 +235,3 @@ extern void sendSerialControlChange(uint8_t cc_num, uint8_t value, const char *d
 //  or hardware mode, or if the Controller is just a complicated memory device ... though the "poly mode"
 //  setting in the selected patch (bank) DOES have an effect on the output.
 
-
-
-#endif // !_midiQueue_h_

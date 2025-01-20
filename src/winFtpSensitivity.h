@@ -1,5 +1,8 @@
-#ifndef _winFtpSensitivity_h_
-#define _winFtpSensitivity_h_
+//-------------------------------
+// winFtpSensitivity.h
+//-------------------------------
+
+#pragma once
 
 #include "expSystem.h"
 
@@ -38,5 +41,3 @@ class winFtpSensitivity : public expWindow
 
 };
 
-
-#endif      // !_winFtpSensitivity_h_

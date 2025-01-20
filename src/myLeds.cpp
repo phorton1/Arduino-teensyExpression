@@ -1,7 +1,7 @@
 
 #include "myLeds.h"
-#include "defines.h"
 #include <WS2812Serial.h>
+#include "prefs.h"
 
 
 //---------------------------------
@@ -58,6 +58,7 @@ bool leds_changed = 0;
 void initLEDs()
 {
     leds.begin();
+    setLEDBrightness(getPref8(PREF_BRIGHTNESS));
 }
 
 int getLEDBrightness()
@@ -122,6 +123,8 @@ void showLEDs(bool force)
     leds_changed = false;
 }
 
+
+
 void LEDFancyStart()
 {
     for (int row=0; row<NUM_BUTTON_ROWS; row++)
@@ -130,19 +133,22 @@ void LEDFancyStart()
         {
             float c = col;
             float r = row;
-            
+
             float red = (c/4) * 255.0;
             float blue = ((4-c)/4) * 255.0;
             float green = (r/4) * 255.0;
-            
-            unsigned rr = red;
-            unsigned gg = green;
-            unsigned bb = blue;
-            
+
+            uint32_t rr = red;
+            uint32_t gg = green;
+            uint32_t bb = blue;
+
             setLED(row,col,(rr << 16) + (gg << 8) + bb);
+            showLEDs();
+            delay(40);
         }
     }
 }
+
 
 
 void clearLEDs()

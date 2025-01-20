@@ -1,11 +1,13 @@
-#ifndef _configSystem_h_
-#define _configSystem_h_
+//--------------------------------
+// configSystem.h
+//--------------------------------
+
+#pragma once
 
 #include "expSystem.h"
 
 class configOption;
-
-#define MAX_SHOWN_RIGS		5
+    // forward
 
 class configSystem : public expWindow
 {
@@ -35,4 +37,5 @@ class configSystem : public expWindow
 };
 
 
-#endif      // !_configSystem_h_
+extern configSystem config_system;
+

@@ -1,5 +1,8 @@
-#ifndef _rotary_h_
-#define _rotary_h_
+//-------------------------------
+// rotary.h
+//-------------------------------
+
+#pragma once
 
 #define NUM_ROTARY   4
 
@@ -17,5 +20,3 @@ void setRotaryValue(int num, int value);
 void setRotary(int num, int min_range=0, int max_range=127, float inc_dec=DEFAULT_INC_DEC);
     // default does 0..127 in about 1 turn (40 incs per rev)
 
-
-#endif  // !_rotary_h_

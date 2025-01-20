@@ -1,5 +1,8 @@
-#ifndef __expDialogs_h__
-#define __expDialogs_h__
+//--------------------------------
+// expDialogs.h
+//--------------------------------
+
+#pragma once
 
 #include "expSystem.h"
 
@@ -29,8 +32,4 @@ class yesNoDialog : public expWindow
 
 };
 
-
-
-
-#endif
 

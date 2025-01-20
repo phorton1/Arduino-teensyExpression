@@ -1,5 +1,8 @@
-#ifndef _pedals_h_
-#define _pedals_h_
+//--------------------------------
+// pedals.h
+//--------------------------------
+
+#pragma once
 
 #include "prefs.h"
 
@@ -18,9 +21,12 @@ class expressionPedal
 {
     public:
 
-
         int getNum()                    { return m_num; }
         const char *getName()           { return m_name; }
+
+        uint8_t getMode()               { return m_mode; }
+        int getCCChannel()              { return m_cc_channel; }
+        int getCCNum()                  { return m_cc_num; }
 
         int getValue()                  { return m_value; }
         int getRawValue()               { return m_raw_value; }
@@ -32,52 +38,11 @@ class expressionPedal
         void clearDisplayValueChanged() { m_last_display_value = m_display_value; }
             // completely separate display values
 
+        void invalidate()               { m_valid = false; }
 
-        inline float getRawValuePct()
-        {
-            float min = (m_mode & PEDAL_MODE_AUTO) ? 0 : getPrefPedalCalibMin(m_num);
-            float max = (m_mode & PEDAL_MODE_AUTO) ? 127 : getPrefPedalCalibMax(m_num);
-            float val = m_raw_value - min;
-            if (val < 0.00) val = 0.00;
-            float ret_val = val / (max - min);
-            if (ret_val > 1.0) ret_val = 1.0;
-            return ret_val;
-        }
-        int getRawValueScaled()
-        {
-            float ret_val = getRawValuePct() * 127.00 + 0.5;
-            return ret_val;
-        }
-        void invalidate()
-        {
-            m_valid = false;
-        }
+        float getRawValuePct();
+        int getRawValueScaled();
 
-        // the pedal can
-        void setPedalMode();
-        uint8_t getMode()           { return m_mode; }
-
-        void autoCalibrate();
-        bool inAutoCalibrate()      { return m_in_auto_calibrate; }
-
-        void setAutoRawValue(int i);
-        int getAutoRawValue()       { return m_auto_value; }
-
-        // midi
-
-        void setCCs(int channel, int cc_num)
-        {
-            m_cc_channel = channel;
-            m_cc_num = cc_num;
-        }
-
-        int getCCChannel()              { return m_cc_channel; }
-        int getCCNum()                  { return m_cc_num; }
-
-        // PRIVATE isr handling
-
-        void teensyReceiveByte();
-        void teensySendByte(int byte);
 
     protected:
 
@@ -109,17 +74,15 @@ class expressionPedal
         // runtime working variables
 
         bool     m_valid;
-        int      m_raw_value;       // 0..1023
-        int      m_direction;       // -1,0,1
+        int      m_raw_value;               // 0..1023
+        int      m_direction;               // -1,0,1
         unsigned m_settle_time;
-        int      m_value;           // 0..127
+        int      m_value;                    // 0..127
 
         int      m_display_value;           // display helper
         int      m_last_display_value;      // display helper
 
         uint8_t  m_mode;
-        int      m_auto_value;
-        bool     m_in_auto_calibrate;
 
 };
 
@@ -141,10 +104,6 @@ class pedalManager
 
         void pedalEvent(int num, int value);
 
-        // vestigial kludge for oldRig + quantiloop
-        void setLoopPedalRelativeVolumeMode(bool b) {m_relative_loop_volume_mode = b; }
-        int getRelativeLoopVolume(int i)  { return m_relative_loop_volume[i]; }
-        void setRelativeLoopVolume(int i, int value) { m_relative_loop_volume[i] = value; }
 
     private:
 
@@ -152,15 +111,8 @@ class pedalManager
 
         expressionPedal m_pedals[NUM_PEDALS];
 
-        bool m_relative_loop_volume_mode;
-        int m_relative_loop_volume[4];
-
-
 };
 
 
 extern pedalManager thePedals;
 
-
-
-#endif      // !_pedals_h_

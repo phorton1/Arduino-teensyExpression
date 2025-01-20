@@ -1,8 +1,10 @@
-#ifndef __songParser_h__
-#define __songParser_h__
+//-------------------------------
+// songParser.h
+//-------------------------------
+
+#pragma once
 
 #include "Arduino.h"
-#include "rigBase.h"
 
 #define MAX_SONG_TOKEN  80
 #define MAX_SONG_CODE   4096
@@ -85,7 +87,7 @@ class songParser
     public:
 
         static char *openSongFile(const char *name);
-        static bool parseSongText(rigBase *baseRig);
+        static bool parseSongText();
 
         static const char *tokenToString(int token_num);
 
@@ -172,7 +174,3 @@ class songParser
 
 };
 
-
-
-
-#endif  // !__songParser_h__

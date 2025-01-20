@@ -1,5 +1,8 @@
-#ifndef __prefs_h__
-#define __prefs_h__
+//-------------------------------
+// prefs.h
+//-------------------------------
+
+#pragma once
 
 #include "defines.h"
 
@@ -11,7 +14,6 @@
 #define FTP_PORT_HOST           1
 #define FTP_PORT_REMOTE         2
 
-
 // Enumeration of DEBUG_DEVICEs
 
 #define DEBUG_DEVICE_OFF		0
@@ -22,7 +24,6 @@
 
 #define FILE_SYS_DEVICE_USB	    	0
 #define FILE_SYS_DEVICE_SERIAL		1
-
 
 #define TEENSY_EXPRESSION1_PREF_VERSION   237
 
@@ -39,11 +40,10 @@
 #define PREF_VERSION			0			// 237 for teensyExpression1, 238 for teensyExpression2
 
 #define PREF_BRIGHTNESS         1           // 1..100 - default(40)
-#define PREF_RIG_NUM            2           // 0..254 - default(1)
-#define PREF_DEBUG_PORT         3           // off, USB, Serial - default(USB)
-#define PREF_FILE_SYSTEM_PORT   4
-#define PREF_SPOOF_FTP          5           // off, on - default(off)
-#define PREF_FTP_PORT           6           // off, Host, Remote, default(Host)
+#define PREF_DEBUG_PORT         2           // off, USB, Serial - default(USB)
+#define PREF_FILE_SYSTEM_PORT   3
+#define PREF_SPOOF_FTP          4           // off, on - default(off)
+#define PREF_FTP_PORT           5           // off, Host, Remote, default(Host)
 
 #define FTP_OUTPUT_PORT    (getPref8(PREF_SPOOF_FTP) ? 1 : getPref8(PREF_FTP_PORT))
 
@@ -52,24 +52,19 @@
 // pedals
 //--------------------------------
 
-#define PREF_PEDAL0    (PREF_FTP_PORT + 1)      // skip a byte from header == 6 at this time
+#define PREF_PEDAL0    (PREF_FTP_PORT + 1)      // skip a byte from header
 
 #define MAX_PEDAL_CURVES                3       // number of curves per pedal
 #define MAX_CURVE_POINTS                4       // number of points per curve
 #define MAX_PEDAL_CURVE_POINTS          (MAX_PEDAL_CURVES * MAX_CURVE_POINTS)
 
-
 #define PEDAL_MODE_NORMAL               0x00
 #define PEDAL_MODE_SERIAL               0x01
-#define PEDAL_MODE_AUTO                 0x02
-    // a Pedal can send it's data via USB to the iPad, or over the Serial port to the rPi
-    // furthermore it can "get" its data 'normally' (analogRead the pedal) or over my
-    // experimental one-wire protocol for my "auto" active foot pedal with a motor
-    // and an arduino in it.
+    // a Pedal can send it's data via USB to the iPad, or over the Serial port to the rPi.
+
 
 #define PREF_PEDAL_MODE_OFFSET          0
-    // the pedal mode is "normal", "serial",
-    // "auto-normal" or "auto-serial"
+    // the pedal mode is "normal" or "serial"
 
 #define PREF_PEDAL_CURVE_TYPE_OFFSET    1       // 0=linear, 1=asymptotic, 2=scurve - default(0) == num_points
 #define PREF_PEDAL_CALIB_MIN_OFFSET     2       // default 0
@@ -233,5 +228,3 @@ extern void    setPrefMax(int pref, int16_t max);
 extern const char **getPrefStrings(int pref);
 extern void setPrefStrings(int pref, const char *strings[]=0);
 
-
-#endif
