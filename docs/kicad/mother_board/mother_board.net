@@ -1,7 +1,7 @@
 (export (version D)
   (design
     (source C:\src\Arduino\teensyExpression\docs\kicad\mother_board\mother_board.sch)
-    (date "8/23/2023 3:34:03 PM")
+    (date "1/20/2025 5:29:36 PM")
     (tool "Eeschema (5.1.6)-1")
     (sheet (number 1) (name /) (tstamps /)
       (title_block
@@ -113,7 +113,7 @@
       (sheetpath (names /) (tstamps /))
       (tstamp 64CFCDE5))
     (comp (ref R5)
-      (value 1K)
+      (value 100)
       (footprint 0_my_footprints:myResistor)
       (datasheet ~)
       (libsource (lib Device) (part R) (description Resistor))

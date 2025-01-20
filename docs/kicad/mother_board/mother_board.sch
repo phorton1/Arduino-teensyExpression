@@ -551,8 +551,8 @@ Text GLabel 5050 4250 3    50   Input ~ 0
 ROT2B
 Text GLabel 4950 4250 3    50   Input ~ 0
 LEDS
-Text Notes 3900 2300 2    50   ~ 0
-This 1K resistor is\nimportant so that\nthe 3V power is not \nshorted to ground when \ninserting pedal plugs!\n
+Text Notes 3300 1450 2    50   ~ 0
+This 100 Ohm resistor is\nimportant so that\nthe 3V power is not \nshorted to ground when \ninserting pedal plugs!\n
 $Bitmap
 Pos 5650 6600
 Scale 1.000000
@@ -1469,10 +1469,12 @@ L Device:R R5
 U 1 1 64E70350
 P 4150 1650
 F 0 "R5" V 4150 1050 50  0000 L CNN
-F 1 "1K" V 4150 1650 50  0000 C CNN
+F 1 "100" V 4150 1650 50  0000 C CNN
 F 2 "0_my_footprints:myResistor" V 4080 1650 50  0001 C CNN
 F 3 "~" H 4150 1650 50  0001 C CNN
 	1    4150 1650
 	1    0    0    -1  
 $EndComp
+Text Notes 1300 2150 0    50   ~ 0
+On current TE1 board, the resistor is in the cable\nto the pedal socket.  And note that each pedal socket\nhas a 10K resistor between the tip-switch and ground\nso that the tip is pulled down, but not grounded, while\ninserting the plug
 $EndSCHEMATC
