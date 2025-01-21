@@ -30,6 +30,8 @@
 #include "pedals.h"
 #include "buttons.h"
 
+
+#define dbg_cpedal	0
 //----------------------------------
 // Pedals
 //----------------------------------
@@ -73,7 +75,7 @@ winConfigPedal::winConfigPedal(int i) :
 // virtual
 void winConfigPedal::begin(bool warm)
 {
-    display(0,"winConfigPedal(%d) pedal=%d",warm,m_pedal_num);
+    display(dbg_cpedal,"winConfigPedal(%d) pedal=%d",warm,m_pedal_num);
 	expWindow::begin(warm);
 
     m_redraw_curve = 1;
@@ -135,15 +137,15 @@ void winConfigPedal::clearPrevPoints()
 void winConfigPedal::getPrefPedalPoints()
 {
 
-    display(0,"PREF_PEDAL(%d)=%d",m_pedal_num,PREF_PEDAL(m_pedal_num));
-    display(0,"sizeof(m_points)=%d,  CURVE_BYTES_PER_PEDAL=%d ",sizeof(m_points),CURVE_BYTES_PER_PEDAL);
+    display(dbg_cpedal+1,"PREF_PEDAL(%d)=%d",m_pedal_num,PREF_PEDAL(m_pedal_num));
+    display(dbg_cpedal+1,"sizeof(m_points)=%d,  CURVE_BYTES_PER_PEDAL=%d ",sizeof(m_points),CURVE_BYTES_PER_PEDAL);
 
     uint8_t *p = (uint8_t *) m_points;
     for (int i=0; i<CURVE_BYTES_PER_PEDAL; i++)
     {
         *p++ = getPref8(PREF_PEDAL(m_pedal_num)+PREF_PEDAL_POINTS_OFFSET+i);
     }
-    display_bytes(0,"buf",(uint8_t *) m_points, 48);
+    display_bytes(dbg_cpedal+2,"buf",(uint8_t *) m_points, 48);
 
 }
 

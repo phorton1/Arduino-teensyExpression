@@ -7,8 +7,7 @@
 #include "commonDefines.h"
 #include "rigDefs.h"
 
-
-#define DEBUG_PEDALS  1
+#define DEBUG_PEDALS  0
 
 pedalManager thePedals;
 
@@ -28,11 +27,12 @@ pedalManager thePedals;
 // to the iPad over USB midi.
 
 
+
+
 #define HYSTERISIS   30
     // in raw 0..1023 units
 #define SETTLE_TIME  50
     // time to settle into a direction
-
 
 
 //------------------------------------
@@ -42,7 +42,7 @@ pedalManager thePedals;
 void pedalManager::init()
 {
     m_pedals[PEDAL_SYNTH ].init(PEDAL_SYNTH,  PIN_EXPR1, "Synth",  SYNTH_VOLUME_CHANNEL,   SYNTH_VOLUME_CC);
-    m_pedals[PEDAL_LOOP  ].init(PEDAL_LOOP,   PIN_EXPR2, "Loop",   0, 0);
+    m_pedals[PEDAL_LOOP  ].init(PEDAL_LOOP,   PIN_EXPR2, "Loop",   1, LOOP_CONTROL_BASE_CC + LOOPER_CONTROL_LOOP_VOLUME);
     m_pedals[PEDAL_WAH   ].init(PEDAL_WAH,    PIN_EXPR3, "Wah",    GUITAR_EFFECTS_CHANNEL, GUITAR_WAH_CONTROL_CC);
     m_pedals[PEDAL_GUITAR].init(PEDAL_GUITAR, PIN_EXPR4, "Guitar", GUITAR_VOLUME_CHANNEL,  GUITAR_VOLUME_CC);
 
@@ -106,7 +106,10 @@ void expressionPedal::poll()
     int raw_value =  analogRead(m_pin);
     unsigned time = millis();
 
-    // display(0,"poll(%d) raw_value=%d",m_num,raw_value);
+    #if DEBUG_PEDALS > 1
+        display(0,"poll(%d) raw_value=%d",m_num,raw_value);
+    #endif
+
     // if not moving, and outside of hysterisis range, start moving
 
     if (!m_direction)
@@ -171,7 +174,9 @@ void expressionPedal::poll()
         if (scaled_x < min_x)
         {
             value = getPref8(PREF_PEDAL_CURVE_POINT(m_num,curve_type,0) + PEDAL_POINTS_OFFSET_Y);
-            display(0,"LESS THAN MIN_X value=%d",value);
+            #if DEBUG_PEDALS > 1
+                display(0,"LESS THAN MIN_X value=%d",value);
+            #endif
         }
 
         // we are at, or to the right, of the MAX so our value is MAX.Y
@@ -179,7 +184,9 @@ void expressionPedal::poll()
         else if (scaled_x >= max_x)
         {
             value = getPref8(PREF_PEDAL_CURVE_POINT(m_num,curve_type,curve_type+1) + PEDAL_POINTS_OFFSET_Y);
-            // display(0,"GE THAN MAX_X value=%d",value);
+            #if DEBUG_PEDALS > 1
+                display(0,"GE THAN MAX_X value=%d",value);
+            #endif
         }
 
         // loop thru points left (not max) pointstill we are at or to the right of one
@@ -204,8 +211,10 @@ void expressionPedal::poll()
             int left_y = getPref8(PREF_PEDAL_CURVE_POINT(m_num,curve_type,point_num) + PEDAL_POINTS_OFFSET_Y);
             int right_y = getPref8(PREF_PEDAL_CURVE_POINT(m_num,curve_type,point_num+1) + PEDAL_POINTS_OFFSET_Y);
 
-            // display(0,"SCALING %d BETWEEN POINT %d(%d,%d) and %d(%d,%d)",
-            //     scaled_x,point_num,left_x,left_y,point_num+1,right_x,right_y);
+            #if DEBUG_PEDALS > 1
+                display(0,"SCALING %d BETWEEN POINT %d(%d,%d) and %d(%d,%d)",
+                    scaled_x,point_num,left_x,left_y,point_num+1,right_x,right_y);
+            #endif
 
             float range_x = (right_x - left_x) + 1;
             float range_y = (right_y - left_y) + 1;
@@ -214,8 +223,10 @@ void expressionPedal::poll()
             float val_y = left_y + pct * range_y + 0.5;
             value = val_y;
 
-            // display(0,"    range_x(%0.2f) range_y(%0.2f) val_x(%0.2f) pct(%0.2f) val_y(%0.2f) VALUE=%d",
-            //     range_x,range_y,val_x,pct,val_y,value);
+            #if DEBUG_PEDALS > 1
+                display(0,"    range_x(%0.2f) range_y(%0.2f) val_x(%0.2f) pct(%0.2f) val_y(%0.2f) VALUE=%d",
+                    range_x,range_y,val_x,pct,val_y,value);
+            #endif
         }
 
         // actual value changed
@@ -265,7 +276,13 @@ int expressionPedal::getRawValueScaled()
 void pedalManager::pedalEvent(int num, int value)
 {
 	expressionPedal *pedal = getPedal(num);
+    int mode = getPrefPedalMode(num);
 
+    #if DEBUG_PEDALS
+        display(0,"pedalEvent(%d,%d) mode=%d cc=0x%02x",
+            num,value,mode,pedal->getCCNum());
+    #endif
+    
     // if it is then SYNTH pedal in ftp MONO mode, we send the
     // control messages out to channels 1-6
 
@@ -279,10 +296,10 @@ void pedalManager::pedalEvent(int num, int value)
                 i+1);
         }
     }
-    else if (pedal->m_mode & PEDAL_MODE_SERIAL)
+    else if (mode == PEDAL_MODE_SERIAL)
     {
         sendSerialControlChange(
-            LOOP_CONTROL_BASE_CC + LOOPER_CONTROL_LOOP_VOLUME,
+            pedal->getCCNum(),
             value,
             "pedals.cpp");
     }

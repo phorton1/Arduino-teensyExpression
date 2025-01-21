@@ -12,7 +12,7 @@
 #include "expDialogs.h"
 #include "rigLooper.h"
 
-#define dbg_csys  -1
+#define dbg_csys  0
 
 #define BUTTON_BRIGHTNESS_DOWN  0
 #define BUTTON_BRIGHTNESS_UP    1

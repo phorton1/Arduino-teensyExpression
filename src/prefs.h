@@ -25,7 +25,7 @@
 #define FILE_SYS_DEVICE_USB	    	0
 #define FILE_SYS_DEVICE_SERIAL		1
 
-#define TEENSY_EXPRESSION1_PREF_VERSION   237
+#define TEENSY_EXPRESSION1_PREF_VERSION   236
 
 //--------------------------------------------------------------------------------
 // SETTINGS (PREFERENCES) OPTIONS

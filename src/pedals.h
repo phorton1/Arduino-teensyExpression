@@ -24,7 +24,6 @@ class expressionPedal
         int getNum()                    { return m_num; }
         const char *getName()           { return m_name; }
 
-        uint8_t getMode()               { return m_mode; }
         int getCCChannel()              { return m_cc_channel; }
         int getCCNum()                  { return m_cc_num; }
 
@@ -81,9 +80,6 @@ class expressionPedal
 
         int      m_display_value;           // display helper
         int      m_last_display_value;      // display helper
-
-        uint8_t  m_mode;
-
 };
 
 
