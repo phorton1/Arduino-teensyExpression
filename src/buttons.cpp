@@ -17,21 +17,14 @@
 #define LONG_PRESS_TIME    800
 #define DOUBLE_CLICK_TIME  360
 
-#define DO_DEBOUNCE        1
-    // does not seem to be necessary.
-    // in timer version, a period of time is implicit, so this should be turned off
-    // in loop() version, maybe we are getting by because of display() calls
-    // so *this* might still be needed.
-
-#if DO_DEBOUNCE
-    #define DEBOUNCE_MILLIS    50
-#endif
+#define DEBOUNCE_MILLIS    50
 
 
 
 buttonArray theButtons;
 int row_pins[NUM_BUTTON_COLS] = {PIN_BUTTON_OUT0,PIN_BUTTON_OUT1,PIN_BUTTON_OUT2,PIN_BUTTON_OUT3,PIN_BUTTON_OUT4};
 int col_pins[NUM_BUTTON_ROWS] = {PIN_BUTTON_IN0,PIN_BUTTON_IN1,PIN_BUTTON_IN2,PIN_BUTTON_IN3,PIN_BUTTON_IN4};
+volatile bool in_button = 0;
 
 
 //--------------------------------------
@@ -53,7 +46,6 @@ void arrayedButton::initDefaults()
 {
     m_event_mask = 0;
     m_press_time = 0;
-    m_debounce_time = 0;
     m_repeat_time = 0;
     m_default_color = LED_BLUE;
     m_pressed_color = LED_WHITE;
@@ -209,41 +201,58 @@ void buttonArray::select(int num, int pressed)
 
 
 
-
-
 void buttonArray::task()
 {
     unsigned time = millis();
+	static unsigned last_time = 0;
+	if (time < last_time + DEBOUNCE_MILLIS)
+		return;
+
+	// re-entrancy protection
+	
+	if (in_button)
+		return;
+	in_button = 1;
+
+	last_time = time;
+	
+
+	// read all the buttons at once
+
+	bool down[NUM_BUTTON_ROWS * NUM_BUTTON_COLS];
     for (int row=0; row<NUM_BUTTON_ROWS; row++)
     {
         digitalWrite(row_pins[row],1);
-
+		delayMicroseconds(20);	// let voltage stabilize
         for (int col=0; col<NUM_BUTTON_COLS; col++)
         {
-            // only poll registered buttons
+            int num = row * NUM_BUTTON_COLS + col;
+            down[num] = digitalRead(col_pins[col]);
+		}
+        digitalWrite(row_pins[row],0);
+	}
+
+	// then process them
+
+    for (int row=0; row<NUM_BUTTON_ROWS; row++)
+    {
+        for (int col=0; col<NUM_BUTTON_COLS; col++)
+        {
+            // only act on registered buttons
 
             arrayedButton *pButton = &m_buttons[row][col];
             int mask = pButton->m_event_mask;
             if (!mask) continue;
 
-            #if DO_DEBOUNCE
-                if (time <= pButton->m_debounce_time)
-                    continue;
-            #endif
-
             // if state changed, process the button
 
             int num = row * NUM_BUTTON_COLS + col;
-            bool is_pressed = digitalRead(col_pins[col]);
+            bool is_pressed = down[num];
             bool was_pressed = pButton->m_event_state & BUTTON_STATE_PRESSED;
             if (is_pressed != was_pressed)
             {
                 display(dbg_btn,"BUTTON(%d,%d) %-6s   mask=%04x  state=%04x",
                     row,col,is_pressed?"DOWN":"UP",mask,pButton->m_event_state);
-
-                #if DO_DEBOUNCE
-                    pButton->m_debounce_time = time + DEBOUNCE_MILLIS;
-                #endif
 
                 //---------------------------
                 // pressed
@@ -291,6 +300,7 @@ void buttonArray::task()
             // state did not change
             //--------------------------------
             //
+
             else if (is_pressed && pButton->m_press_time)
             {
                 // repeat generates PRESS events
@@ -326,8 +336,13 @@ void buttonArray::task()
 
             }   // pressed and not handled yet
         }   // for each col
-
-        digitalWrite(row_pins[row],0);
-
     }   // for each row
-}
+
+	in_button = 0;
+
+}	// buttonManager::task();
+
+
+
+
+

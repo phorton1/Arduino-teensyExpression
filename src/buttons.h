@@ -73,7 +73,6 @@ class arrayedButton
         int m_event_mask;
         int m_event_state;
         unsigned m_press_time;
-        unsigned m_debounce_time;
         elapsedMillis m_repeat_time;
 
         int m_default_color;

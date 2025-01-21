@@ -224,10 +224,10 @@ void winConfigPedal::onButtonEvent(int row, int col, int event)
         }
         else if (num == KEYPAD_LEFT)
         {
+			config_system.checkDirty();
 			m_in_calibrate = 0;
 			endModal(237);	// return to config system
         }
-		config_system.checkDirty();
 	}
     else if (num == KEYPAD_SELECT)
     {
