@@ -1,28 +1,30 @@
 //--------------------------------------------------------------
 // winConfigPedal.cpp
 //--------------------------------------------------------------
+// Navigation:
 //
-// There were 2 types of pedals:
-//		Normal - sends MIDI CC's
-//      Serial - sends Serial Midi CC's
+//	 The meaning of the upper right CANCEL/DONE buttons
+//	 does not change while configuring pedals.
 //
-// Navigation:  There is an arrow pad, an upper left BLUE button, and
-//    upper right ORANGE and GREEN buttons.
+//   The upper left BLUE button cycles through the pedals.
 //
-//    Upper Right Green - Accepts Pedal Changes and returns
-//       to GeneralConfigurationMode, where, BTW, the changes
-//       can still be aborted or accepted.
-//    Upper Right Orange - I think this is intended to revert the
-//       changes from PedalConfigurationMode, and return to
-//       GeneralConfiguration mode. It really shouild only be
-//       highlighted and functional if there have been changes
-//       to the pedals.
-//    Upper Left Blue - This is intended to cycle through Pedals
-//       as they are all one set of changes as far as the system
-//       is concerned.
+//   The keypad is modal, depending on if we are editing
+//   the graph, or in the outer menu mode.
+//
+//   MENU MODE:
+//			The RIGHT arrow is black, as it does nothing
+//			The LEFT arrow returns to the Pedal List
+//			UP and DOWN move through the options.
+//          CENTER green toggles a value or enters EDIT_MODE
+//
+//	 EDIT MODE
+//			 LEFT and RIGHT choose the points
+//			 UP and DOWN modify the values
+
 
 #include <myDebug.h>
 #include "winConfigPedal.h"
+#include "configSystem.h"
 #include "myTFT.h"
 #include "myLeds.h"
 #include "pedals.h"
@@ -32,14 +34,13 @@
 // Pedals
 //----------------------------------
 
+#define NEXT_PEDAL_BUTTON  0
+
 #define KEYPAD_UP      12
 #define KEYPAD_DOWN    22
 #define KEYPAD_LEFT    16
 #define KEYPAD_RIGHT   18
 #define KEYPAD_SELECT  17
-
-#define CANCEL_BUTTON  3
-#define NEXT_PEDAL_BUTTON  0
 
 #define ITEM_MODE         0
 #define ITEM_CALIBRATE    1
@@ -91,17 +92,21 @@ void winConfigPedal::begin(bool warm)
     setEditPoints();
 
     m_cur_item   = NUM_FIXED_ITEMS + m_num_points-1;        // start on MAX point
-    m_cur_point  = -1;                  // -1 when not selected for editing
+    m_cur_point  = -1;                  					// -1 when not selected for editing
+
+	// the CANCEL/DONE buttons are inherited from,
+	// and pass button presses through to the config system
+
+    theButtons.setButtonType(BUTTON_EXIT_DONE,       BUTTON_EVENT_CLICK | BUTTON_EVENT_LONG_CLICK, config_system.m_dirty?LED_PURPLE:LED_CYAN);
+    theButtons.setButtonType(BUTTON_EXIT_CANCEL,     BUTTON_EVENT_CLICK | BUTTON_EVENT_LONG_CLICK, config_system.m_dirty?LED_ORANGE:LED_YELLOW);
 
 	theButtons.setButtonType(KEYPAD_UP,   	BUTTON_EVENT_PRESS | BUTTON_MASK_REPEAT);
 	theButtons.setButtonType(KEYPAD_DOWN,	BUTTON_EVENT_PRESS | BUTTON_MASK_REPEAT);
 	theButtons.setButtonType(KEYPAD_LEFT,	BUTTON_EVENT_PRESS | BUTTON_MASK_REPEAT);
-	theButtons.setButtonType(KEYPAD_RIGHT,	BUTTON_EVENT_PRESS | BUTTON_MASK_REPEAT);
+	theButtons.setButtonType(KEYPAD_RIGHT,	BUTTON_EVENT_PRESS | BUTTON_MASK_REPEAT, LED_BLACK);	// starts out black
 	theButtons.setButtonType(KEYPAD_SELECT,	BUTTON_TYPE_CLICK, 	LED_GREEN);
 
-	theButtons.setButtonType(NEXT_PEDAL_BUTTON,	BUTTON_TYPE_CLICK);
-    theButtons.setButtonType(CANCEL_BUTTON,     BUTTON_TYPE_CLICK,  LED_ORANGE);
-	theButtons.setButtonType(THE_SYSTEM_BUTTON,	BUTTON_TYPE_CLICK, 	LED_GREEN);
+	theButtons.setButtonType(NEXT_PEDAL_BUTTON,	BUTTON_TYPE_CLICK, LED_BLUE);
 
 	showLEDs();
 }
@@ -194,11 +199,7 @@ void winConfigPedal::onButtonEvent(int row, int col, int event)
 	}
 	else if (num == KEYPAD_LEFT || num == KEYPAD_RIGHT)
 	{
-        if (m_in_calibrate)
-        {
-            // empty case if calibrating
-        }
-        else if (m_cur_point >= 0)
+        if (m_cur_point >= 0)
         {
             prefCurvePoint_t *points = getCurvePoints();
             int x = points[m_cur_point].x;
@@ -221,10 +222,12 @@ void winConfigPedal::onButtonEvent(int row, int col, int event)
                 thePedals.getPedal(m_pedal_num)->invalidate();
             }
         }
-        else
+        else if (num == KEYPAD_LEFT)
         {
-            // empty case if right left while not editing point
+			m_in_calibrate = 0;
+			endModal(237);	// return to config system
         }
+		config_system.checkDirty();
 	}
     else if (num == KEYPAD_SELECT)
     {
@@ -232,16 +235,18 @@ void winConfigPedal::onButtonEvent(int row, int col, int event)
         {
             m_cur_point = -1;
             m_display_item = -1;
-        }
+			theButtons.setButtonColor(KEYPAD_RIGHT,	LED_BLACK);		// black while not editing
+		}
         else if (m_cur_item >= NUM_FIXED_ITEMS)
         {
             clearPrevPoints();
             m_cur_point = m_cur_item - NUM_FIXED_ITEMS;
             m_display_item = -1;
+			theButtons.setButtonColor(KEYPAD_RIGHT,	LED_BLUE);			// blue while editing
         }
         else if (m_cur_item == ITEM_MODE)
         {
-            m_cur_mode = (m_cur_mode + 1) % 4;
+            m_cur_mode = (m_cur_mode + 1) % 2;
             setPrefPedalMode(m_pedal_num,m_cur_mode);
             thePedals.getPedal(m_pedal_num)->invalidate();
             setPrefPedalCurve(m_pedal_num, m_cur_curve);
@@ -270,33 +275,32 @@ void winConfigPedal::onButtonEvent(int row, int col, int event)
             m_display_curve = -1;
             clearPrevPoints();
         }
+		config_system.checkDirty();
     }
 
-    // finishes
-
-	else if (num == THE_SYSTEM_BUTTON)
-	{
-		endModal(237);
-    }
-    else if (num == CANCEL_BUTTON)
-	{
-        // restore just the pedals prefs, and then
-        // call the prefs.cpp function setDefaultPrefs()
-        // to reset the actual default pref values.
-
-        int pref = PREF_PEDAL(m_pedal_num);
-        for (int i=0; i<PREF_BYTES_PER_PEDAL; i++)
-            restore_pref8(pref+i);
-        setDefaultPrefs();
-
-		endModal(237);
-    }
+	// next pedal
+	
 	else if (num == NEXT_PEDAL_BUTTON)
 	{
-        m_in_calibrate = 0;
-        int next_num = (m_pedal_num+1) % NUM_PEDALS;
+		config_system.checkDirty();
+		m_in_calibrate = 0;
+		endModal(237);
+			// ending the modal causes swapModal short return
+			// which seems to fix bugs
+		int next_num = (m_pedal_num+1) % NUM_PEDALS;
 		theSystem.swapModal(new winConfigPedal(next_num),0);
 	}
+
+    // endModal && pass through to config_system
+
+	else if (num == BUTTON_EXIT_DONE ||
+			 num == BUTTON_EXIT_CANCEL)
+	{
+		config_system.checkDirty();
+		endModal(237);
+		config_system.onButtonEvent(row, col, event);
+    }
+
 }
 
 

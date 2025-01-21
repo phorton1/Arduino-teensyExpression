@@ -103,7 +103,17 @@ void buttonArray::init()
 }
 
 
-void  buttonArray::setButtonType(int num, int mask, int default_color, int selected_color, int touch_color, int pressed_color)
+void buttonArray::setButtonColor(int num,int color)
+{
+    arrayedButton *pb = &m_buttons[num / NUM_BUTTON_COLS][num % NUM_BUTTON_COLS];
+    pb->m_default_color = color;
+    setLED(num,pb->m_default_color);
+	showLEDs(true);
+}
+
+
+
+void buttonArray::setButtonType(int num, int mask, int default_color, int selected_color, int touch_color, int pressed_color)
 {
     arrayedButton *pb = &m_buttons[num / NUM_BUTTON_COLS][num % NUM_BUTTON_COLS];
     pb->m_event_mask = mask;

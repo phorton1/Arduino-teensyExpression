@@ -12,17 +12,11 @@
 #include "expDialogs.h"
 #include "rigLooper.h"
 
+#define dbg_csys  -1
 
 #define BUTTON_BRIGHTNESS_DOWN  0
 #define BUTTON_BRIGHTNESS_UP    1
-#define BUTTON_EXIT_CANCEL      3
-#define BUTTON_EXIT_DONE        4
 
-#define ROW_RIGS             1
-#define FIRST_RIG_BUTTON     (ROW_RIGS * NUM_BUTTON_COLS)
-#define MAX_SHOWN_RIGS		5
-
-#define GROUP_RIG_NUMS  		1
 
 configOption *rootOption = 0;
 configOption *cur_menu = 0;
@@ -56,110 +50,120 @@ configSystem config_system;
 
 void createOptions()
 {
-	if (rootOption == 0)
-	{
-		rootOption = new configOption();
+	rootOption = new configOption();
 
-		optBrightness = new configOption(
-			rootOption,
-			"Brightness",
-			0,
-			PREF_BRIGHTNESS,
-			setLEDBrightness);
+	optBrightness = new configOption(
+		rootOption,
+		"Brightness",
+		0,
+		PREF_BRIGHTNESS,
+		setLEDBrightness);
 
-		configOption *optFTP = new configOption(rootOption,"FTP");
-		new configOption (optFTP,"Spoof FTP",	   OPTION_TYPE_NEEDS_REBOOT, PREF_SPOOF_FTP);
-		new ftpPortOption(optFTP,"FTP Port",	   0,						 PREF_FTP_PORT);
-		new configOption (optFTP,"FTP Tuner",	   0,						 PREF_NONE,		startFtpTuner);
-		new configOption (optFTP,"FTP Sensitivity",0,						 PREF_NONE,		startFtpSensitivity);
+	configOption *optFTP = new configOption(rootOption,"FTP");
+	new configOption (optFTP,"Spoof FTP",	   OPTION_TYPE_NEEDS_REBOOT, PREF_SPOOF_FTP);
+	new ftpPortOption(optFTP,"FTP Port",	   0,						 PREF_FTP_PORT);
+	new configOption (optFTP,"FTP Tuner",	   0,						 PREF_NONE,		startFtpTuner);
+	new configOption (optFTP,"FTP Sensitivity",0,						 PREF_NONE,		startFtpSensitivity);
 
-		// pedals
+	// pedals
 
-		configOption *pedals = new configOption(rootOption,"Pedals");
-		new configOption(pedals,"Configure Pedal1 (Synth)",	0,PREF_NONE,configPedal);
-		new configOption(pedals,"Configure Pedal2 (Loop)",	0,PREF_NONE,configPedal);
-		new configOption(pedals,"Configure Pedal3 (Wah)",	0,PREF_NONE,configPedal);
-		new configOption(pedals,"Configure Pedal4 (Guitar)",0,PREF_NONE,configPedal);
+	configOption *pedals = new configOption(rootOption,"Pedals");
+	new configOption(pedals,"Configure Pedal1 (Synth)",	0,PREF_NONE,configPedal);
+	new configOption(pedals,"Configure Pedal2 (Loop)",	0,PREF_NONE,configPedal);
+	new configOption(pedals,"Configure Pedal3 (Wah)",	0,PREF_NONE,configPedal);
+	new configOption(pedals,"Configure Pedal4 (Guitar)",0,PREF_NONE,configPedal);
 
-		// midi monitor
+	// midi monitor
 
-		configOption *monitor = new configOption(rootOption,"Midi Monitor", 0,  PREF_MIDI_MONITOR);
-		new configOption(monitor,"Midi Monitor", 0, PREF_MIDI_MONITOR);
+	configOption *monitor = new configOption(rootOption,"Midi Monitor", 0,  PREF_MIDI_MONITOR);
+	new configOption(monitor,"Midi Monitor", 0, PREF_MIDI_MONITOR);
 
-		configOption *mon_ports = new configOption(monitor,"Ports");
-		new configOption(mon_ports,"Duino Input 0",  0, PREF_MONITOR_DUINO_INPUT0);
-		new configOption(mon_ports,"Duino Input 1",  0, PREF_MONITOR_DUINO_INPUT1);
-		new configOption(mon_ports,"Duino Output 0", 0, PREF_MONITOR_DUINO_OUTPUT0);
-		new configOption(mon_ports,"Duino Output 1", 0, PREF_MONITOR_DUINO_OUTPUT1);
-		new configOption(mon_ports,"Host Input 0",   0, PREF_MONITOR_HOST_INPUT0);
-		new configOption(mon_ports,"Host Input 1",   0, PREF_MONITOR_HOST_INPUT1);
-		new configOption(mon_ports,"Host Output 0",  0, PREF_MONITOR_HOST_OUTPUT0);
-		new configOption(mon_ports,"Host Output 1",  0, PREF_MONITOR_HOST_OUTPUT1);
+	configOption *mon_ports = new configOption(monitor,"Ports");
+	new configOption(mon_ports,"Duino Input 0",  0, PREF_MONITOR_DUINO_INPUT0);
+	new configOption(mon_ports,"Duino Input 1",  0, PREF_MONITOR_DUINO_INPUT1);
+	new configOption(mon_ports,"Duino Output 0", 0, PREF_MONITOR_DUINO_OUTPUT0);
+	new configOption(mon_ports,"Duino Output 1", 0, PREF_MONITOR_DUINO_OUTPUT1);
+	new configOption(mon_ports,"Host Input 0",   0, PREF_MONITOR_HOST_INPUT0);
+	new configOption(mon_ports,"Host Input 1",   0, PREF_MONITOR_HOST_INPUT1);
+	new configOption(mon_ports,"Host Output 0",  0, PREF_MONITOR_HOST_OUTPUT0);
+	new configOption(mon_ports,"Host Output 1",  0, PREF_MONITOR_HOST_OUTPUT1);
 
-		configOption *mon_channels = new configOption(monitor,"Channels");
-		new configOption(mon_channels,"Midi Channel 1",  0, PREF_MONITOR_CHANNEL1 + 0);
-		new configOption(mon_channels,"Midi Channel 2",  0, PREF_MONITOR_CHANNEL1 + 1);
-		new configOption(mon_channels,"Midi Channel 3",  0, PREF_MONITOR_CHANNEL1 + 2);
-		new configOption(mon_channels,"Midi Channel 4",  0, PREF_MONITOR_CHANNEL1 + 3);
-		new configOption(mon_channels,"Midi Channel 5",  0, PREF_MONITOR_CHANNEL1 + 4);
-		new configOption(mon_channels,"Midi Channel 6",  0, PREF_MONITOR_CHANNEL1 + 5);
-		new configOption(mon_channels,"Midi Channel 7",  0, PREF_MONITOR_CHANNEL1 + 6);
-		new configOption(mon_channels,"Midi Channel 8",  0, PREF_MONITOR_CHANNEL1 + 7);
-		new configOption(mon_channels,"Midi Channel 9",  0, PREF_MONITOR_CHANNEL1 + 8);
-		new configOption(mon_channels,"Midi Channel 10", 0, PREF_MONITOR_CHANNEL1 + 9);
-		new configOption(mon_channels,"Midi Channel 11", 0, PREF_MONITOR_CHANNEL1 + 10);
-		new configOption(mon_channels,"Midi Channel 12", 0, PREF_MONITOR_CHANNEL1 + 11);
-		new configOption(mon_channels,"Midi Channel 13", 0, PREF_MONITOR_CHANNEL1 + 12);
-		new configOption(mon_channels,"Midi Channel 14", 0, PREF_MONITOR_CHANNEL1 + 13);
-		new configOption(mon_channels,"Midi Channel 15", 0, PREF_MONITOR_CHANNEL1 + 14);
-		new configOption(mon_channels,"Midi Channel 16", 0, PREF_MONITOR_CHANNEL1 + 15);
+	configOption *mon_channels = new configOption(monitor,"Channels");
+	new configOption(mon_channels,"Midi Channel 1",  0, PREF_MONITOR_CHANNEL1 + 0);
+	new configOption(mon_channels,"Midi Channel 2",  0, PREF_MONITOR_CHANNEL1 + 1);
+	new configOption(mon_channels,"Midi Channel 3",  0, PREF_MONITOR_CHANNEL1 + 2);
+	new configOption(mon_channels,"Midi Channel 4",  0, PREF_MONITOR_CHANNEL1 + 3);
+	new configOption(mon_channels,"Midi Channel 5",  0, PREF_MONITOR_CHANNEL1 + 4);
+	new configOption(mon_channels,"Midi Channel 6",  0, PREF_MONITOR_CHANNEL1 + 5);
+	new configOption(mon_channels,"Midi Channel 7",  0, PREF_MONITOR_CHANNEL1 + 6);
+	new configOption(mon_channels,"Midi Channel 8",  0, PREF_MONITOR_CHANNEL1 + 7);
+	new configOption(mon_channels,"Midi Channel 9",  0, PREF_MONITOR_CHANNEL1 + 8);
+	new configOption(mon_channels,"Midi Channel 10", 0, PREF_MONITOR_CHANNEL1 + 9);
+	new configOption(mon_channels,"Midi Channel 11", 0, PREF_MONITOR_CHANNEL1 + 10);
+	new configOption(mon_channels,"Midi Channel 12", 0, PREF_MONITOR_CHANNEL1 + 11);
+	new configOption(mon_channels,"Midi Channel 13", 0, PREF_MONITOR_CHANNEL1 + 12);
+	new configOption(mon_channels,"Midi Channel 14", 0, PREF_MONITOR_CHANNEL1 + 13);
+	new configOption(mon_channels,"Midi Channel 15", 0, PREF_MONITOR_CHANNEL1 + 14);
+	new configOption(mon_channels,"Midi Channel 16", 0, PREF_MONITOR_CHANNEL1 + 15);
 
-		configOption *msg_types = new configOption(monitor,"Message Types");
-		configOption *ftp_specific = new configOption(msg_types,"FTP Specific");
+	configOption *msg_types = new configOption(monitor,"Message Types");
+	configOption *ftp_specific = new configOption(msg_types,"FTP Specific");
 
-		new configOption(msg_types,"Sysex",			  0,  PREF_MONITOR_SYSEX);
-		new configOption(msg_types,"Active Sense",	  0,  PREF_MONITOR_ACTIVESENSE);
-		new configOption(msg_types,"Note On",		  0,  PREF_MONITOR_NOTE_ON);
-		new configOption(msg_types,"Note Off",		  0,  PREF_MONITOR_NOTE_OFF);
-		new configOption(msg_types,"Velocity ",		  0,  PREF_MONITOR_VELOCITY);
-		new configOption(msg_types,"Program Chg",	  0,  PREF_MONITOR_PROGRAM_CHG);
-		new configOption(msg_types,"Aftertouch",	  0,  PREF_MONITOR_AFTERTOUCH);
-		new configOption(msg_types,"Pitch Bend",	  0,  PREF_MONITOR_PITCHBEND);
-		new configOption(msg_types,"Other CCs", 	  0,  PREF_MONITOR_CCS);
-		new configOption(msg_types,"Everything Else", 0,  PREF_MONITOR_EVERYTHING_ELSE);
+	new configOption(msg_types,"Sysex",			  0,  PREF_MONITOR_SYSEX);
+	new configOption(msg_types,"Active Sense",	  0,  PREF_MONITOR_ACTIVESENSE);
+	new configOption(msg_types,"Note On",		  0,  PREF_MONITOR_NOTE_ON);
+	new configOption(msg_types,"Note Off",		  0,  PREF_MONITOR_NOTE_OFF);
+	new configOption(msg_types,"Velocity ",		  0,  PREF_MONITOR_VELOCITY);
+	new configOption(msg_types,"Program Chg",	  0,  PREF_MONITOR_PROGRAM_CHG);
+	new configOption(msg_types,"Aftertouch",	  0,  PREF_MONITOR_AFTERTOUCH);
+	new configOption(msg_types,"Pitch Bend",	  0,  PREF_MONITOR_PITCHBEND);
+	new configOption(msg_types,"Other CCs", 	  0,  PREF_MONITOR_CCS);
+	new configOption(msg_types,"Everything Else", 0,  PREF_MONITOR_EVERYTHING_ELSE);
 
-		new configOption(ftp_specific,"ParsePatches", 	  0, PREF_MONITOR_PARSE_FTP_PATCHES);
-		new configOption(ftp_specific,"Note Info", 		  0, PREF_MONITOR_FTP_NOTE_INFO);
-		new configOption(ftp_specific,"Tuning Msgs",	  0, PREF_MONITOR_FTP_TUNING_MSGS);
-		new configOption(ftp_specific,"Commands", 		  0, PREF_MONITOR_FTP_COMMANDS);
-		new configOption(ftp_specific,"Values", 		  0, PREF_MONITOR_FTP_VALUES);
-		new configOption(ftp_specific,"Poly Mode", 		  0, PREF_MONITOR_FTP_POLY_MODE);
-		new configOption(ftp_specific,"Bend Mode", 		  0, PREF_MONITOR_FTP_BEND_MODE);
-		new configOption(ftp_specific,"Volume", 		  0, PREF_MONITOR_FTP_VOLUME);
-		new configOption(ftp_specific,"Battery", 		  0, PREF_MONITOR_FTP_BATTERY);
-		new configOption(ftp_specific,"Sensitivity",	  0, PREF_MONITOR_FTP_SENSITIVITY);
-		new configOption(ftp_specific,"Known Commands",   0, PREF_MONITOR_KNOWN_FTP_COMMANDS);
-		new configOption(ftp_specific,"Unknown Commands", 0, PREF_MONITOR_UNKNOWN_FTP_COMMANDS);
+	new configOption(ftp_specific,"ParsePatches", 	  0, PREF_MONITOR_PARSE_FTP_PATCHES);
+	new configOption(ftp_specific,"Note Info", 		  0, PREF_MONITOR_FTP_NOTE_INFO);
+	new configOption(ftp_specific,"Tuning Msgs",	  0, PREF_MONITOR_FTP_TUNING_MSGS);
+	new configOption(ftp_specific,"Commands", 		  0, PREF_MONITOR_FTP_COMMANDS);
+	new configOption(ftp_specific,"Values", 		  0, PREF_MONITOR_FTP_VALUES);
+	new configOption(ftp_specific,"Poly Mode", 		  0, PREF_MONITOR_FTP_POLY_MODE);
+	new configOption(ftp_specific,"Bend Mode", 		  0, PREF_MONITOR_FTP_BEND_MODE);
+	new configOption(ftp_specific,"Volume", 		  0, PREF_MONITOR_FTP_VOLUME);
+	new configOption(ftp_specific,"Battery", 		  0, PREF_MONITOR_FTP_BATTERY);
+	new configOption(ftp_specific,"Sensitivity",	  0, PREF_MONITOR_FTP_SENSITIVITY);
+	new configOption(ftp_specific,"Known Commands",   0, PREF_MONITOR_KNOWN_FTP_COMMANDS);
+	new configOption(ftp_specific,"Unknown Commands", 0, PREF_MONITOR_UNKNOWN_FTP_COMMANDS);
 
-		// performance filter
+	// performance filter
 
-		configOption *filter = new configOption(rootOption,"Perf Filter", 0, PREF_PERF_FILTER);
-		new configOption(filter,"Perf Filter",  0, PREF_PERF_FILTER);
-		new configOption(filter,"Filter Bends", 0, PREF_PERF_FILTER_BENDS);
-		new configOption(filter,"Monitor Perf", 0, PREF_MONITOR_PERFORMANCE);
+	configOption *filter = new configOption(rootOption,"Perf Filter", 0, PREF_PERF_FILTER);
+	new configOption(filter,"Perf Filter",  0, PREF_PERF_FILTER);
+	new configOption(filter,"Filter Bends", 0, PREF_PERF_FILTER_BENDS);
+	new configOption(filter,"Monitor Perf", 0, PREF_MONITOR_PERFORMANCE);
 
-		// all other preferences
+	// all other preferences
 
-		configOption *system = new configOption(rootOption,"System " TEENSY_EXPRESSION_VERSION);
-		new configOption(system,"Debug Port",	OPTION_TYPE_NEEDS_REBOOT,	PREF_DEBUG_PORT);
-		new configOption(system,"File Sys Port",	OPTION_TYPE_NEEDS_REBOOT,	PREF_FILE_SYSTEM_PORT);
-		new configOption(system,"Calibrate Touch");
+	configOption *system = new configOption(rootOption,"System " TEENSY_EXPRESSION_VERSION);
+	new configOption(system,"Debug Port",	OPTION_TYPE_NEEDS_REBOOT,	PREF_DEBUG_PORT);
+	new configOption(system,"File Sys Port",	OPTION_TYPE_NEEDS_REBOOT,	PREF_FILE_SYSTEM_PORT);
+	new configOption(system,"Calibrate Touch");
 
-		new configOption(rootOption,"Factory Reset",OPTION_TYPE_FACTORY_RESET);
-
-	}
+	new configOption(rootOption,"Factory Reset",OPTION_TYPE_FACTORY_RESET);
 }
 
+
+void configSystem::clearOptionStates(configOption *option)
+{
+	if (option == rootOption)
+		display(0,"clearOptionStates",0);
+	option->clearSelected();
+	option->clearDisplayValue();
+	configOption *child = option->pFirstChild;
+	while (child)
+	{
+		clearOptionStates(child);
+		child = child->pNextOption;
+	}
+}
 
 
 //---------------------------------
@@ -172,17 +176,26 @@ configSystem::configSystem()
 }
 
 
+
 // virtual
 void configSystem::begin(bool warm)
+	// called "cold" when coming from rig_looper,
+	// "warm" when returning from child/dialog
 {
     display(0,"configSystem::begin(%d)",warm);
     expWindow::begin(warm);
-	createOptions();
-	display(0,"options created",0);
+
+	if (!rootOption)
+	{
+		m_dirty = 0;
+		createOptions();
+		rootOption->init();
+		display(0,"options created",0);
+	}
 
 	if (!warm)
 	{
-		rootOption->init();
+		clearOptionStates(rootOption);
 		cur_menu = rootOption->pFirstChild;
 		cur_option = rootOption->pFirstChild;
 		cur_option->selected = 1;
@@ -192,14 +205,17 @@ void configSystem::begin(bool warm)
 	display_menu = 0;
 	display_option = 0;
 	m_last_display_option = 0;
-	m_last_selected_rig = -1;
 
     // setup buttons and leds
 
     theButtons.setButtonType(BUTTON_BRIGHTNESS_DOWN, BUTTON_EVENT_PRESS | BUTTON_MASK_REPEAT, LED_RED);
     theButtons.setButtonType(BUTTON_BRIGHTNESS_UP,   BUTTON_EVENT_PRESS | BUTTON_MASK_REPEAT, LED_GREEN);
-    theButtons.setButtonType(BUTTON_EXIT_DONE,       BUTTON_EVENT_CLICK | BUTTON_EVENT_LONG_CLICK, LED_PURPLE);
-    theButtons.setButtonType(BUTTON_EXIT_CANCEL,     BUTTON_EVENT_CLICK | BUTTON_EVENT_LONG_CLICK, LED_ORANGE);
+
+	int done_color = m_dirty ? configOption::reboot_needed() ?
+		LED_RED : LED_PURPLE : LED_CYAN;
+
+    theButtons.setButtonType(BUTTON_EXIT_DONE,       BUTTON_EVENT_CLICK | BUTTON_EVENT_LONG_CLICK, done_color);
+    theButtons.setButtonType(BUTTON_EXIT_CANCEL,     BUTTON_EVENT_CLICK | BUTTON_EVENT_LONG_CLICK, m_dirty?LED_ORANGE:LED_YELLOW);
 
 	theButtons.setButtonType(BUTTON_MOVE_UP,   	BUTTON_EVENT_PRESS | BUTTON_MASK_REPEAT);
 	theButtons.setButtonType(BUTTON_MOVE_DOWN,	BUTTON_EVENT_PRESS | BUTTON_MASK_REPEAT);
@@ -249,6 +265,22 @@ void configSystem::onEndModal(expWindow *win, uint32_t param)
 }
 
 
+void configSystem::checkDirty()
+{
+	display(dbg_csys+1,"checkDirty()",0);
+	bool dirty = prefs_changed();
+	display(dbg_csys+1,"m_dirty=%d dirty=%d",m_dirty,dirty);
+	if (m_dirty != dirty)
+	{
+		m_dirty = dirty;
+		display(dbg_csys,"confg_sys.m_dirty changed to %d",dirty);
+
+		int done_color = m_dirty ? configOption::reboot_needed() ?
+			LED_RED : LED_PURPLE : LED_CYAN;
+		theButtons.setButtonColor(BUTTON_EXIT_DONE,done_color);
+		theButtons.setButtonColor(BUTTON_EXIT_CANCEL,m_dirty?LED_ORANGE:LED_YELLOW);
+	}
+}
 
 
 
@@ -306,6 +338,7 @@ void configSystem::onButtonEvent(int row, int col, int event)
         else
         {
 			restore_prefs();
+			checkDirty();
 
 			// re-init things that might have changed
             // setLEDBrightness(optBrightness.orig_value);
@@ -317,40 +350,22 @@ void configSystem::onButtonEvent(int row, int col, int event)
 			// so it *might* not have been saved since last time ...
 
             theSystem.activateRig(&rig_looper);
-
         }
     }
     else if (num == BUTTON_EXIT_DONE)
     {
         if (event == BUTTON_EVENT_LONG_CLICK)
         {
-			// display(0,"before save prefs",0);
-			//
-			// there is apparently some kind of interaction between
-			// the showLEDs() that is asynchronously running right
-			// now (as we just set the button color and called showLEDs).
-			// and the below call to the EEPROM. i sort of remember reading
-			// about it.
-			//
-			// Without a delay there are spurious colors written to the picels,
-			// though the led memory is correct.
-			//
-			// the simplest thing is to add a small delay before save_gloabl_prefs
-
-			delay(200);
+			delay(200);	// delay needed to let pixels finish redrawing
 			bool reboot_needed = configOption::reboot_needed();
 			pref_changed8(PREF_SPOOF_FTP);
 			save_global_prefs();
+			checkDirty();
+
             if (reboot_needed)
             {
                 reboot(num);
             }
-
-			// withtout the above delay, I got garbage showing in the LEDs
-			// as witnessed by this code snippet
-			//
-			// 		display(0,"after save prefs",0);
-			// 		delay(10000);
         }
 
         theSystem.activateRig(&rig_looper);
@@ -376,11 +391,13 @@ void configSystem::onButtonEvent(int row, int col, int event)
 			else if (cur_option->hasValue())
 			{
 				cur_option->incValue(1);
+				checkDirty();
 			}
 			else if (cur_option->m_setter_fxn)
 			{
 				// display(0,"calling dialog function on %d. %s",cur_option->getNum(), cur_option->getTitle());
 				(cur_option->m_setter_fxn)(cur_option->getNum());
+				checkDirty();
 			}
 			else if (cur_option->type & OPTION_TYPE_FACTORY_RESET)
 			{
@@ -396,6 +413,7 @@ void configSystem::onButtonEvent(int row, int col, int event)
 		{
 			int inc = num == BUTTON_BRIGHTNESS_UP ? 5 : -5;
 			optBrightness->setValue(getPref8(PREF_BRIGHTNESS) + inc);
+			checkDirty();
 		}
 
 	}	// enabled
@@ -429,7 +447,7 @@ void configSystem::updateUI()
 	{
 		m_last_display_option = cur_option;
 		int  option_num = cur_option->getNum();
-		//display(0,"m_scroll_top=%d option_num=%d",m_scroll_top,option_num);
+		// display(0,"m_scroll_top=%d option_num=%d",m_scroll_top,option_num);
 		int scroll_top = m_scroll_top;
 		if (option_num < scroll_top)
 			scroll_top = option_num;

@@ -108,6 +108,10 @@ class buttonArray
             int touch_color=-1,
             int pressed_color=-1);
 
+        void setButtonColor(int num,int color);
+            // used to explicitly set the default_color and
+            // redisplay the button
+
         void select(int num, int pressed);
             // 1=pressed, -1=long_click, 0=releaed
 

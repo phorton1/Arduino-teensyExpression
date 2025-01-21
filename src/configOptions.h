@@ -51,6 +51,7 @@ class configOption
         void  clearDisplayValue()     { display_value = getValue(); }
         const char *getTitle()        { return title; }
         bool  hasValue()              { return m_pref_num >= 0 ? 1 : 0; }
+        void  clearSelected()         { selected =0; display_selected=0; }
 
         void  setValue(int i);        // enforces min/max
         void  incValue(int inc_dec);  // wraps

@@ -6,8 +6,13 @@
 
 #include "expSystem.h"
 
+#define BUTTON_EXIT_CANCEL      3
+#define BUTTON_EXIT_DONE        4
+
+
 class configOption;
-    // forward
+class winConfigPedal;
+    // forwards
 
 class configSystem : public expWindow
 {
@@ -22,6 +27,8 @@ class configSystem : public expWindow
 
     private:
 
+        friend class winConfigPedal;
+
         virtual const char *name()          { return "SYSTEM SETTINGS"; }
         virtual const char *short_name()    { return "Sys Settings"; }
 
@@ -30,6 +37,11 @@ class configSystem : public expWindow
         virtual void onButtonEvent(int row, int col, int event);
         virtual void onEndModal(expWindow *win, uint32_t param);
 
+        void checkDirty();
+        void clearOptionStates(configOption *option);
+        
+        
+        bool m_dirty;
         int m_scroll_top;
         configOption *m_last_display_option;
         int m_last_selected_rig;

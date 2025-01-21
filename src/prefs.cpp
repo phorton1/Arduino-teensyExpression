@@ -5,9 +5,8 @@
 #define dbg_prefs   0
 
 
-uint8_t prefs[NUM_EEPROM_USED];
-uint8_t pref_cache[NUM_EEPROM_USED];
-uint8_t last_prefs[NUM_EEPROM_USED];
+uint8_t pref[NUM_EEPROM_USED];
+uint8_t pref_save[NUM_EEPROM_USED];
 int16_t pref_min[NUM_EEPROM_USED];
 int16_t pref_max[NUM_EEPROM_USED];
 const char **pref_strings[NUM_EEPROM_USED];
@@ -31,8 +30,11 @@ const char *file_system_ports[]       = {"Main USB", "Alt Serial"};
 
 static void _setDefaultPref8(int i, int min, int max, uint8_t def_val, const char *strings[]=0)
 {
-    if (pref_cache[i] == 255)
-        prefs[i] = def_val;
+    if (pref[i] == 255)
+    {
+        pref[i] = def_val;
+        pref_save[i] = def_val;
+    }
     pref_min[i] = min;
     pref_max[i] = max;
     pref_strings[i] = strings;
@@ -40,13 +42,15 @@ static void _setDefaultPref8(int i, int min, int max, uint8_t def_val, const cha
 
 static void _setDefaultPref16(int i, int min, int max, uint16_t def_val)
 {
-    if (pref_cache[i]==255 && pref_cache[i+1]==255)
+    if (pref_save[i]==255 && pref_save[i+1]==255)
     {
-        uint16_t *p = (uint16_t *)&prefs[i];
-        *p = def_val;
-        pref_min[i] = min;
-        pref_max[i] = max;
+        uint16_t *p0 = (uint16_t *) &pref[i];
+        uint16_t *p1 = (uint16_t *) &pref_save[i];
+        *p0 = def_val;
+        *p1 = def_val;
     }
+    pref_min[i] = min;
+    pref_max[i] = max;
 }
 
 
@@ -64,24 +68,19 @@ void setDefaultPrefs()
     //---------------
     // pedals
     //---------------
-    // the prefs store the regular pedal calibrations
-    // the auto pedal calibrations are always 0,127
 
-    #define PEDAL_CALIB_WITH_1K_OUTPUT_RESISTOR    770
-        // every time it seems to get lower.
-        // this is about the value I get with the rig plugged into the old grey box ...
-        // at a voltage of 4.60-4.98V ... not sure why adding 1K dropped 1/5th of the
-        // range ... might have been a bit much.
+    #define PEDAL_CALIB_DEFAULT_HIGH    770
+
 
     for (int i=0; i<NUM_PEDALS; i++)
     {
         int use_mode = (i == 1) ? PEDAL_MODE_SERIAL : PEDAL_MODE_NORMAL;
-            // for now I am trying the loop pedal as serial
+            // the loop pedal IS serial
 
-        _setDefaultPref8 (PREF_PEDAL(i) + PREF_PEDAL_MODE_OFFSET,         0,2,      use_mode, pedal_modes);    // 0=normal, 1=serial
-        _setDefaultPref8 (PREF_PEDAL(i) + PREF_PEDAL_CURVE_TYPE_OFFSET,   0,2,      0,curve_types);     // 0=linear, 1=asymptotic, 2=scurve - default(0) == num_points
-        _setDefaultPref16(PREF_PEDAL(i) + PREF_PEDAL_CALIB_MIN_OFFSET,    0,1023,   0);                 // default 0
-        _setDefaultPref16(PREF_PEDAL(i) + PREF_PEDAL_CALIB_MAX_OFFSET,    0,1023,   PEDAL_CALIB_WITH_1K_OUTPUT_RESISTOR);    // default 890 (1023)
+        _setDefaultPref8 (PREF_PEDAL(i) + PREF_PEDAL_MODE_OFFSET,         0,1,      use_mode, pedal_modes);     // 0=normal, 1=serial
+        _setDefaultPref8 (PREF_PEDAL(i) + PREF_PEDAL_CURVE_TYPE_OFFSET,   0,2,      0,curve_types);             // 0=linear, 1=asymptotic, 2=scurve - default(0) == num_points
+        _setDefaultPref16(PREF_PEDAL(i) + PREF_PEDAL_CALIB_MIN_OFFSET,    0,1023,   0);                         // default 0
+        _setDefaultPref16(PREF_PEDAL(i) + PREF_PEDAL_CALIB_MAX_OFFSET,    0,1023,   PEDAL_CALIB_DEFAULT_HIGH);
 
         int out_byte = PREF_PEDAL(i) + PREF_PEDAL_POINTS_OFFSET;
 
@@ -140,7 +139,7 @@ void setDefaultPrefs()
     // midi monitor prefs
     //----------------------
 
-    _setDefaultPref8(PREF_MIDI_MONITOR,            0,3,  1,  off_debug_usb_serial); // off, USB, Serial, 255=default    default(USB)
+    _setDefaultPref8(PREF_MIDI_MONITOR,           0,3,  1,  off_debug_usb_serial); // off, follow, USB, Serial, default(follow debuug)
 
     _setDefaultPref8(PREF_MONITOR_DUINO_INPUT0,   0,1,  0, off_on);    // default(off)
     _setDefaultPref8(PREF_MONITOR_DUINO_INPUT1,   0,1,  1, off_on);    // default(on)
@@ -172,29 +171,19 @@ void setDefaultPrefs()
 
 
 // extern
-int16_t getPrefMin(int pref)
+int16_t getPrefMin(int i)
 {
-    return pref_min[pref];
+    return pref_min[i];
 }
 // extern
-int16_t getPrefMax(int pref)
+int16_t getPrefMax(int i)
 {
-    return pref_max[pref];
+    return pref_max[i];
 }
 // extern
-void setPrefMax(int pref, int16_t max)
+const char **getPrefStrings(int i)
 {
-    pref_max[pref] = max;
-}
-// extern
-const char **getPrefStrings(int pref)
-{
-    return pref_strings[pref];
-}
-// extern
-void setPrefStrings(int pref, const char *strings[])
-{
-    pref_strings[pref] = strings;
+    return pref_strings[i];
 }
 
 
@@ -223,7 +212,7 @@ bool init_global_prefs()
     }
     for (int i=1; i<NUM_EEPROM_USED; i++)
     {
-        prefs[i] = last_prefs[i] = pref_cache[i] = EEPROM.read(i);
+        pref[i] = pref_save[i] = EEPROM.read(i);
     }
     setDefaultPrefs();
     return retval;
@@ -237,8 +226,8 @@ void save_global_prefs()
     display(dbg_prefs,"save_global_prefs",0);
     for (int i=1; i<NUM_EEPROM_USED; i++)
     {
-        EEPROM.write(i,pref_cache[i]);
-        last_prefs[i] = pref_cache[i];
+        EEPROM.write(i,pref[i]);
+        pref_save[i] = pref[i];
     }
 }
 
@@ -252,23 +241,23 @@ void save_global_prefs()
 bool prefs_changed()
 {
     for (int i=0; i<NUM_EEPROM_USED; i++)
-        if (last_prefs[i] != pref_cache[i])
+        if (pref[i] != pref_save[i])
             return true;
     return false;
 }
 
 
 // extern
-bool pref_changed8(int pref)
+bool pref_changed8(int i)
 {
-    return last_prefs[pref] != pref_cache[pref];
+    return pref[i] != pref_save[i];
 }
 
 // extern
-bool pref_changed16(int pref)
+bool pref_changed16(int i)
 {
-    return last_prefs[pref] != pref_cache[pref] ||
-           last_prefs[pref+1] != pref_cache[pref+1];
+    return pref[i] != pref_save[i] ||
+           pref[i+1] != pref_save[i+1];
 }
 
 
@@ -277,20 +266,19 @@ void restore_prefs()
 {
     display(dbg_prefs,"restore_prefs()",0);
     for (int i=0; i<NUM_EEPROM_USED; i++)
-        pref_cache[i] = last_prefs[i];
-    setDefaultPrefs();
+        pref[i] = pref_save[i];
 }
 
 // extern
 void restore_pref8(int i)
 {
-    pref_cache[i] = last_prefs[i];
+    pref[i] = pref_save[i];
 }
 
 void restore_pref16(int i)
 {
-    pref_cache[i] = last_prefs[i];
-    pref_cache[i+1] = last_prefs[i+1];
+    pref[i] = pref_save[i];
+    pref[i+1] = pref_save[i+1];
 }
 
 
@@ -301,23 +289,23 @@ void restore_pref16(int i)
 //------------------------------
 
 // extern
-void setPref8(int pref, uint8_t val)
+void setPref8(int i, uint8_t val)
 {
-    pref_cache[pref] = prefs[pref] = val;
+    pref[i] = val;
 }
 
 
 // extern
-void setPrefBool(int pref, bool val)
+void setPrefBool(int i, bool val)
 {
-    pref_cache[pref] = prefs[pref] = val;
+    pref[i] = val;
 }
 
 
 // extern
-void setPref16(int pref, uint16_t val)
+void setPref16(int i, uint16_t val)
 {
-    uint16_t *p0 = (uint16_t *)&pref_cache[pref];
-    uint16_t *p1 = (uint16_t *)&prefs[pref];
-    *p0 = *p1 = val;
+    uint16_t *p0 = (uint16_t *)&pref[i];
+    *p0 = val;
 }
+

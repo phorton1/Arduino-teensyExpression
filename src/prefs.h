@@ -62,10 +62,7 @@
 #define PEDAL_MODE_SERIAL               0x01
     // a Pedal can send it's data via USB to the iPad, or over the Serial port to the rPi.
 
-
-#define PREF_PEDAL_MODE_OFFSET          0
-    // the pedal mode is "normal" or "serial"
-
+#define PREF_PEDAL_MODE_OFFSET          0		// the pedal mode is "normal" or "serial"
 #define PREF_PEDAL_CURVE_TYPE_OFFSET    1       // 0=linear, 1=asymptotic, 2=scurve - default(0) == num_points
 #define PREF_PEDAL_CALIB_MIN_OFFSET     2       // default 0
 #define PREF_PEDAL_CALIB_MAX_OFFSET     4       // default 1023
@@ -184,13 +181,13 @@
 // API
 //--------------------------------------------------------------------------------
 
-extern uint8_t prefs[NUM_EEPROM_USED];
+extern uint8_t pref[NUM_EEPROM_USED];
     // for inline speed - NOT for use by clients
 
 
-inline uint8_t  getPref8(int pref)      { return prefs[pref]; }
-inline bool     getPrefBool(int pref)   { return (bool) prefs[pref]; }
-inline uint16_t getPref16(int pref)     { uint16_t *p=(uint16_t *) &prefs[pref];  return *p; }
+inline uint8_t  getPref8(int i)      { return pref[i]; }
+inline bool     getPrefBool(int i)   { return (bool) pref[i]; }
+inline uint16_t getPref16(int i)     { uint16_t *p=(uint16_t *) &pref[i];  return *p; }
 
 extern void clear_prefs();
 extern bool init_global_prefs();
@@ -198,19 +195,19 @@ extern bool init_global_prefs();
 
 extern void save_global_prefs();
 
-extern void setPref8(int pref, uint8_t val);
-extern void setPrefBool(int pref, bool val);
-extern void setPref16(int pref, uint16_t val);
+extern void setPref8(int i, uint8_t val);
+extern void setPrefBool(int i, bool val);
+extern void setPref16(int i, uint16_t val);
 
 extern bool prefs_changed();
     // are they changed since last save?
-extern bool pref_changed8(int pref);
-extern bool pref_changed16(int pref);
+extern bool pref_changed8(int i);
+extern bool pref_changed16(int i);
 
 extern void restore_prefs();
     // restore them to last saved state
-extern void restore_pref8(int pref);
-extern void restore_pref16(int pref);
+extern void restore_pref8(int i);
+extern void restore_pref16(int i);
 extern void setDefaultPrefs();
     // should be called after multiple calls to restore_pref
     // is safe - does not re-read or alter write thru cache
@@ -221,10 +218,7 @@ extern uint8_t portMonitorPref(int p, int off);
     // defering to the default settings if the port
     // has it's main pref set to "default"
 
-extern int16_t getPrefMin(int pref);
-extern int16_t getPrefMax(int pref);
-extern void    setPrefMax(int pref, int16_t max);
-
-extern const char **getPrefStrings(int pref);
-extern void setPrefStrings(int pref, const char *strings[]=0);
+extern int16_t getPrefMin(int i);
+extern int16_t getPrefMax(int i);
+extern const char **getPrefStrings(int i);
 
