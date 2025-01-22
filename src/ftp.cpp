@@ -21,12 +21,6 @@ int	ftp_dynamic_offset = -1;    // range 0..20, default 10
 int	ftp_touch_sensitivity = -1; // range 0..9, default 4
 
 
-
-uint8_t ftp_get_sensitivy_command_string_number = 0;
-
-const int  string_base_notes[6] = {0x40, 0x3b, 0x37, 0x32, 0x2d, 0x28};
-
-
 const char *getFTPCommandName(uint8_t p2)
 {
     if (p2 == FTP_CMD_EDITOR_MODE           ) return "EDITOR_MODE";                 // 0x04
@@ -53,11 +47,13 @@ const char *getFTPCommandName(uint8_t p2)
 
 
 
-const char *note_names[] = {"C","C#","D","D#","E","F","F#","G","G#","A","A#","B"};
-
+//-------------------------------------------------
+// notes
+//-------------------------------------------------
 
 const char *noteName(uint8_t note)
 {
+	static const char *note_names[] = {"C","C#","D","D#","E","F","F#","G","G#","A","A#","B"};
     return note_names[note % 12];
 }
 
@@ -66,6 +62,8 @@ note_t *addNote(uint8_t val, uint8_t vel, uint8_t string, uint8_t vel2)
     // -1 is an invalid fret
     // zero is an invalid note
 {
+	static const int string_base_notes[6] = {0x40, 0x3b, 0x37, 0x32, 0x2d, 0x28};
+
     note_t *note = new note_t;
     note->val = val;
     note->vel = vel;
@@ -93,8 +91,6 @@ note_t *addNote(uint8_t val, uint8_t vel, uint8_t string, uint8_t vel2)
 }
 
 
-
-
 void deleteNote(uint8_t string)
 {
     __disable_irq();
@@ -116,29 +112,24 @@ void deleteNote(uint8_t string)
 
         if (note == most_recent_note)
             most_recent_note = 0;
-
         if (note == tuning_note)
             tuning_note = 0;
+
+		delete note;
     }
     else
     {
         warning(0,"could not find note on string(%d) to delete",string);
     }
     __enable_irq();
-    delete note;
 }
-
-
-
-
-
 
 
 //-------------------------------------------------------------
 // patch display
 //-------------------------------------------------------------
 
-const char *pedalModeName(int i)
+static const char *pedalModeName(int i)
 {
     if (i==0) return "BlockNew";
     if (i==1) return "DontBlock";
@@ -150,7 +141,7 @@ const char *pedalModeName(int i)
 }
 
 
-const char *pitchBendModeName(int i)
+static const char *pitchBendModeName(int i)
 {
 	if (i == 1) return "Smooth";
 	if (i == 2) return "Stepped";
@@ -160,8 +151,6 @@ const char *pitchBendModeName(int i)
 }
 
 
-
-uint8_t patch_sig[6] = {0xF0, 0x00, 0x01, 0x6E, 0x01, 0x21};
 
 #define show                out_stream->printf
 #define colorHeader(i)      { show("\033[%d;%dm    ",color,bg_color);  for (int j=0; j<i; j++) show("    "); }
@@ -177,10 +166,12 @@ bool showFtpPatch(
     uint32_t buflen)
     // returns true if there was an error
 {
-    uint8_t *p = patch_buf;
-    patch_sig[5] = is_ftp_controller ? 0x21 : 0x41;
-    if (buflen != 142) return false;      // patches are 42
+    if (buflen != 142) return false;      // patches are 142
 
+	static uint8_t patch_sig[6] = {0xF0, 0x00, 0x01, 0x6E, 0x01, 0x21};
+	patch_sig[5] = is_ftp_controller ? 0x21 : 0x41;
+
+	uint8_t *p = patch_buf;
     for (int i=0; i<6; i++)
     {
         if (*p != patch_sig[i])
@@ -341,19 +332,29 @@ bool showFtpPatch(
 #define SLOW_INIT_BATTERY_CHECK_TIME    15000       // then try every 15 seconds, forever, until an FTP is found, or not
 #define NORMAL_BATTERY_CHECK_TIME       60000       // once found, update the battery level once per minute
 
+#define NUM_INIT_STATES					10
+#define INIT_STATE_DELAY				10			// millis
+
+
 // we do NOT monitor if the FTP goes offline
 
-elapsedMillis s_battery_time = 0;
-int           s_num_battery_checks = 0;             // number of unitialized tries
-int           ftp_init_state = 0;
+static elapsedMillis s_battery_time = 0;
+static int           s_num_battery_checks = 0;             // number of unitialized tries
+static elapsedMillis s_init_time = 0;
+static int           s_ftp_init_state = 0;
 
-
-// static, global
-
+// extern
 void initQueryFTP()
 {
-    if (!getPref8(PREF_FTP_PORT))
-        return;
+	if (!getPref8(PREF_FTP_PORT))
+		return;
+
+	if (pendingFTPCount())
+	{
+		s_init_time = 0;
+		s_battery_time = 0;
+		return;
+	}
 
     uint32_t use_check_time = ftp_battery_level == -1 ?
         s_num_battery_checks < NUM_INITIAL_BATTERY_CHECKS ?
@@ -371,24 +372,30 @@ void initQueryFTP()
     // one time initialization if FTP is found
 
     if (ftp_battery_level != -1 &&
-        ftp_init_state == 0)            // not initialized yet
+        s_ftp_init_state < NUM_INIT_STATES &&
+		s_init_time > INIT_STATE_DELAY)            // not initialized yet
     {
-        ftp_init_state = 1;
-        display(0,"INITIALIZING FTP",0);
+        display(0,"INITIALIZING FTP(%d)",s_ftp_init_state);
 
-        for (int i=0; i<NUM_STRINGS; i++)
-        {
-            sendFTPCommandAndValue(FTP_CMD_GET_SENSITIVITY, i);
-        }
+        #define DEFAULT_DYNAMIC_RANGE   	20
+        #define DEFAULT_DYNAMIC_OFFSET  	10
+        #define DEFAULT_TOUCH_SENSITIVITY  	4
 
-        #define DEFAULT_DYNAMIC_RANGE   20
-        #define DEFAULT_DYNAMIC_OFFSET  10
-        #define DEFAULT_TOUCH_SENSITIVITY  4
+		switch (s_ftp_init_state)
+		{
+			case 0 : sendFTPCommandAndValue(FTP_CMD_GET_SENSITIVITY, 0);  break;
+			case 1 : sendFTPCommandAndValue(FTP_CMD_GET_SENSITIVITY, 1);  break;
+			case 2 : sendFTPCommandAndValue(FTP_CMD_GET_SENSITIVITY, 2);  break;
+			case 3 : sendFTPCommandAndValue(FTP_CMD_GET_SENSITIVITY, 3);  break;
+			case 4 : sendFTPCommandAndValue(FTP_CMD_GET_SENSITIVITY, 4);  break;
+			case 5 : sendFTPCommandAndValue(FTP_CMD_GET_SENSITIVITY, 5);  break;
+			case 6 : sendFTPCommandAndValue(FTP_CMD_SPLIT_NUMBER,0x01);                          	break;
+			case 7 : sendFTPCommandAndValue(FTP_CMD_DYNAMICS_SENSITIVITY,DEFAULT_DYNAMIC_RANGE); 	break;
+			case 8 : sendFTPCommandAndValue(FTP_CMD_DYNAMICS_OFFSET,DEFAULT_DYNAMIC_OFFSET);     	break;
+			case 9 : sendFTPCommandAndValue(FTP_CMD_TOUCH_SENSITIVITY,DEFAULT_TOUCH_SENSITIVITY);	break;
+		}
 
-        sendFTPCommandAndValue(FTP_CMD_SPLIT_NUMBER,0x01);
-        sendFTPCommandAndValue(FTP_CMD_DYNAMICS_SENSITIVITY,DEFAULT_DYNAMIC_RANGE);
-        sendFTPCommandAndValue(FTP_CMD_DYNAMICS_OFFSET,DEFAULT_DYNAMIC_OFFSET);
-        sendFTPCommandAndValue(FTP_CMD_TOUCH_SENSITIVITY,DEFAULT_TOUCH_SENSITIVITY);
-    }
-
+		s_ftp_init_state++;
+		s_init_time = 0;
+	}
 }

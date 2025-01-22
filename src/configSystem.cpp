@@ -1,3 +1,15 @@
+//-----------------------------------------------
+// configSystem.cpp
+//-----------------------------------------------
+// A "rig" (special expWindow) that handles configuration of the pedal.
+//
+// Configuration value changes have a one-to-one mapping directly to prefs.
+// For most changes the system can handle them being changed asynchronously.
+// However, certain changes, like changing the FTP port or SPOOF_FTP setting,
+// would best be handled synchronously at the end, when the changes are accepted.
+//
+// As it is, right now, turning on FTP host mode is dangerous and crashes the system.
+
 
 #include <myDebug.h>
 #include "configSystem.h"

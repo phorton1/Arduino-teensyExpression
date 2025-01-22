@@ -69,10 +69,16 @@ uint8_t last_command[NUM_MIDI_PORTS]  = {0,0,0,0,0,0,0,0};
 
 // outgoing command processing
 
-uint32_t pending_command        = 0;        // note that these are the full messages
-uint32_t pending_command_value  = 0;
-int command_retry_count         = 0;
-elapsedMillis command_time      = 0;
+#define COMMAND_RETRY_TIMES     9       // plus initial try == 10
+#define COMMAND_RETRY_MILLIS    200
+    // if no reply to an ftp command in this many millis,
+    // the command will be resent upto COMMAND_RETRY_TIMES times
+
+static volatile int pending_count      = 0;
+static uint32_t pending_command        = 0;        // note that these are the full messages
+static uint32_t pending_command_value  = 0;
+static int command_retry_count         = 0;
+static elapsedMillis command_time      = 0;
     // These four variables are used to implement an asynychronous
     // command and reply conversation with the host.  When we send
     // a command (and value), we save them here, and in processing
@@ -253,6 +259,12 @@ uint32_t _dequeueOutgoing()
 }
 
 
+
+int pendingFTPCount()
+{
+    return pending_count;
+}
+
 void sendFTPCommandAndValue(uint8_t command, uint8_t value)
 {
     if (!FTP_OUTPUT_PORT)
@@ -261,7 +273,8 @@ void sendFTPCommandAndValue(uint8_t command, uint8_t value)
         return;
     }
 
-    display(0,"sendFTPCommandAndValue(%02x,%02x)",command,value);
+    display(0,"sendFTPCommandAndValue(%02x,%02x) pending_count=%d",command,value,pending_count);
+    pending_count++;
 
     msgUnion msg(
         0x1B,
@@ -342,13 +355,14 @@ void _processOutgoing()
             sendPendingCommand();
         }
     }
-    else if (command_retry_count > 10)
+    else if (command_retry_count >= COMMAND_RETRY_TIMES)
     {
         my_error("timed out sending command %08x %08x",pending_command,pending_command_value);
         command_retry_count = 0;
         pending_command = 0;
+        pending_count--;
     }
-    else if (command_time > 100)    // resend with timer
+    else if (command_time > COMMAND_RETRY_MILLIS)    // resend with timer
     {
         command_retry_count++;
         display(0,"--> retry(%d) command(%08x) value(%08x)",command_retry_count,pending_command,pending_command_value);
@@ -1029,11 +1043,6 @@ void _processMessage(uint32_t i)
                         sprintf(buf2,"%s %s touch_sensitivity=%d",cmd_or_reply,command_name,value);
                     }
                 }
-
-
-
-
-
                 else
                 {
                     show_it = show_it && getPref8(PREF_MONITOR_KNOWN_FTP_COMMANDS);
@@ -1046,6 +1055,7 @@ void _processMessage(uint32_t i)
                 {
                     display(0,"Clearing pending command(%02x)",pending_command_byte);
                     pending_command = 0;
+                    pending_count--;
                 }
 
             }   // is_ftp_port && it's an FTP command_value (0x1f)

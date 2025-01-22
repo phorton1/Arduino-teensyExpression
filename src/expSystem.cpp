@@ -451,12 +451,18 @@ void handleCommonMidiSerial(uint8_t *midi_buf)
 
 void expSystem::updateUI()
 {
-	initQueryFTP();
-		// query the FTP battery level on a timer
-
 	expWindow *win = m_num_modals ?
 		getTopModalWindow() :
 		m_cur_rig;
+
+	// query the FTP battery level on a timer,
+	// but only from the rig_looper,
+	// so we don't start handling FTP port changes
+	// until they are accepted from config_system
+
+	if (win == &rig_looper)
+		initQueryFTP();
+
 
 	//----------------------------------
 	// PEDALS

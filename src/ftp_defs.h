@@ -56,9 +56,6 @@
 
 
 
-
-
-
 //  +======================================================================================================================================
 //  | CONTINUOUS CONTROLLERS (CC's not 1F/3F)
 //  +======+======+============================+==================+========================================================================
@@ -99,7 +96,8 @@
 //  |      |      |                            |                  | Without this 0x02 you don't get the Tuning messages needed for the Tuner UI.
 //  |      |      |                            |                  |
 //  |      |      |                            |                  | But as I said, I suspect there is more going on here than just tuning mode.
-//  |      |      |                            |                  | When this message is sent the controller also may send out a slew of stuff, on channels 1-7 and 11-16 which are probably "performance state"
+//  |      |      |                            |                  | When this message is sent the controller also may send out a slew of stuff,
+//  |      |      |                            |                  | on channels 1-7 and 11-16 which are probably "performance state"
 //  |      |      |                            |                  |
 //  |      |      |                            |                  |      host(1, 1)  B0  ControlChange     65  00
 //  |      |      |                            |                  |      host(1, 1)  B0  ControlChange     64  00
@@ -116,10 +114,6 @@
 //  |      |      |                            |                  | current patch name.
 //  |      |      |                            |                  |
 //  |      |      |                            |                  |
-//  |      |      |                            |                  |
-//  |      |      |                            |                  |
-
-//  |      |      |                            |                  |
 //  |      |      |                            |                  | param values
 //  |      |      |                            |                  | 0x00 - also sends out some message on channel 8, including the sysex for a patch
 //  |      |      |                            |                  |        turns off tuning and pitch bends
@@ -131,7 +125,7 @@
 //  |      |      |                            |                  | 0x02 - definitely turns the tuner on ...
 //  |      |      |                            |                  |
 //  +======+======+============================+==================+========================================================================
-//  |  B7  |  1F  |  0z05                      | SliderPosition   | reply:    B7 1F 05, B7 3F nn    where nn=1, 3, or 2 (not in order)
+//  |  B7  |  1F  |  0x05                      | SliderPosition   | reply:    B7 1F 05, B7 3F nn    where nn=1, 3, or 2 (not in order)
 //  |  B7  |  3F  |  1,3,2                     | (get or notif)   |
 //  |      |      |                            |                  | You can query this nn==0
 //  |      |      |  value sent only           |                  | The controller reports this on default startup.
@@ -142,7 +136,7 @@
 //  |      |      |                            |                  | and 1-7 AND 11-16 in mono mode.
 //  |      |      |                            |                  |
 //  +------+------+----------------------------+------------------+------------------------------------------------------------------------
-//  |  B7  |  1F  |  0z07                      | GetBatteryLevel  | command:  B7 1F 07, B7 3F 00
+//  |  B7  |  1F  |  0x07                      | GetBatteryLevel  | command:  B7 1F 07, B7 3F 00
 //  |  B7  |  3F  |  00 | nn = battery level   | BatteryLevel     | reply:    B7 1F 07, B7 3F nn
 //  |      |      |                            |                  |
 //  |      |      |                            |                  | The battery level return value nn is believed to be from 0x40 to 0x6f.
@@ -153,7 +147,7 @@
 //  |      |      |                            |                  | might be usable as "keep alive" monitor for the FTP editor
 //  |      |      |                            |                  |
 //  +------+------+----------------------------+------------------+------------------------------------------------------------------------
-//  |  B7  |  1F  |  0z08 = FTP_VOLUME         | GetVolume        | command:  B7 1F 08, B7 3F 00
+//  |  B7  |  1F  |  0x08 = FTP_VOLUME         | GetVolume        | command:  B7 1F 08, B7 3F 00
 //  |  B7  |  3F  |  00 | nn = volume levell   | Volume           | reply:    B7 1F 09, B7 3F nn
 //  |      |      |                            |                  |
 //  |      |      |                            |                  | where nn is the value of the rotary volume control on the controller,
@@ -170,8 +164,8 @@
 //  |      |      |                            |                  | my state machine looks for this and 0x3C from the host to maintain
 //  |      |      |                            |                  | the array of sensetivities in memory for UI purposes
 //  +------+------+----------------------------+------------------+------------------------------------------------------------------------
-//  |      |  1F  |  0x3f = POLY/MONO MODE
-//  |      |  3F  |  xx == 0=mono, 1=poly
+//  |      |  1F  | 0x3f = POLY/MONO MODE
+//  |      |  3F  | xx == 0=mono, 1=poly
 //  +------+------+----------------------------+------------------+------------------------------------------------------------------------
 //  |  B7  |  1F  | 0x42                       | GetSensitivity   | command:  B7 1F 42, B7 3F xx  = string 0..5
 //  |  B7  |  3F  | xx = string | yy = level   |                  | reply:    B7 1F 42, B7 3F yy  = level, 0..14
@@ -542,7 +536,7 @@ const uint8_t FTP_CODE_PATCH_NAME  = 0x43;  // a 25 byte informative packet with
 // inline, and IT is compiled with the original usb_desc.h, and it
 // will not work properly as just a MIDI device (which uses SEREMU).
 //
-// Also note that the COM port changes from 3 to 11 when you change
+// Also note that the COM port changes when you change
 // the SPOOF_FTP setting.
 //
 // As it stands right now, I am using a modified version of Paul's

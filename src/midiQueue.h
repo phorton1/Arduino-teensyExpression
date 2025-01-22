@@ -162,7 +162,7 @@ extern void sendSerialControlChange(uint8_t cc_num, uint8_t value, const char *d
 //              B7 3F 13 - pressed
 //              B7 3F 03 - released
 //
-// About here, it went haywire, as the buttons do not act underwtandably
+// About here, it went haywire, as the buttons do not act understandably
 //
 //  First time button is pressed after reboot sends
 //
@@ -200,7 +200,7 @@ extern void sendSerialControlChange(uint8_t cc_num, uint8_t value, const char *d
 
 //   Too bad, I liked the idea of context free controls ...
 //
-//  In this mode the FORWARD button seems to turn of Pitch Bend (though it still sends one zero per note)
+//  In this mode the FORWARD button seems to turn off Pitch Bend (though it still sends one zero per note)
 //  and the back button sends bunches.  The default at boot up is to send none, and now it sends none,
 //  even after pressing FORWARD, so I'm not sure if FORWARD IS functional in the context of my usage.
 //
