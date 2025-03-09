@@ -114,7 +114,7 @@ static void _list(
 {
 	display_level(dbg_cmd,2,"LIST(%d,%s)",cmd->req_num,dir);
 
-	myFile_t the_dir = SD.open(dir);
+	File the_dir = SD.open(dir);
 	if (!the_dir)
 	{
 		my_error("could not opendir(%s)",dir);
@@ -135,11 +135,10 @@ static void _list(
 	unsigned int at = strlen(dir_buffer);
 	char *out = &dir_buffer[at];
 
-	myFile_t entry = the_dir.openNextFile();
+	File entry = the_dir.openNextFile();
 	while (entry)
 	{
-		char name[MAX_FILENAME + 1];
-		entry.getName(name, sizeof(name));
+		const char *name = entry.name();
 		display_level(dbg_cmd+2,4,"got name(%s)",name);
 
 		const char *ts = getTimeStamp(&entry);
@@ -183,7 +182,7 @@ static void _mkdir(
 	{
 		if (use_exist)
 		{
-			myFile_t check_file = SD.open(path);
+			File check_file = SD.open(path);
 			if (!check_file || !check_file.isDirectory())
 				fileReplyError(fsd,cmd,"MKDIR %s is not a directory",path);
 			else
@@ -241,7 +240,7 @@ static void _rename(
 		!makePath(fsd,cmd,path2,dir,name2))
 		return;
 
-	myFile_t file = SD.open(path1);
+	File file = SD.open(path1);
 	if (!file)
 	{
 		fileReplyError(fsd,cmd,"RENAME Could not open %s",name1);
@@ -284,6 +283,7 @@ static bool abortPending(Stream *fsd, fileCommand_t *cmd)
 }
 
 
+#include <SdFat.h>
 
 static bool _delete(
 	Stream *fsd,
@@ -301,12 +301,27 @@ static bool _delete(
 		delay(TEST_DELAY);
 	#endif
 
-	myFile_t the_file = SD.open(path);
+	// OLD:	File the_file = SD.open(path);
+
+	// This is the only place where I was forced
+	// to an alternative to SD.open() and a regular "File",
+	// in order to call rmRfStart().
+
+	FatFile the_file;
+	the_file.open(path, O_RDONLY);	// O_RDWR);
+
+	// FsFile the_file = SD.sdfs.open(path);
+
 
 	bool ok = 1;
 	if (the_file)
 	{
-		bool is_dir = the_file.isDirectory();
+		#if 0
+			bool is_dir = the_file.isDirectory();
+		#else
+			bool is_dir = the_file.isDir();
+		#endif
+
 		if (is_dir)
 		{
 			ok = the_file.rmRfStar();		// remove directory and contents
@@ -443,7 +458,7 @@ static void _file(
 	if (!makeSubdirs(fsd,cmd,use_name))
 		return;
 
-	myFile_t the_file = SD.open(use_name,FILE_WRITE);
+	File the_file = SD.open(use_name,FILE_WRITE);
 	if (!the_file)
 	{
 		fileReplyError(fsd,cmd,"could not open FILE(%s) for output",full_name);
@@ -584,7 +599,7 @@ static void _file(
 
 	if (ok)
 	{
-		setTimeStamp(the_file,ts);
+		setTimeStamp(&the_file,ts);
 
 		the_file.close();
 		if (temp_name[0])
@@ -644,7 +659,7 @@ static bool _putFile(
 
 	// open the file for input
 
-	myFile_t the_file = SD.open(path);
+	File the_file = SD.open(path);
 	if (!the_file)
 	{
 		fileReplyError(fsd,cmd,"_putFile could not open %s for input",path);
@@ -793,7 +808,7 @@ static bool _putDir(
 	if (!makePath(fsd,cmd,target_path,target_dir,entry))
 		return 0;
 
-	myFile_t the_dir = SD.open(path);
+	File the_dir = SD.open(path);
 	if (!the_dir)
 	{
 		fileReplyError(fsd,cmd,"_putDir(%s) could not open directory",path);
@@ -825,11 +840,10 @@ static bool _putDir(
 	// many PROGRESS ADDS
 
 	bool ok = 1;
-	myFile_t dir_entry = the_dir.openNextFile();
+	File dir_entry = the_dir.openNextFile();
 	while (ok && dir_entry)
 	{
-		char name[MAX_FILENAME];
-		dir_entry.getName(name, sizeof(name));
+		const char *name = dir_entry.name();
 		bool is_dir = dir_entry.isDirectory();
 		display_level(dbg_cmd+2,4+level,"got is_dir(%d) name(%s)",is_dir,name);
 

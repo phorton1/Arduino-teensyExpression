@@ -1,64 +1,44 @@
 //-------------------------------------------------------------
 // fileSystem.h
 //-------------------------------------------------------------
-// Abstracted file system for use with serial IO protocol.
-// The source code files fileXXXX.cpp and h are the same in TE1 and TE2.
-// They have NOT been made into a submodule yet, so must be manually normalized.
+// 2025-03-08 POSSIBLE BREAKTHROUGH
 //
-// The fileSystem, as per it's usage as a fileServer, is limited to a two
-// active commands at a time.
+// While working on TE3, I noticed that I could generally use
+// the regular SD "File", and apart from the unused and probably
+// now bogus fileFormat.cpp, could compile TE1 against the
+// included teensy SD API, possibly doing away with the need
+// for the old SDFat that I kept in my libraries folder.
+// I removed the TE2 
 //
-// We need teensyThreads to allow for re-entrancy for session like commands
-// and abort/cancel functions.
+// In other words, it is very close to possible to have a single
+// set of source code that works on both the old TE1/2 teensy3.6
+// and the new TE3 teensy 4.1.
 //
-// Due to implementation details in teensyThreads, we cannot, generally, use
-// malloc() from within a thresd, because each thread allocates its stack on the heap,
-// and, within the thread, the thread specific stack pointer is WITHIN the heap, so
-// malloc does not work corrctly.
+// The only aberations I noticed were
 //
+//	(a) the root file directory TS is returning as "" and
+//      Pub::FS::FileINfo::fromText() was balking, so I
+//		commented that error check out, and
+//  (b) In order to use rmRfStar(), which I need to remove
+//		populated directories, in the fileCommand.cpp::_delete()
+//		method I had to explicitly open a "FatFile" O_RDONLY
+//      and it seemed to work.
+//
+// Otherwise the changes appear to have come down to the
+// fact that the old library File had a getName() function that
+// required a buffer, whereas the new one has a name() function
+// that returns a const char *, which is better anyways, and
+// the old File had an isDirectory() method that appears to have
+// been replaced with an isDir() method.
+//
+// So, as of this writing I am removeing "myFile_t File" and
+// the USE_OLD_FAT define and associated complexity.
 
 
 #pragma once
 
-#define USE_OLD_FAT		1
-
-
 #include "Arduino.h"
-#include <SdFat.h>
-
-#if USE_OLD_FAT
-	#define myFile_t File
-	#define myDir_t		 dir_t
-	extern SdFatSdio SD;
-#else
-	#define myFile_t File32
-	#define myDir_t		 DirFat_t
-	extern SdFat32 SD;
-#endif
-
-
-#define BYTES_PER_MB    (1024*1024)
-
-
-//------------------------------------
-// memory debugging
-//------------------------------------
-
-#define dbg_malloc  0
-
-#define DO_MEM_CHECKS   1
-
-extern void print_mem_info(const char *where = 0);
-extern void print_long_mem_info(const char *where = 0);
-
-#if DO_MEM_CHECKS
-	#define MEM_INFO(s)			print_mem_info(s)
-	#define LONG_MEM_INFO(s)	print_long_mem_info(s)
-#else
-	#define MEM_INFO(s)
-	#define LONG_MEM_INFO(s)
-#endif
-
+#include <SD.h>
 
 //----------------------------------------------
 // general SD/fileSystem API in fileSystem.cpp
@@ -72,15 +52,44 @@ extern bool hasSDCard();
 	// there may be an SDCard() with no valid fileSystem
 	// that can still be formatted.
 
-extern uint32_t getFreeMB();
-extern uint32_t getTotalMB();
-extern uint64_t getFreeBytes();
-	// These are fileSystem values
 
-extern const char *getTimeStamp(myFile_t *file);
+// These are currently the MODIFY timestamps,
+// but (once I figure this mess out) should be
+// easily parameterized to do CREATE timestamps as well.
+
+extern const char *getTimeStamp(File *file);
 extern const char *getTimeStamp(const char *path);
-extern void setTimeStamp(myFile_t the_file, const char *ts);
+extern void setTimeStamp(File *file, const char *ts);
 extern bool mkDirTS(const char *path, const char *ts);
+
+
+
+
+
+#if 1
+	//------------------------------------
+	// memory debugging
+	//------------------------------------
+
+	#define dbg_malloc  0
+
+	#define DO_MEM_CHECKS   1
+
+	extern void print_mem_info(const char *where = 0);
+	extern void print_long_mem_info(const char *where = 0);
+
+	#if DO_MEM_CHECKS
+		#define MEM_INFO(s)			print_mem_info(s)
+		#define LONG_MEM_INFO(s)	print_long_mem_info(s)
+	#else
+		#define MEM_INFO(s)
+		#define LONG_MEM_INFO(s)
+	#endif
+#endif
+
+
+
+
 
 
 //-------------------------------------------------
@@ -97,6 +106,8 @@ extern void handleSerialData();
 	// the midi data.
 extern void handleCommonMidiSerial(uint8_t *midi_buf);
 	// THIS MUST BE IMPLEMENTED ON BOTH SYSTEMS.
+
+
 
 
 

@@ -196,9 +196,8 @@ int songParser::getSongNames()
     File entry = the_dir.openNextFile();
     while (entry)
     {
-        char filename[255];
-        entry.getName(filename, sizeof(filename));
-
+        const char *filename = entry.name();
+        
         if (!entry.isDirectory())
         {
             int len = strlen(filename)-5;
